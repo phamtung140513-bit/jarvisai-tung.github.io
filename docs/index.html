@@ -80,15 +80,28 @@
         <div class="attach-preview" id="attachPreview" hidden></div>
         <form class="composer" id="form">
           <input type="file" id="fileImage" accept="image/*" multiple hidden />
-          <button type="button" class="icon-btn attach-btn" id="btnAttach" title="Đính kèm ảnh" aria-label="Ảnh">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-            </svg>
-          </button>
+
+          <div class="plus-wrap" id="plusWrap">
+            <button type="button" class="plus-btn" id="btnPlus" title="Thêm" aria-label="Thêm" aria-haspopup="true" aria-expanded="false">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+            <div class="plus-menu" id="plusMenu" hidden role="menu">
+              <button type="button" class="plus-item" id="menuPickImage" role="menuitem">
+                <span class="pi-ico">🖼</span>
+                <span>
+                  <strong>Ảnh từ máy</strong>
+                  <small>Chọn ảnh trên thiết bị</small>
+                </span>
+              </button>
+            </div>
+          </div>
+
           <textarea
             id="input"
             rows="1"
-            placeholder="Nhắn tin hoặc gửi ảnh…"
+            placeholder="Nhắn tin cho Jarvis…"
             autocomplete="off"
             enterkeyhint="send"
           ></textarea>
@@ -98,7 +111,7 @@
             </svg>
           </button>
         </form>
-        <p class="disclaimer">Hỗ trợ ảnh (model vision). Gợi ý Groq: <code>meta-llama/llama-4-scout-17b-16e-instruct</code>. Key chỉ lưu trình duyệt.</p>
+        <p class="disclaimer">Bấm <strong>+</strong> → Ảnh từ máy. Vision: preset <code>Groq vision</code>. Key chỉ lưu trình duyệt.</p>
       </div>
     </main>
   </div>

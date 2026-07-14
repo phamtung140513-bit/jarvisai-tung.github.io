@@ -57,7 +57,9 @@ Không bịa API; nếu không chắc hãy nói rõ.`;
     btnTopSettings: $("btnTopSettings"),
     btnOpenSidebar: $("btnOpenSidebar"),
     btnCloseSidebar: $("btnCloseSidebar"),
-    btnAttach: $("btnAttach"),
+    btnPlus: $("btnPlus"),
+    plusMenu: $("plusMenu"),
+    menuPickImage: $("menuPickImage"),
     fileImage: $("fileImage"),
     attachPreview: $("attachPreview"),
     modelChip: $("modelChip"),
@@ -301,7 +303,22 @@ Không bịa API; nếu không chắc hãy nói rõ.`;
     busy = v;
     els.send.disabled = v;
     els.input.disabled = v;
-    if (els.btnAttach) els.btnAttach.disabled = v;
+    if (els.btnPlus) els.btnPlus.disabled = v;
+  }
+
+  function closePlusMenu() {
+    if (!els.plusMenu) return;
+    els.plusMenu.hidden = true;
+    els.btnPlus?.classList.remove("open");
+    els.btnPlus?.setAttribute("aria-expanded", "false");
+  }
+
+  function togglePlusMenu() {
+    if (!els.plusMenu) return;
+    const open = els.plusMenu.hidden;
+    els.plusMenu.hidden = !open;
+    els.btnPlus?.classList.toggle("open", open);
+    els.btnPlus?.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
   function clearPendingImages() {
@@ -643,10 +660,24 @@ Không bịa API; nếu không chắc hãy nói rõ.`;
     if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
   });
 
-  els.btnAttach?.addEventListener("click", () => els.fileImage?.click());
+  // + menu: open options (image from device, …)
+  els.btnPlus?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePlusMenu();
+  });
+  els.menuPickImage?.addEventListener("click", () => {
+    closePlusMenu();
+    els.fileImage?.click();
+  });
   els.fileImage?.addEventListener("change", () => {
     if (els.fileImage.files?.length) addFiles(els.fileImage.files);
     els.fileImage.value = "";
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest?.("#plusWrap")) closePlusMenu();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePlusMenu();
   });
 
   els.btnNew.addEventListener("click", newChat);

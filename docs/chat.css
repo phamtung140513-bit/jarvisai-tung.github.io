@@ -389,13 +389,86 @@ button, input, textarea, select {
   padding: 0.55rem 0.65rem;
   box-shadow: 0 0 0 0 transparent;
 }
-.composer .attach-btn {
+.plus-wrap {
+  position: relative;
   flex-shrink: 0;
+  align-self: flex-end;
+}
+.plus-btn {
   width: 36px;
   height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
   color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
-.composer .attach-btn:hover { color: var(--text); }
+.plus-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+.plus-btn.open {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  transform: rotate(45deg);
+}
+.plus-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  min-width: 220px;
+  background: #2a2a2a;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.35rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  z-index: 40;
+}
+.plus-menu[hidden] { display: none !important; }
+.plus-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 0.7rem 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.plus-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.plus-item .pi-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(16, 163, 127, 0.15);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.plus-item strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.plus-item small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
+}
+.composer.drag {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(16, 163, 127, 0.35);
+}
 .composer:focus-within {
   border-color: rgba(255, 255, 255, 0.2);
 }
