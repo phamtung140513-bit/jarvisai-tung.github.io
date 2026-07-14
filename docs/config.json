@@ -1,5 +1,7 @@
 {
-  "apiBase": "http://127.0.0.1:7860",
+  "apiBase": "",
+  "sameOrigin": true,
   "telegramBot": "https://t.me/grokapiai_bot",
-  "appName": "Jarvis AI"
+  "appName": "Jarvis AI",
+  "note": "apiBase empty = same domain as the page (recommended). Only set full URL if frontend is on GitHub Pages and API is on another host."
 }

@@ -48,17 +48,24 @@
     adminPanelOut: $("adminPanelOut"),
   };
 
-  let cfgPublic = { apiBase: "http://127.0.0.1:7860", telegramBot: "https://t.me/grokapiai_bot" };
+  let cfgPublic = { apiBase: "", telegramBot: "https://t.me/grokapiai_bot" };
   let pendingImages = [];
   let chats = [];
   let activeId = null;
   let busy = false;
   let sessionId = localStorage.getItem("jarvis_sid_v2") || "";
 
+  /**
+   * Same domain as the web UI by default (empty apiBase => location.origin).
+   * Admin may override via LS_API only when needed (e.g. GitHub Pages → VPS).
+   */
   function apiBase() {
     const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
     if (fromLs) return fromLs;
-    return (cfgPublic.apiBase || "http://127.0.0.1:7860").replace(/\/$/, "");
+    const fromCfg = (cfgPublic.apiBase || "").trim().replace(/\/$/, "");
+    if (fromCfg) return fromCfg;
+    // Same origin as current page (http://127.0.0.1:7860 or your VPS domain)
+    return (location.origin || "").replace(/\/$/, "");
   }
 
   function userToken() {

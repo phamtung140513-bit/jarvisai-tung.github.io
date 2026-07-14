@@ -39,6 +39,8 @@ from config import get_settings  # noqa: E402
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+# Same-domain UI: serve GitHub Pages chat (docs/) + /api on one host
+DOCS_DIR = ROOT / "docs"
 
 # Coding-first system (same spirit as Telegram)
 WEB_SYSTEM = SYSTEM_PROMPT
@@ -103,6 +105,14 @@ def create_app() -> FastAPI:
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+    # Assets for docs/ chat UI (same origin as API)
+    if (DOCS_DIR / "assets").is_dir():
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(DOCS_DIR / "assets")),
+            name="docs-assets",
+        )
+
     def _check_user_token(authorization: str | None, x_token: str | None) -> None:
         if not access_token:
             return
@@ -130,12 +140,53 @@ def create_app() -> FastAPI:
             return
         raise HTTPException(status_code=401, detail="Sai admin key")
 
+    def _docs_file(name: str) -> Path | None:
+        path = (DOCS_DIR / name).resolve()
+        try:
+            path.relative_to(DOCS_DIR.resolve())
+        except ValueError:
+            return None
+        return path if path.is_file() else None
+
     @app.get("/", response_class=HTMLResponse)
-    async def index() -> FileResponse:
-        index_path = STATIC_DIR / "index.html"
-        if not index_path.is_file():
-            return HTMLResponse("<h1>Missing webapp/static/index.html</h1>", status_code=500)
-        return FileResponse(index_path)
+    async def index() -> FileResponse | HTMLResponse:
+        # Prefer docs/ chat (admin + same-domain API)
+        for candidate in (DOCS_DIR / "index.html", STATIC_DIR / "index.html"):
+            if candidate.is_file():
+                return FileResponse(candidate)
+        return HTMLResponse("<h1>Missing docs/index.html</h1>", status_code=500)
+
+    @app.get("/landing.html", response_class=HTMLResponse)
+    async def landing() -> FileResponse | HTMLResponse:
+        p = _docs_file("landing.html")
+        if p:
+            return FileResponse(p)
+        return HTMLResponse("Not found", status_code=404)
+
+    @app.get("/config.json")
+    async def config_json() -> dict[str, Any]:
+        # Same-domain: empty apiBase => frontend uses location.origin
+        return {
+            "apiBase": "",
+            "telegramBot": "https://t.me/grokapiai_bot",
+            "appName": settings.app_name,
+            "sameOrigin": True,
+        }
+
+    @app.get("/chat.js")
+    async def chat_js() -> FileResponse | HTMLResponse:
+        p = _docs_file("chat.js")
+        return FileResponse(p, media_type="application/javascript") if p else HTMLResponse("x", status_code=404)
+
+    @app.get("/chat.css")
+    async def chat_css() -> FileResponse | HTMLResponse:
+        p = _docs_file("chat.css")
+        return FileResponse(p, media_type="text/css") if p else HTMLResponse("x", status_code=404)
+
+    @app.get("/styles.css")
+    async def styles_css() -> FileResponse | HTMLResponse:
+        p = _docs_file("styles.css")
+        return FileResponse(p, media_type="text/css") if p else HTMLResponse("x", status_code=404)
 
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
@@ -147,6 +198,7 @@ def create_app() -> FastAPI:
             "model": settings.resolved_model,
             "auth_required": bool(access_token),
             "admin_enabled": bool(admin_key),
+            "same_origin_ui": True,
         }
 
     @app.get("/api/config")
@@ -161,6 +213,8 @@ def create_app() -> FastAPI:
             "admin_enabled": bool(admin_key),
             "telegram_bot": "https://t.me/grokapiai_bot",
             "role": "coder",
+            "apiBase": "",
+            "same_origin": True,
         }
 
     @app.post("/api/admin/login")
