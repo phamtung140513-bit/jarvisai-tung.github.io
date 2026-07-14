@@ -57,14 +57,20 @@
 
   /**
    * Same domain as the web UI by default (empty apiBase => location.origin).
-   * Admin may override via LS_API only when needed (e.g. GitHub Pages → VPS).
+   * On GitHub Pages (static only) there is no API — force local server URL.
    */
   function apiBase() {
+    const host = (location.hostname || "").toLowerCase();
+    // Static GitHub Pages cannot run Python API
+    if (host.indexOf("github.io") !== -1) {
+      const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
+      return fromLs || "http://127.0.0.1:7860";
+    }
     const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
     if (fromLs) return fromLs;
     const fromCfg = (cfgPublic.apiBase || "").trim().replace(/\/$/, "");
     if (fromCfg) return fromCfg;
-    // Same origin as current page (http://127.0.0.1:7860 or your VPS domain)
+    // Same origin (http://127.0.0.1:7860 or VPS domain)
     return (location.origin || "").replace(/\/$/, "");
   }
 
