@@ -76,9 +76,9 @@ def create_app() -> FastAPI:
     memory = SessionMemory(settings.max_history_messages)
     grok = GrokClient(settings)
 
-    access_token = (os.getenv("WEB_ACCESS_TOKEN") or "").strip()
-    admin_key = (os.getenv("WEB_ADMIN_KEY") or "").strip()
-    cors_raw = (os.getenv("WEB_CORS_ORIGINS") or "*").strip()
+    access_token = (settings.web_access_token or os.getenv("WEB_ACCESS_TOKEN") or "").strip()
+    admin_key = (settings.web_admin_key or os.getenv("WEB_ADMIN_KEY") or "").strip()
+    cors_raw = (settings.web_cors_origins or os.getenv("WEB_CORS_ORIGINS") or "*").strip()
     cors_origins = [o.strip() for o in cors_raw.split(",") if o.strip()]
 
     # Admin session tokens (in-memory; restart invalidates)

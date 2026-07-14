@@ -115,6 +115,13 @@ class Settings(BaseSettings):
     workspace_dir: Path = Field(default=ROOT_DIR / "workspace", alias="WORKSPACE_DIR")
     max_history_messages: int = Field(40, alias="MAX_HISTORY_MESSAGES")
 
+    # Web chat (GitHub Pages frontend → this backend)
+    web_host: str = Field("0.0.0.0", alias="WEB_HOST")
+    web_port: int = Field(7860, alias="WEB_PORT")
+    web_access_token: str = Field("", alias="WEB_ACCESS_TOKEN")
+    web_admin_key: str = Field("", alias="WEB_ADMIN_KEY")
+    web_cors_origins: str = Field("*", alias="WEB_CORS_ORIGINS")
+
     @field_validator("workspace_dir", mode="before")
     @classmethod
     def _resolve_workspace(cls, v: str | Path) -> Path:
