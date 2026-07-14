@@ -12,18 +12,25 @@ Xem cách bán: **[SELL.md](SELL.md)**
 - White-label: tên bot, support, thanh toán
 - License key khi bán source (`tools/gen_license.py`)
 
-## Landing GitHub Pages (miền tĩnh)
+## Web chat kiểu ChatGPT + GitHub Pages (free)
 
-Trang giới thiệu + bảng giá (static): thư mục **`docs/`**
+Thư mục **`docs/`** — 100% tĩnh:
+
+| URL local | Nội dung |
+|-----------|----------|
+| http://127.0.0.1:8080/ | **Web chat** (sidebar, stream, markdown) |
+| http://127.0.0.1:8080/landing.html | Landing + bảng giá |
 
 ```powershell
 cd C:\Users\Admin\Jarvis-AI\docs
 python -m http.server 8080
-# http://127.0.0.1:8080
 ```
 
-Deploy: push repo → GitHub **Settings → Pages** (Actions hoặc branch `/docs`).  
-Chi tiết: [docs/README.md](docs/README.md)
+Lần đầu chat: ⚙️ → preset **Groq** → dán key free tại [console.groq.com](https://console.groq.com)  
+Key chỉ lưu trình duyệt (localStorage), không commit GitHub.
+
+Deploy free: push repo → **Settings → Pages** → Actions hoặc `/docs`.  
+Chi tiết: [docs/README.md](docs/README.md) · [docs/HUONG_DAN_GITHUB_PAGES.md](docs/HUONG_DAN_GITHUB_PAGES.md)
 
 ## Core
 
