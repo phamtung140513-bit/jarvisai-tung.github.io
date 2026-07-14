@@ -1,0 +1,9 @@
+Trang admin RIENG (khong hien tren chat user):
+
+  http://127.0.0.1:7860/j-panel.html
+
+Key: WEB_ADMIN_KEY trong file .env
+(mac dinh da set: jarvis-admin-change-me — nen doi)
+
+Chat user:
+  http://127.0.0.1:7860/

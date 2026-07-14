@@ -1,11 +1,10 @@
 /**
- * Jarvis Chat (GitHub Pages) — users chat only.
- * Admin tab locked by WEB_ADMIN_KEY (server). No public API settings.
+ * Jarvis Chat — user-facing only (no admin UI).
+ * Admin page is separate: /j-panel.html (secret URL).
  */
 (() => {
   const LS_API = "jarvis_api_base_v2";
   const LS_USER_TOKEN = "jarvis_user_token_v2";
-  const LS_ADMIN_TOKEN = "jarvis_admin_token_v2";
   const LS_CHATS = "jarvis_pages_chats_v2";
   const MAX_IMAGES = 4;
   const MAX_EDGE = 1280;
@@ -22,8 +21,6 @@
     input: $("input"),
     send: $("btnSend"),
     btnNew: $("btnNew"),
-    btnAdmin: $("btnAdmin"),
-    btnAdminTop: $("btnAdminTop"),
     btnOpenSidebar: $("btnOpenSidebar"),
     btnCloseSidebar: $("btnCloseSidebar"),
     btnPlus: $("btnPlus"),
@@ -34,18 +31,6 @@
     chatTitle: $("chatTitle"),
     statusDot: $("statusDot"),
     tgLink: $("tgLink"),
-    adminLoginModal: $("adminLoginModal"),
-    adminKeyInput: $("adminKeyInput"),
-    btnAdminLogin: $("btnAdminLogin"),
-    adminLoginOut: $("adminLoginOut"),
-    adminPanelModal: $("adminPanelModal"),
-    adminApiBase: $("adminApiBase"),
-    adminUserToken: $("adminUserToken"),
-    adminStatusBox: $("adminStatusBox"),
-    btnAdminSave: $("btnAdminSave"),
-    btnAdminTest: $("btnAdminTest"),
-    btnAdminLogout: $("btnAdminLogout"),
-    adminPanelOut: $("adminPanelOut"),
   };
 
   let cfgPublic = { apiBase: "", telegramBot: "https://t.me/grokapiai_bot" };
@@ -78,25 +63,10 @@
     return (localStorage.getItem(LS_USER_TOKEN) || "").trim();
   }
 
-  function adminToken() {
-    return (localStorage.getItem(LS_ADMIN_TOKEN) || "").trim();
-  }
-
-  function isAdmin() {
-    return Boolean(adminToken());
-  }
-
   function userHeaders(extra) {
     const h = Object.assign({ "Content-Type": "application/json" }, extra || {});
     const t = userToken();
     if (t) h["X-Web-Token"] = t;
-    return h;
-  }
-
-  function adminHeaders() {
-    const h = { "Content-Type": "application/json" };
-    const t = adminToken();
-    if (t) h["X-Admin-Token"] = t;
     return h;
   }
 
@@ -145,7 +115,7 @@
       const r = await fetch(apiBase() + "/api/health", { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
-      els.modelChip.textContent = (j.model || "server") + (isAdmin() ? " | admin" : "");
+      els.modelChip.textContent = j.model || "server";
       setStatus(true);
       return j;
     } catch (e) {
@@ -485,11 +455,10 @@
       contentEl.innerHTML = formatMarkdown(
         "**Loi ket noi server**\n\n" +
           String(err.message || err) +
-          "\n\nAdmin can:\n" +
-          "1. Chay `python -m webapp.server` (port 7860)\n" +
-          "2. Dat `WEB_ADMIN_KEY` trong `.env`\n" +
-          "3. Bam **Admin** de dang nhap + set Backend URL\n" +
-          "4. User khong can API key"
+          "\n\nChu y:\n" +
+          "1. Chay server: `python -m webapp.server` (port 7860)\n" +
+          "2. Mo dung: http://127.0.0.1:7860/\n" +
+          "3. User khong can API key"
       );
       setStatus(false);
     } finally {
@@ -521,46 +490,6 @@
     els.backdrop.hidden = true;
   }
 
-  function openAdmin() {
-    if (isAdmin()) {
-      openAdminPanel();
-    } else {
-      els.adminLoginOut.hidden = true;
-      els.adminKeyInput.value = "";
-      els.adminLoginModal.showModal();
-    }
-  }
-
-  function openAdminPanel() {
-    els.adminApiBase.value = apiBase();
-    els.adminUserToken.value = userToken();
-    els.adminPanelOut.hidden = true;
-    els.adminStatusBox.textContent = "Dang load...";
-    els.adminPanelModal.showModal();
-    refreshAdminStatus();
-  }
-
-  async function refreshAdminStatus() {
-    try {
-      const r = await fetch(apiBase() + "/api/admin/status", {
-        headers: adminHeaders(),
-        cache: "no-store",
-      });
-      if (!r.ok) throw new Error(await r.text());
-      const j = await r.json();
-      els.adminStatusBox.textContent =
-        "OK | provider=" +
-        j.provider +
-        " | model=" +
-        j.model +
-        " | user_auth=" +
-        j.user_auth_required;
-      setStatus(true);
-    } catch (e) {
-      els.adminStatusBox.textContent = "Loi: " + (e.message || e);
-    }
-  }
-
   // Events
   els.form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -585,76 +514,9 @@
   });
 
   els.btnNew.addEventListener("click", newChat);
-  els.btnAdmin.addEventListener("click", openAdmin);
-  els.btnAdminTop.addEventListener("click", openAdmin);
   if (els.btnOpenSidebar) els.btnOpenSidebar.addEventListener("click", openSidebar);
   if (els.btnCloseSidebar) els.btnCloseSidebar.addEventListener("click", closeSidebar);
   if (els.backdrop) els.backdrop.addEventListener("click", closeSidebar);
-
-  els.btnAdminLogin.addEventListener("click", async () => {
-    const key = (els.adminKeyInput.value || "").trim();
-    els.adminLoginOut.hidden = false;
-    els.adminLoginOut.className = "test-out";
-    els.adminLoginOut.textContent = "Dang kiem tra...";
-    try {
-      // Ensure api base from input if already known
-      const base = apiBase();
-      const r = await fetch(base + "/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: key }),
-      });
-      if (!r.ok) {
-        const t = await r.text();
-        throw new Error(t || "Sai key / server loi");
-      }
-      const j = await r.json();
-      localStorage.setItem(LS_ADMIN_TOKEN, j.admin_token || key);
-      els.adminLoginOut.className = "test-out ok";
-      els.adminLoginOut.textContent = "OK admin";
-      els.adminLoginModal.close();
-      openAdminPanel();
-      pingServer();
-    } catch (e) {
-      els.adminLoginOut.className = "test-out err";
-      els.adminLoginOut.textContent =
-        String(e.message || e) +
-        " | Dam bao webapp dang chay + WEB_ADMIN_KEY dung + Backend URL dung.";
-    }
-  });
-
-  els.btnAdminSave.addEventListener("click", () => {
-    const base = (els.adminApiBase.value || "").trim().replace(/\/$/, "");
-    if (base) localStorage.setItem(LS_API, base);
-    const ut = (els.adminUserToken.value || "").trim();
-    if (ut) localStorage.setItem(LS_USER_TOKEN, ut);
-    else localStorage.removeItem(LS_USER_TOKEN);
-    els.adminPanelOut.hidden = false;
-    els.adminPanelOut.className = "test-out ok";
-    els.adminPanelOut.textContent = "Da luu cau hinh admin (chi may nay).";
-    pingServer();
-  });
-
-  els.btnAdminTest.addEventListener("click", async () => {
-    els.adminPanelOut.hidden = false;
-    els.adminPanelOut.className = "test-out";
-    els.adminPanelOut.textContent = "Testing...";
-    const h = await pingServer();
-    if (h) {
-      els.adminPanelOut.className = "test-out ok";
-      els.adminPanelOut.textContent = "Health OK: " + (h.model || "");
-      refreshAdminStatus();
-    } else {
-      els.adminPanelOut.className = "test-out err";
-      els.adminPanelOut.textContent = "Khong ket noi duoc " + apiBase();
-    }
-  });
-
-  els.btnAdminLogout.addEventListener("click", () => {
-    localStorage.removeItem(LS_ADMIN_TOKEN);
-    els.adminPanelModal.close();
-    pingServer();
-  });
 
   // Boot
   (async function boot() {

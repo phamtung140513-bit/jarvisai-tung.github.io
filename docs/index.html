@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="chat.css?v=8" />
+  <link rel="stylesheet" href="chat.css?v=9" />
 </head>
 <body>
   <div class="app" id="app">
@@ -35,7 +35,6 @@
       <div class="sidebar-bottom">
         <a class="side-link" href="landing.html">Trang gioi thieu</a>
         <a class="side-link" id="tgLink" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Bot Telegram</a>
-        <button type="button" class="side-link as-btn" id="btnAdmin">Admin</button>
         <div class="user-chip">
           <img src="assets/bot-avatar.jpg" alt="" width="28" height="28" />
           <div>
@@ -55,21 +54,19 @@
           <span id="chatTitle">Jarvis</span>
           <span class="dot" id="statusDot" title="Trang thai"></span>
         </div>
-        <button type="button" class="icon-btn" id="btnAdminTop" title="Admin">*</button>
       </header>
 
       <section class="messages" id="messages" aria-live="polite">
         <div class="welcome" id="welcome">
           <img class="welcome-avatar" src="assets/bot-avatar.jpg" alt="Jarvis" />
           <h1>Jarvis AI</h1>
-          <p>Senior coding assistant. Nguoi dung chi can chat — <strong>khong can API key</strong>.</p>
+          <p>Senior coding assistant. Chi can chat — khong can API key.</p>
           <div class="suggestions">
             <button type="button" data-q="Viet API FastAPI CRUD user (SQLAlchemy + Pydantic), co error handling">FastAPI CRUD</button>
             <button type="button" data-q="Review code Python ve bug va security (toi se paste code)">Code review</button>
             <button type="button" data-q="Giai thich traceback va dua patch (toi se paste log)">Debug</button>
             <button type="button" data-q="Thiet ke kien truc bot Telegram SaaS multi-user">Kien truc bot</button>
           </div>
-          <p class="hint">Admin: bam <strong>Admin</strong> (can key). User thuong khong vao duoc.</p>
         </div>
       </section>
 
@@ -87,56 +84,11 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
         </form>
-        <p class="disclaimer">User khong thay API key. Chi Admin (co key) moi cau hinh server.</p>
+        <p class="disclaimer">Jarvis AI — coding assistant</p>
       </div>
     </main>
   </div>
 
-  <!-- Admin login (locked) -->
-  <dialog class="modal" id="adminLoginModal">
-    <form method="dialog" class="modal-card" id="adminLoginForm">
-      <header>
-        <h2>Admin</h2>
-        <button type="submit" class="icon-btn" value="cancel" aria-label="Dong">X</button>
-      </header>
-      <p class="modal-note">Chi chu so huu. Can <code>WEB_ADMIN_KEY</code> tren server. User thuong khong vao duoc.</p>
-      <label>
-        Admin key
-        <input type="password" id="adminKeyInput" placeholder="WEB_ADMIN_KEY" autocomplete="off" />
-      </label>
-      <footer class="modal-actions">
-        <button type="button" class="btn primary" id="btnAdminLogin">Dang nhap</button>
-      </footer>
-      <p class="test-out" id="adminLoginOut" hidden></p>
-    </form>
-  </dialog>
-
-  <!-- Admin panel (after login) -->
-  <dialog class="modal" id="adminPanelModal">
-    <form method="dialog" class="modal-card">
-      <header>
-        <h2>Admin panel</h2>
-        <button type="submit" class="icon-btn" value="cancel" aria-label="Dong">X</button>
-      </header>
-      <p class="modal-note">API key AI nam trong <code>.env</code> server — khong hien cho user.</p>
-      <label>
-        Backend API URL (server Jarvis web)
-        <input type="url" id="adminApiBase" placeholder="http://127.0.0.1:7860" />
-      </label>
-      <label>
-        User access token (neu bat WEB_ACCESS_TOKEN)
-        <input type="password" id="adminUserToken" placeholder="de trong neu khong bat" autocomplete="off" />
-      </label>
-      <div class="admin-status" id="adminStatusBox">...</div>
-      <footer class="modal-actions">
-        <button type="button" class="btn ghost" id="btnAdminLogout">Dang xuat</button>
-        <button type="button" class="btn ghost" id="btnAdminTest">Test server</button>
-        <button type="button" class="btn primary" id="btnAdminSave">Luu</button>
-      </footer>
-      <p class="test-out" id="adminPanelOut" hidden></p>
-    </form>
-  </dialog>
-
-  <script src="chat.js?v=8"></script>
+  <script src="chat.js?v=9"></script>
 </body>
 </html>

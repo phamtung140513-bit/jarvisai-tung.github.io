@@ -188,6 +188,21 @@ def create_app() -> FastAPI:
         p = _docs_file("styles.css")
         return FileResponse(p, media_type="text/css") if p else HTMLResponse("x", status_code=404)
 
+    # Secret admin page — not linked from user chat UI
+    @app.get("/j-panel.html", response_model=None)
+    async def admin_panel_page():
+        p = _docs_file("j-panel.html")
+        return FileResponse(p) if p else HTMLResponse("Not found", status_code=404)
+
+    @app.get("/admin.js", response_model=None)
+    async def admin_js():
+        p = _docs_file("admin.js")
+        return (
+            FileResponse(p, media_type="application/javascript")
+            if p
+            else HTMLResponse("x", status_code=404)
+        )
+
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
         return {

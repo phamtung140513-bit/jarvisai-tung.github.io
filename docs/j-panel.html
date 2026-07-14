@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Jarvis Console</title>
+  <link rel="stylesheet" href="chat.css?v=9" />
+  <style>
+    body { background: #121212; min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+    .panel {
+      width: 100%;
+      max-width: 420px;
+      background: #2a2a2a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.25rem 1.35rem;
+    }
+    .panel h1 { margin: 0 0 0.35rem; font-size: 1.2rem; }
+    .panel .sub { color: #9b9b9b; font-size: 0.85rem; margin: 0 0 1rem; line-height: 1.45; }
+    .panel label { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: #9b9b9b; }
+    .panel input {
+      background: #1e1e1e; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+      padding: 0.65rem 0.75rem; color: #ececec; outline: none;
+    }
+    .panel input:focus { border-color: #10a37f; }
+    .row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .status {
+      margin-top: 0.85rem; padding: 0.65rem 0.75rem; border-radius: 10px;
+      background: rgba(0,0,0,0.28); font-size: 0.85rem; color: #cfcfcf; white-space: pre-wrap;
+    }
+    .hidden { display: none !important; }
+    #gate, #dash { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <!-- Login gate -->
+    <div id="gate">
+      <h1>Jarvis Console</h1>
+      <p class="sub">Trang rieng cho chu so huu. Can WEB_ADMIN_KEY. Khong link tu chat user.</p>
+      <label>
+        Admin key
+        <input type="password" id="key" placeholder="WEB_ADMIN_KEY" autocomplete="off" />
+      </label>
+      <div class="row">
+        <button type="button" class="btn primary" id="btnLogin">Dang nhap</button>
+      </div>
+      <div class="status hidden" id="gateMsg"></div>
+    </div>
+
+    <!-- Dashboard after login -->
+    <div id="dash" class="hidden">
+      <h1>Admin OK</h1>
+      <p class="sub">API key AI nam trong .env server — user chat khong thay.</p>
+      <label>
+        Backend URL (de trong = cung mien)
+        <input type="url" id="apiBase" placeholder="http://127.0.0.1:7860 hoac de trong" />
+      </label>
+      <label>
+        User access token (neu bat WEB_ACCESS_TOKEN)
+        <input type="password" id="userToken" placeholder="de trong neu khong dung" autocomplete="off" />
+      </label>
+      <div class="row">
+        <button type="button" class="btn primary" id="btnSave">Luu</button>
+        <button type="button" class="btn ghost" id="btnTest">Test</button>
+        <button type="button" class="btn ghost" id="btnLogout">Thoat</button>
+      </div>
+      <div class="status" id="dashMsg">...</div>
+      <p class="sub" style="margin-top:1rem">Chat user: <a id="chatLink" href="/" style="color:#6ea8ff">/</a></p>
+    </div>
+  </div>
+  <script src="admin.js?v=1"></script>
+</body>
+</html>
