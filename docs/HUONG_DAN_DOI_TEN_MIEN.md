@@ -1,14 +1,18 @@
 # Đổi “tên miền” web TungDevAI
 
-## Miền đang dùng (chốt — dễ nhất)
+## Miền tĩnh đang dùng (CHỐT)
 
 ```text
 https://phamtung140513-bit.github.io/jarvis-ai/
 https://phamtung140513-bit.github.io/jarvis-ai/landing.html
+https://phamtung140513-bit.github.io/jarvis-ai/login.html
+https://phamtung140513-bit.github.io/jarvis-ai/register.html
 ```
 
 Repo: https://github.com/phamtung140513-bit/jarvis-ai  
-(Org `jarvisai-tung` / transfer **không bắt buộc** — có thể bỏ qua.)
+
+- **UI (HTML/CSS/JS)**: GitHub Pages free (miền trên)  
+- **API chat**: máy bạn `http://127.0.0.1:7860` hoặc tunnel/VPS (`docs/config.json` → `apiBase`)
 
 ---
 

@@ -18,64 +18,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="chat.css?v=13" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="stylesheet" href="chat.css?v=14" />
 </head>
 <body>
-  <!-- Auth gate — like ChatGPT / Claude / Gemini -->
-  <div id="authGate" class="auth-gate">
-    <div class="auth-card">
-      <img src="assets/bot-avatar.jpg" alt="TungDevAI" class="auth-logo" />
-      <h1>TungDevAI</h1>
-      <p class="auth-sub">Senior coding assistant. Dang nhap de bat dau.</p>
-
-      <div class="auth-tabs" role="tablist">
-        <button type="button" class="auth-tab active" id="tabLogin" data-tab="login">Dang nhap</button>
-        <button type="button" class="auth-tab" id="tabRegister" data-tab="register">Dang ky</button>
-      </div>
-
-      <!-- Login -->
-      <form id="formLogin" class="auth-form" autocomplete="on">
-        <label class="auth-label" for="loginEmail">Email</label>
-        <input class="auth-input" id="loginEmail" type="email" placeholder="ban@email.com" required autocomplete="email" />
-        <label class="auth-label" for="loginPassword">Mat khau</label>
-        <input class="auth-input" id="loginPassword" type="password" placeholder="Mat khau" required minlength="6" autocomplete="current-password" />
-        <button type="submit" class="auth-primary" id="btnLoginSubmit">Dang nhap</button>
-      </form>
-
-      <!-- Register -->
-      <form id="formRegister" class="auth-form hidden" autocomplete="on">
-        <label class="auth-label" for="regName">Ten hien thi</label>
-        <input class="auth-input" id="regName" type="text" placeholder="Ten cua ban" maxlength="80" autocomplete="name" />
-        <label class="auth-label" for="regEmail">Email</label>
-        <input class="auth-input" id="regEmail" type="email" placeholder="ban@email.com" required autocomplete="email" />
-        <label class="auth-label" for="regPassword">Mat khau</label>
-        <input class="auth-input" id="regPassword" type="password" placeholder="Toi thieu 6 ky tu" required minlength="6" autocomplete="new-password" />
-
-        <div class="auth-code-row">
-          <div class="auth-code-field">
-            <label class="auth-label" for="regCode">Ma xac thuc</label>
-            <input class="auth-input" id="regCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="6 so tu email" autocomplete="one-time-code" />
-          </div>
-          <button type="button" class="auth-secondary" id="btnSendCode">Gui ma</button>
-        </div>
-        <p class="auth-hint" id="codeHint"></p>
-        <button type="submit" class="auth-primary" id="btnRegisterSubmit">Tao tai khoan</button>
-      </form>
-
-      <div class="auth-divider"><span>hoac</span></div>
-
-      <div id="googleBtnWrap" class="google-btn-wrap"></div>
-      <button type="button" class="auth-google-fallback hidden" id="btnGoogleFallback">Tiep tuc voi Google</button>
-
-      <p class="auth-hint" id="authHint"></p>
-      <p class="auth-err hidden" id="authErr"></p>
-      <p class="auth-ok hidden" id="authOk"></p>
-      <p class="auth-foot">Email + ma xac thuc, hoac Google — giong cac AI tren thi truong.</p>
-    </div>
-  </div>
-
-  <div class="app hidden" id="app">
+  <!-- Chat app — login/register are separate pages -->
+  <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
         <button type="button" class="btn new-chat" id="btnNew" title="Chat moi">
@@ -144,11 +91,11 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
         </form>
-        <p class="disclaimer">Dang nhap email (ma xac thuc) hoac Google — giong ChatGPT / Claude.</p>
+        <p class="disclaimer">Dang nhap email hoac Google — giong ChatGPT / Claude.</p>
       </div>
     </main>
   </div>
 
-  <script src="chat.js?v=13"></script>
+  <script src="chat.js?v=14"></script>
 </body>
 </html>

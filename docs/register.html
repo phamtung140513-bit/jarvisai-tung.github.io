@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dang ky — TungDevAI</title>
+  <meta name="description" content="Tao tai khoan TungDevAI" />
+  <meta name="theme-color" content="#212121" />
+  <link rel="icon" href="assets/icon.jpg" type="image/jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="chat.css?v=14" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="auth-gate">
+    <div class="auth-card">
+      <a href="landing.html" class="auth-brand-link">
+        <img src="assets/bot-avatar.jpg" alt="TungDevAI" class="auth-logo" />
+      </a>
+      <h1>Dang ky</h1>
+      <p class="auth-sub">Tao tai khoan TungDevAI — nhan ma xac thuc qua email.</p>
+
+      <form id="formRegister" class="auth-form" autocomplete="on">
+        <label class="auth-label" for="regName">Ten hien thi</label>
+        <input class="auth-input" id="regName" type="text" placeholder="Ten cua ban" maxlength="80" autocomplete="name" />
+        <label class="auth-label" for="regEmail">Email</label>
+        <input class="auth-input" id="regEmail" type="email" placeholder="ban@email.com" required autocomplete="email" />
+        <label class="auth-label" for="regPassword">Mat khau</label>
+        <input class="auth-input" id="regPassword" type="password" placeholder="Toi thieu 6 ky tu" required minlength="6" autocomplete="new-password" />
+
+        <div class="auth-code-row">
+          <div class="auth-code-field">
+            <label class="auth-label" for="regCode">Ma xac thuc</label>
+            <input class="auth-input" id="regCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="6 so tu email" autocomplete="one-time-code" />
+          </div>
+          <button type="button" class="auth-secondary" id="btnSendCode">Gui ma</button>
+        </div>
+        <p class="auth-hint" id="codeHint"></p>
+        <button type="submit" class="auth-primary" id="btnRegisterSubmit">Tao tai khoan</button>
+      </form>
+
+      <div class="auth-divider"><span>hoac</span></div>
+      <div id="googleBtnWrap" class="google-btn-wrap"></div>
+
+      <p class="auth-hint" id="authHint"></p>
+      <p class="auth-err hidden" id="authErr"></p>
+      <p class="auth-ok hidden" id="authOk"></p>
+
+      <p class="auth-switch">
+        Da co tai khoan?
+        <a href="login.html">Dang nhap</a>
+      </p>
+      <p class="auth-foot">
+        <a href="landing.html">Trang chu</a> · <a href="index.html">Chat</a>
+      </p>
+    </div>
+  </div>
+  <script src="auth.js?v=5"></script>
+  <script>TungAuth.init("register");</script>
+</body>
+</html>

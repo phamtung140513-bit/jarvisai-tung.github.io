@@ -20,10 +20,12 @@ Giong ChatGPT / Claude: user bam **Sign in with Google** tren web.
      http://localhost:7860
      https://phamtung140513-bit.github.io
      ```
-   - Authorized redirect URIs (neu can):
+   - **Authorized redirect URIs** (BAT BUOC):
      ```
+     http://127.0.0.1:7860/google-callback.html
+     http://localhost:7860/google-callback.html
      http://127.0.0.1:7860/
-     https://phamtung140513-bit.github.io/jarvis-ai/
+     http://localhost:7860/
      ```
 5. Copy **Client ID** (dang `xxxxx.apps.googleusercontent.com`)
 
@@ -47,9 +49,10 @@ cd C:\Users\Admin\Jarvis-AI
 
 ## 4) Mo web
 
-http://127.0.0.1:7860/
+- Dang nhap: http://127.0.0.1:7860/login.html  
+- Dang ky: http://127.0.0.1:7860/register.html  
 
-→ Bam nut Google → chon tai khoan → vao chat.
+→ Bam nut **Continue with Google** → chon tai khoan → vao chat.
 
 ## Luu y
 

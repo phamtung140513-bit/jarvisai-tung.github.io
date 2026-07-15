@@ -16,25 +16,7 @@
 
   const $ = (id) => document.getElementById(id);
   const els = {
-    authGate: $("authGate"),
     app: $("app"),
-    googleBtnWrap: $("googleBtnWrap"),
-    authHint: $("authHint"),
-    authErr: $("authErr"),
-    authOk: $("authOk"),
-    tabLogin: $("tabLogin"),
-    tabRegister: $("tabRegister"),
-    formLogin: $("formLogin"),
-    formRegister: $("formRegister"),
-    loginEmail: $("loginEmail"),
-    loginPassword: $("loginPassword"),
-    regName: $("regName"),
-    regEmail: $("regEmail"),
-    regPassword: $("regPassword"),
-    regCode: $("regCode"),
-    btnSendCode: $("btnSendCode"),
-    codeHint: $("codeHint"),
-    btnGoogleFallback: $("btnGoogleFallback"),
     sidebar: $("sidebar"),
     backdrop: $("backdrop"),
     history: $("history"),
@@ -79,7 +61,6 @@
   let chats = [];
   let activeId = null;
   let busy = false;
-  let sendCodeCooldown = 0;
   let sessionId = localStorage.getItem(LS_SID) || localStorage.getItem("jarvis_sid_v2") || "";
 
   /**
@@ -114,56 +95,22 @@
   }
 
   function showApp() {
-    if (els.authGate) els.authGate.classList.add("hidden");
     if (els.app) els.app.classList.remove("hidden");
   }
 
-  function showGate(tab) {
-    if (els.authGate) els.authGate.classList.remove("hidden");
-    if (els.app) els.app.classList.add("hidden");
-    if (tab) switchAuthTab(tab);
-    clearAuthMsgs();
-    renderGoogleButton();
+  /** Separate pages: login.html / register.html */
+  function redirectToLogin() {
+    const next = encodeURIComponent("index.html");
+    location.href = "login.html?next=" + next;
+  }
+
+  function redirectToRegister() {
+    const next = encodeURIComponent("index.html");
+    location.href = "register.html?next=" + next;
   }
 
   function isLoggedIn() {
     return !!(googleSession && googleUser);
-  }
-
-  function clearAuthMsgs() {
-    if (els.authErr) {
-      els.authErr.classList.add("hidden");
-      els.authErr.textContent = "";
-    }
-    if (els.authOk) {
-      els.authOk.classList.add("hidden");
-      els.authOk.textContent = "";
-    }
-  }
-
-  function showAuthErr(msg) {
-    if (els.authOk) els.authOk.classList.add("hidden");
-    if (els.authErr) {
-      els.authErr.classList.remove("hidden");
-      els.authErr.textContent = String(msg || "Loi");
-    }
-  }
-
-  function showAuthOk(msg) {
-    if (els.authErr) els.authErr.classList.add("hidden");
-    if (els.authOk) {
-      els.authOk.classList.remove("hidden");
-      els.authOk.textContent = String(msg || "");
-    }
-  }
-
-  function switchAuthTab(tab) {
-    const isLogin = tab !== "register";
-    if (els.tabLogin) els.tabLogin.classList.toggle("active", isLogin);
-    if (els.tabRegister) els.tabRegister.classList.toggle("active", !isLogin);
-    if (els.formLogin) els.formLogin.classList.toggle("hidden", !isLogin);
-    if (els.formRegister) els.formRegister.classList.toggle("hidden", isLogin);
-    clearAuthMsgs();
   }
 
   function refreshUserChip() {
@@ -211,21 +158,6 @@
     refreshUserChip();
   }
 
-  function onAuthSuccess(data) {
-    googleSession = data.session_token;
-    localStorage.setItem(LS_GOOGLE, googleSession);
-    localStorage.setItem(LS_GOOGLE_USER, JSON.stringify(data.user || {}));
-    applyUserUi(data.user);
-    showApp();
-    loadChats();
-    activeId =
-      localStorage.getItem(LS_ACTIVE) || (chats[0] ? chats[0].id : null);
-    renderHistory();
-    renderMessages();
-    bindSuggestions();
-    pingServer();
-  }
-
   function logoutGoogle() {
     if (googleSession) {
       fetch(apiBase() + "/api/auth/logout", {
@@ -238,81 +170,7 @@
     localStorage.removeItem(LS_GOOGLE);
     localStorage.removeItem(LS_GOOGLE_USER);
     applyUserUi(null);
-    showGate("login");
-  }
-
-  async function parseJsonResponse(r) {
-    const text = await r.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { detail: text };
-    }
-    if (!r.ok) {
-      const d = data.detail;
-      let msg = text || "Request failed";
-      if (typeof d === "string") msg = d;
-      else if (Array.isArray(d)) msg = d.map(function (x) { return x.msg || x; }).join("; ");
-      else if (d) msg = JSON.stringify(d);
-      throw new Error(msg);
-    }
-    return data;
-  }
-
-  async function handleGoogleCredential(response) {
-    try {
-      clearAuthMsgs();
-      if (els.authHint) els.authHint.textContent = "Dang xac thuc Google...";
-      const r = await fetch(apiBase() + "/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-      const data = await parseJsonResponse(r);
-      if (els.authHint) els.authHint.textContent = "";
-      onAuthSuccess(data);
-    } catch (e) {
-      if (els.authHint) els.authHint.textContent = "";
-      showAuthErr(e.message || e);
-    }
-  }
-
-  function renderGoogleButton() {
-    const clientId = serverConfig.google_client_id || "";
-    if (els.btnGoogleFallback) els.btnGoogleFallback.classList.add("hidden");
-    if (!clientId) {
-      if (els.googleBtnWrap) {
-        els.googleBtnWrap.innerHTML =
-          '<p class="auth-hint" style="margin:0">Google chua cau hinh (GOOGLE_CLIENT_ID). Van dung duoc email.</p>';
-      }
-      return;
-    }
-    if (typeof google === "undefined" || !google.accounts || !google.accounts.id) {
-      if (els.authHint) els.authHint.textContent = "Dang tai Google SDK...";
-      if (els.btnGoogleFallback) els.btnGoogleFallback.classList.remove("hidden");
-      setTimeout(renderGoogleButton, 400);
-      return;
-    }
-    if (els.authHint && !els.authHint.textContent) {
-      /* keep other hints */
-    }
-    google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleGoogleCredential,
-      auto_select: false,
-      cancel_on_tap_outside: true,
-    });
-    if (els.googleBtnWrap) {
-      els.googleBtnWrap.innerHTML = "";
-      google.accounts.id.renderButton(els.googleBtnWrap, {
-        theme: "outline",
-        size: "large",
-        shape: "pill",
-        text: "continue_with",
-        width: 320,
-      });
-    }
+    redirectToLogin();
   }
 
   async function restoreGoogleSession() {
@@ -348,119 +206,9 @@
     }
   }
 
-  async function sendRegisterCode() {
-    clearAuthMsgs();
-    const email = (els.regEmail && els.regEmail.value || "").trim();
-    if (!email) {
-      showAuthErr("Nhap email de nhan ma");
-      return;
-    }
-    if (els.btnSendCode) els.btnSendCode.disabled = true;
-    try {
-      const r = await fetch(apiBase() + "/api/auth/send-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, purpose: "register" }),
-      });
-      const data = await parseJsonResponse(r);
-      let msg = data.message || "Da gui ma xac thuc.";
-      if (data.dev_code) {
-        msg = "Ma xac thuc (dev): " + data.dev_code + " — nhap vao o Ma xac thuc.";
-        if (els.regCode) els.regCode.value = data.dev_code;
-      }
-      showAuthOk(msg);
-      if (els.codeHint) els.codeHint.textContent = data.sent ? "Kiem tra hop thu (va spam)." : "";
-      // cooldown UI
-      sendCodeCooldown = 45;
-      const tick = function () {
-        if (!els.btnSendCode) return;
-        if (sendCodeCooldown <= 0) {
-          els.btnSendCode.disabled = false;
-          els.btnSendCode.textContent = "Gui ma";
-          return;
-        }
-        els.btnSendCode.textContent = "Gui lai (" + sendCodeCooldown + "s)";
-        sendCodeCooldown -= 1;
-        setTimeout(tick, 1000);
-      };
-      tick();
-    } catch (e) {
-      if (els.btnSendCode) {
-        els.btnSendCode.disabled = false;
-        els.btnSendCode.textContent = "Gui ma";
-      }
-      showAuthErr(e.message || e);
-    }
-  }
-
-  async function submitLogin(e) {
-    if (e) e.preventDefault();
-    clearAuthMsgs();
-    const email = (els.loginEmail && els.loginEmail.value || "").trim();
-    const password = (els.loginPassword && els.loginPassword.value || "");
-    if (!email || !password) {
-      showAuthErr("Nhap email va mat khau");
-      return;
-    }
-    try {
-      if (els.authHint) els.authHint.textContent = "Dang dang nhap...";
-      const r = await fetch(apiBase() + "/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, password: password }),
-      });
-      const data = await parseJsonResponse(r);
-      if (els.authHint) els.authHint.textContent = "";
-      onAuthSuccess(data);
-    } catch (err) {
-      if (els.authHint) els.authHint.textContent = "";
-      showAuthErr(err.message || err);
-    }
-  }
-
-  async function submitRegister(e) {
-    if (e) e.preventDefault();
-    clearAuthMsgs();
-    const email = (els.regEmail && els.regEmail.value || "").trim();
-    const password = (els.regPassword && els.regPassword.value || "");
-    const code = (els.regCode && els.regCode.value || "").trim();
-    const name = (els.regName && els.regName.value || "").trim();
-    if (!email || !password) {
-      showAuthErr("Nhap email va mat khau");
-      return;
-    }
-    if (password.length < 6) {
-      showAuthErr("Mat khau toi thieu 6 ky tu");
-      return;
-    }
-    if (!code) {
-      showAuthErr("Bam Gui ma roi nhap ma 6 so tu email");
-      return;
-    }
-    try {
-      if (els.authHint) els.authHint.textContent = "Dang tao tai khoan...";
-      const r = await fetch(apiBase() + "/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          code: code,
-          name: name,
-        }),
-      });
-      const data = await parseJsonResponse(r);
-      if (els.authHint) els.authHint.textContent = "";
-      onAuthSuccess(data);
-    } catch (err) {
-      if (els.authHint) els.authHint.textContent = "";
-      showAuthErr(err.message || err);
-    }
-  }
-
   function openLoginFromChip() {
     if (isLoggedIn()) return;
-    showGate("login");
+    redirectToLogin();
   }
 
   async function loadPublicConfig() {
@@ -977,15 +725,10 @@
   if (els.btnCloseSidebar) els.btnCloseSidebar.addEventListener("click", closeSidebar);
   if (els.backdrop) els.backdrop.addEventListener("click", closeSidebar);
 
-  if (els.tabLogin) els.tabLogin.addEventListener("click", function () { switchAuthTab("login"); });
-  if (els.tabRegister) els.tabRegister.addEventListener("click", function () { switchAuthTab("register"); });
-  if (els.formLogin) els.formLogin.addEventListener("submit", submitLogin);
-  if (els.formRegister) els.formRegister.addEventListener("submit", submitRegister);
-  if (els.btnSendCode) els.btnSendCode.addEventListener("click", sendRegisterCode);
   if (els.userChipBtn) els.userChipBtn.addEventListener("click", openLoginFromChip);
   if (els.userPill) els.userPill.addEventListener("click", openLoginFromChip);
 
-  // Boot — email/Google gate then chats
+  // Boot — redirect to login.html if auth required
   (async function boot() {
     await loadPublicConfig();
     try {
@@ -994,10 +737,7 @@
         serverConfig = Object.assign(serverConfig, await r.json());
       }
     } catch (e) {
-      if (els.authHint) {
-        els.authHint.textContent =
-          "Khong ket noi server " + apiBase() + " — chay: python -m webapp.server";
-      }
+      /* server offline — restore may use cache */
     }
 
     // Require login when server says so (email and/or Google)
@@ -1008,14 +748,13 @@
     let ok = await restoreGoogleSession();
     if (!ok) {
       if (needAuth) {
-        showGate("login");
-        ok = false;
-      } else {
-        // Optional auth: still show login chip, allow browsing
-        applyUserUi(null);
-        showApp();
-        ok = true;
+        redirectToLogin();
+        return;
       }
+      // Optional auth: still show login chip, allow browsing
+      applyUserUi(null);
+      showApp();
+      ok = true;
     }
 
     loadChats();

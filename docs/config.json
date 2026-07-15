@@ -3,5 +3,6 @@
   "sameOrigin": false,
   "telegramBot": "https://t.me/grokapiai_bot",
   "appName": "TungDevAI",
-  "note": "GitHub Pages: set apiBase to your tunnel/VPS URL (https://xxx.trycloudflare.com). Local same-server: use http://127.0.0.1:7860 or empty when opened on :7860."
+  "publicSite": "https://phamtung140513-bit.github.io/jarvis-ai",
+  "note": "Mien tinh: https://phamtung140513-bit.github.io/jarvis-ai/ — UI host free. API chat: apiBase (local 7860 hoac tunnel/VPS). Khi mo tren may local :7860, apiBase rong = same origin."
 }

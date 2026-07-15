@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Google login…</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #212121;
+      color: #ececec;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    p { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <p id="msg">Dang xu ly dang nhap Google…</p>
+  <script>
+    (function () {
+      const msg = document.getElementById("msg");
+      function fail(t) {
+        msg.textContent = t || "Loi dang nhap Google";
+        try {
+          if (window.opener) {
+            window.opener.postMessage(
+              { type: "tungdevai-google-auth", error: t || "Loi" },
+              location.origin
+            );
+          }
+        } catch (e) {}
+        setTimeout(function () {
+          try { window.close(); } catch (e2) {}
+        }, 2500);
+      }
+      try {
+        const hash = (location.hash || "").replace(/^#/, "");
+        const q = new URLSearchParams(hash);
+        const idToken = q.get("id_token");
+        const err = q.get("error");
+        const desc = q.get("error_description");
+        if (err) {
+          fail(err + (desc ? ": " + desc : ""));
+          return;
+        }
+        if (!idToken) {
+          // Also try query string (some flows)
+          const qs = new URLSearchParams(location.search);
+          const t2 = qs.get("id_token");
+          if (!t2) {
+            fail("Khong nhan duoc id_token tu Google. Kiem tra Redirect URI trong Google Cloud.");
+            return;
+          }
+          finish(t2);
+          return;
+        }
+        finish(idToken);
+      } catch (e) {
+        fail(String(e.message || e));
+      }
+      function finish(token) {
+        if (!window.opener) {
+          msg.textContent = "Mo lai trang login roi thu lai.";
+          return;
+        }
+        window.opener.postMessage(
+          { type: "tungdevai-google-auth", credential: token },
+          location.origin
+        );
+        msg.textContent = "Thanh cong — dang dong…";
+        setTimeout(function () {
+          try { window.close(); } catch (e) {}
+        }, 400);
+      }
+    })();
+  </script>
+</body>
+</html>

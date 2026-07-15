@@ -302,6 +302,30 @@ def create_app() -> FastAPI:
             return FileResponse(p)
         return HTMLResponse("Not found", status_code=404)
 
+    @app.get("/login.html", response_model=None)
+    async def login_page():
+        p = _docs_file("login.html")
+        return FileResponse(p) if p else HTMLResponse("Not found", status_code=404)
+
+    @app.get("/register.html", response_model=None)
+    async def register_page():
+        p = _docs_file("register.html")
+        return FileResponse(p) if p else HTMLResponse("Not found", status_code=404)
+
+    @app.get("/google-callback.html", response_model=None)
+    async def google_callback_page():
+        p = _docs_file("google-callback.html")
+        return FileResponse(p) if p else HTMLResponse("Not found", status_code=404)
+
+    @app.get("/auth.js", response_model=None)
+    async def auth_js():
+        p = _docs_file("auth.js")
+        return (
+            FileResponse(p, media_type="application/javascript")
+            if p
+            else HTMLResponse("x", status_code=404)
+        )
+
     @app.get("/config.json")
     async def config_json() -> dict[str, Any]:
         # Same-domain: empty apiBase => frontend uses location.origin

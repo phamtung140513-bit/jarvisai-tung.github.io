@@ -47,32 +47,26 @@
 .auth-card h1 { margin: 0 0 .35rem; font-size: 1.45rem; }
 .auth-sub { color: var(--muted); font-size: .92rem; line-height: 1.45; margin: 0 0 1rem; }
 
-.auth-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .35rem;
-  background: var(--bg-elev);
-  border-radius: 12px;
-  padding: .3rem;
-  margin-bottom: 1rem;
+.auth-brand-link {
+  display: inline-block;
+  text-decoration: none;
 }
-.auth-tab {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-weight: 600;
+.auth-switch {
+  margin: 1.15rem 0 0;
   font-size: .9rem;
-  padding: .55rem .5rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background .15s, color .15s;
+  color: var(--muted);
 }
-.auth-tab.active {
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+.auth-switch a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
 }
+.auth-switch a:hover { text-decoration: underline; }
+.auth-foot a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.auth-foot a:hover { color: var(--text); }
 
 .auth-form {
   text-align: left;

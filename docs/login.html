@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dang nhap — TungDevAI</title>
+  <meta name="description" content="Dang nhap TungDevAI" />
+  <meta name="theme-color" content="#212121" />
+  <link rel="icon" href="assets/icon.jpg" type="image/jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="chat.css?v=14" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="auth-gate">
+    <div class="auth-card">
+      <a href="landing.html" class="auth-brand-link">
+        <img src="assets/bot-avatar.jpg" alt="TungDevAI" class="auth-logo" />
+      </a>
+      <h1>Dang nhap</h1>
+      <p class="auth-sub">Chao mung tro lai TungDevAI — AI chuyen coder.</p>
+
+      <form id="formLogin" class="auth-form" autocomplete="on">
+        <label class="auth-label" for="loginEmail">Email</label>
+        <input class="auth-input" id="loginEmail" type="email" placeholder="ban@email.com" required autocomplete="email" />
+        <label class="auth-label" for="loginPassword">Mat khau</label>
+        <input class="auth-input" id="loginPassword" type="password" placeholder="Mat khau" required minlength="6" autocomplete="current-password" />
+        <button type="submit" class="auth-primary" id="btnLoginSubmit">Dang nhap</button>
+      </form>
+
+      <div class="auth-divider"><span>hoac</span></div>
+      <div id="googleBtnWrap" class="google-btn-wrap"></div>
+
+      <p class="auth-hint" id="authHint"></p>
+      <p class="auth-err hidden" id="authErr"></p>
+      <p class="auth-ok hidden" id="authOk"></p>
+
+      <p class="auth-switch">
+        Chua co tai khoan?
+        <a href="register.html">Dang ky</a>
+      </p>
+      <p class="auth-foot">
+        <a href="landing.html">Trang chu</a> · <a href="index.html">Chat</a>
+      </p>
+    </div>
+  </div>
+  <script src="auth.js?v=5"></script>
+  <script>TungAuth.init("login");</script>
+</body>
+</html>
