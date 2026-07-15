@@ -43,6 +43,7 @@ from database.repos import load_recent_messages, save_message  # noqa: E402
 from product.email_auth import (  # noqa: E402
     OtpStore,
     ensure_web_user_columns,
+    find_user_by_email,
     login_email_user,
     normalize_email,
     register_email_user,
@@ -56,6 +57,17 @@ from product.users import (  # noqa: E402
     set_user_plan,
     stats_summary,
 )
+from product.web_plans import (  # noqa: E402
+    bump_web_usage,
+    check_web_quota,
+    ensure_plan_defaults,
+    list_web_users,
+    redeem_web_access_code,
+    set_web_user_plan,
+    user_public,
+)
+from database.models import GoogleWebUser  # noqa: E402
+from sqlalchemy import select  # noqa: E402
 
 
 def _session_uid(session_id: str) -> int:
@@ -97,6 +109,17 @@ class SetPlanBody(BaseModel):
 
 class DelUserBody(BaseModel):
     telegram_id: int
+
+
+class ActivateBody(BaseModel):
+    code: str = Field(..., min_length=4, max_length=64)
+
+
+class WebSetPlanBody(BaseModel):
+    email: str = Field(default="")
+    user_id: int | None = Field(default=None)
+    plan: str = Field(default="basic")
+    days: int | None = Field(default=None)
 
 
 class GoogleLoginBody(BaseModel):
@@ -235,7 +258,7 @@ def create_app() -> FastAPI:
             if not sess or sess not in user_sessions:
                 raise HTTPException(
                     status_code=401,
-                    detail="Can dang nhap (email hoac Google)",
+                    detail="Cần đăng nhập (email hoặc Google)",
                 )
             return user_sessions[sess]
         if x_user_session and x_user_session in user_sessions:
@@ -244,23 +267,39 @@ def create_app() -> FastAPI:
 
     def _issue_session(user: Any) -> dict[str, Any]:
         sess = secrets.token_urlsafe(32)
+        pub = user_public(user)
         payload = {
             "id": getattr(user, "id", None),
             "google_sub": getattr(user, "google_sub", None),
             "email": getattr(user, "email", None),
             "name": getattr(user, "name", None),
             "picture": getattr(user, "picture", None),
+            "plan_id": pub.get("plan_id"),
+            "plan_name": pub.get("plan_name"),
+            "daily_limit": pub.get("daily_limit"),
+            "used_today": pub.get("used_today"),
+            "remaining_today": pub.get("remaining_today"),
+            "plan_expires_at": pub.get("plan_expires_at"),
+            "plan_expired": pub.get("plan_expired"),
         }
         user_sessions[sess] = payload
         return {
             "ok": True,
             "session_token": sess,
-            "user": {
-                "email": payload["email"],
-                "name": payload["name"],
-                "picture": payload["picture"],
-            },
+            "user": pub,
         }
+
+    async def _load_web_user(guser: dict[str, Any] | None) -> GoogleWebUser | None:
+        if not guser or not guser.get("id"):
+            return None
+        async with db.session() as session:
+            res = await session.execute(
+                select(GoogleWebUser).where(GoogleWebUser.id == int(guser["id"]))
+            )
+            user = res.scalar_one_or_none()
+            if user is None:
+                return None
+            return await ensure_plan_defaults(session, user)
 
     def _check_admin(
         authorization: str | None,
@@ -444,15 +483,13 @@ def create_app() -> FastAPI:
         if purpose not in ("register", "reset"):
             purpose = "register"
         if not valid_email(email):
-            raise HTTPException(400, "Email khong hop le")
+            raise HTTPException(400, "Email không hợp lệ")
 
         if purpose == "register":
             async with db.session() as session:
-                from product.email_auth import find_user_by_email
-
                 existing = await find_user_by_email(session, email)
                 if existing and existing.password_hash:
-                    raise HTTPException(400, "Email da duoc dang ky. Hay dang nhap.")
+                    raise HTTPException(400, "Email đã được đăng ký. Hãy đăng nhập.")
 
         try:
             code = otp_store.create(email, purpose)
@@ -496,20 +533,20 @@ def create_app() -> FastAPI:
             "purpose": purpose,
             "sent": sent,
             "message": (
-                "Da gui ma xac thuc toi email cua ban."
+                "Đã gửi mã xác thực tới email của bạn."
                 if sent
-                else "SMTP chua cau hinh — dung ma dev (xem ben duoi / log server)."
+                else "SMTP chưa cấu hình — dùng mã dev (xem bên dưới / log server)."
             ),
             "expires_in": 600,
         }
         # Local/dev: return code so you can test without Gmail SMTP
         if auth_dev_show_code and not sent:
             out["dev_code"] = code
-            out["message"] = f"Ma xac thuc (dev): {code} — cau hinh SMTP de gui that."
+            out["message"] = f"Mã xác thực (dev): {code} — cấu hình SMTP để gửi thật."
         if err_msg and auth_dev_show_code:
             out["dev_code"] = code
             out["smtp_error"] = err_msg
-            out["message"] = f"SMTP loi, ma dev: {code}"
+            out["message"] = f"SMTP lỗi, mã dev: {code}"
         return out
 
     @app.post("/api/auth/register")
@@ -517,9 +554,9 @@ def create_app() -> FastAPI:
         """Register with email + password after OTP verification."""
         email = normalize_email(body.email)
         if not valid_email(email):
-            raise HTTPException(400, "Email khong hop le")
+            raise HTTPException(400, "Email không hợp lệ")
         if not otp_store.verify(email, "register", body.code):
-            raise HTTPException(400, "Ma xac thuc sai hoac da het han")
+            raise HTTPException(400, "Mã xác thực sai hoặc đã hết hạn")
         try:
             async with db.session() as session:
                 user = await register_email_user(
@@ -528,6 +565,7 @@ def create_app() -> FastAPI:
                     password=body.password,
                     name=body.name,
                 )
+                user = await ensure_plan_defaults(session, user)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         return _issue_session(user)
@@ -540,6 +578,7 @@ def create_app() -> FastAPI:
                 user = await login_email_user(
                     session, email=body.email, password=body.password
                 )
+                user = await ensure_plan_defaults(session, user)
         except ValueError as exc:
             raise HTTPException(401, str(exc)) from exc
         return _issue_session(user)
@@ -550,17 +589,18 @@ def create_app() -> FastAPI:
         if not google_client_id:
             raise HTTPException(
                 503,
-                "GOOGLE_CLIENT_ID chua cau hinh. Xem docs/HUONG_DAN_GOOGLE_LOGIN.md",
+                "GOOGLE_CLIENT_ID chưa cấu hình. Xem docs/HUONG_DAN_GOOGLE_LOGIN.md",
             )
         try:
             info = verify_google_id_token(body.credential, google_client_id)
         except Exception as exc:
             logger.warning("Google token invalid: %s", exc)
-            raise HTTPException(401, f"Google token khong hop le: {exc}") from exc
+            raise HTTPException(401, f"Google token không hợp lệ: {exc}") from exc
 
         async with db.session() as session:
             try:
                 user = await upsert_google_user(session, info)
+                user = await ensure_plan_defaults(session, user)
             except ValueError as exc:
                 raise HTTPException(403, str(exc)) from exc
 
@@ -571,8 +611,46 @@ def create_app() -> FastAPI:
         x_user_session: str | None = Header(default=None, alias="X-User-Session"),
     ) -> dict[str, Any]:
         if not x_user_session or x_user_session not in user_sessions:
-            raise HTTPException(401, "Chua dang nhap")
-        return {"ok": True, "user": user_sessions[x_user_session]}
+            raise HTTPException(401, "Chưa đăng nhập")
+        guser = user_sessions[x_user_session]
+        db_user = await _load_web_user(guser)
+        if db_user is not None:
+            pub = user_public(db_user)
+            guser.update(pub)
+            user_sessions[x_user_session] = guser
+            return {"ok": True, "user": pub}
+        return {"ok": True, "user": guser}
+
+    @app.post("/api/auth/activate")
+    async def auth_activate(
+        body: ActivateBody,
+        x_user_session: str | None = Header(default=None, alias="X-User-Session"),
+    ) -> dict[str, Any]:
+        """Redeem access code (same as Telegram /activate) for logged-in web user."""
+        if not x_user_session or x_user_session not in user_sessions:
+            raise HTTPException(401, "Cần đăng nhập trước khi kích hoạt mã")
+        guser = user_sessions[x_user_session]
+        db_user = await _load_web_user(guser)
+        if db_user is None:
+            raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
+        async with db.session() as session:
+            # re-fetch in this session
+            res = await session.execute(
+                select(GoogleWebUser).where(GoogleWebUser.id == db_user.id)
+            )
+            user = res.scalar_one_or_none()
+            if user is None:
+                raise HTTPException(401, "User không tồn tại")
+            ok, msg = await redeem_web_access_code(
+                session, code_str=body.code, user=user
+            )
+            if not ok:
+                raise HTTPException(400, msg)
+            await session.refresh(user)
+            pub = user_public(user)
+        guser.update(pub)
+        user_sessions[x_user_session] = guser
+        return {"ok": True, "message": msg, "user": pub}
 
     @app.post("/api/auth/logout")
     async def auth_logout(
@@ -703,6 +781,59 @@ def create_app() -> FastAPI:
             "expires_at": user.expires_at.isoformat() if user.expires_at else None,
         }
 
+    @app.get("/api/admin/web-users")
+    async def admin_web_users(
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        async with db.session() as session:
+            rows = await list_web_users(session)
+        return {
+            "ok": True,
+            "users": [
+                {
+                    "id": u.id,
+                    "email": u.email,
+                    "name": u.name,
+                    "plan_id": getattr(u, "plan_id", "trial") or "trial",
+                    "active": u.active,
+                    "plan_expires_at": (
+                        u.plan_expires_at.isoformat()
+                        if getattr(u, "plan_expires_at", None)
+                        else None
+                    ),
+                    "usage_day": getattr(u, "usage_day", None),
+                    "usage_count": int(getattr(u, "usage_count", 0) or 0),
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                }
+                for u in rows
+            ],
+        }
+
+    @app.post("/api/admin/web-setplan")
+    async def admin_web_setplan(
+        body: WebSetPlanBody,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        plan_id = (body.plan or "basic").lower().strip()
+        if plan_id not in PLANS:
+            raise HTTPException(400, "Gói không hợp lệ")
+        try:
+            async with db.session() as session:
+                user = await set_web_user_plan(
+                    session,
+                    email=body.email or None,
+                    user_id=body.user_id,
+                    plan_id=plan_id,
+                    days=body.days,
+                )
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        return {"ok": True, "user": user_public(user)}
+
     @app.post("/api/admin/deluser")
     async def admin_deluser(
         body: DelUserBody,
@@ -747,7 +878,26 @@ def create_app() -> FastAPI:
         guser = _check_user_token(authorization, x_web_token, x_user_session)
         text = body.message.strip()
         if not text:
-            raise HTTPException(400, "Tin nhan trong")
+            raise HTTPException(400, "Tin nhắn trống")
+
+        # Plan / daily quota for logged-in web users
+        web_user_id: int | None = None
+        if guser and guser.get("id"):
+            db_user = await _load_web_user(guser)
+            if db_user is not None:
+                ok_q, qmsg, used, limit = check_web_quota(db_user)
+                if not ok_q:
+                    raise HTTPException(
+                        status_code=429,
+                        detail={
+                            "message": qmsg,
+                            "used": used,
+                            "limit": limit,
+                            "upgrade_url": "pricing.html",
+                            "plan_id": db_user.plan_id,
+                        },
+                    )
+                web_user_id = int(db_user.id)
 
         # Prefer stable session per Google account when logged in
         sid = (body.session_id or "").strip()
@@ -766,6 +916,15 @@ def create_app() -> FastAPI:
         await _persist(sid, "user", text)
         history = mem.get(sid)
 
+        async def _after_success() -> None:
+            if web_user_id is None:
+                return
+            try:
+                async with db.session() as session:
+                    await bump_web_usage(session, web_user_id)
+            except Exception:
+                logger.exception("bump web usage failed")
+
         if body.stream:
 
             async def event_gen():
@@ -781,6 +940,7 @@ def create_app() -> FastAPI:
                     if full:
                         mem.add(sid, "assistant", full)
                         await _persist(sid, "assistant", full)
+                        await _after_success()
                     yield _sse({"type": "done", "session_id": sid})
                 except GrokError as exc:
                     logger.exception("web chat stream error")
@@ -803,6 +963,7 @@ def create_app() -> FastAPI:
             raise HTTPException(502, str(exc)) from exc
         mem.add(sid, "assistant", reply)
         await _persist(sid, "assistant", reply)
+        await _after_success()
         return {"session_id": sid, "reply": reply}
 
     @app.get("/api/chat/history")

@@ -587,16 +587,16 @@ button, input, textarea, select {
 .msg .content .code-lang {
   font-size: 0.78rem !important;
   font-weight: 600 !important;
-  color: #a1a1aa !important;
+  color: #ffffff !important;
   text-transform: lowercase;
   font-family: var(--mono);
 }
 .msg .content .code-copy {
   display: inline-flex !important;
   align-items: center;
-  border: 1px solid rgba(255,255,255,.18) !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
   background: #3f3f46 !important;
-  color: #fafafa !important;
+  color: #ffffff !important;
   font: inherit;
   font-size: 0.78rem !important;
   font-weight: 600 !important;
@@ -610,10 +610,12 @@ button, input, textarea, select {
 }
 .msg .content .code-copy:hover {
   background: #52525b !important;
+  color: #ffffff !important;
 }
 .msg .content .code-copy.copied {
-  color: #86efac !important;
-  border-color: rgba(134, 239, 172, 0.45) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  background: #16a34a !important;
 }
 .msg .content pre {
   background: transparent;
@@ -624,11 +626,13 @@ button, input, textarea, select {
   font-family: var(--mono);
   font-size: 0.85rem;
   margin: 0;
+  color: #ffffff !important;
 }
 .msg .content pre code {
   background: none;
   padding: 0;
   font-size: inherit;
+  color: #ffffff !important;
 }
 .msg .content p > .code-block {
   margin: 0.75rem 0;

@@ -112,8 +112,10 @@
 
       <div class="tabs">
         <button type="button" class="tab on" data-tab="codes">Tao ma</button>
-        <button type="button" class="tab" data-tab="users">Users</button>
-        <button type="button" class="tab" data-tab="setplan">Gan goi</button>
+        <button type="button" class="tab" data-tab="users">TG users</button>
+        <button type="button" class="tab" data-tab="webusers">Web users</button>
+        <button type="button" class="tab" data-tab="setplan">Gan goi TG</button>
+        <button type="button" class="tab" data-tab="webplan">Gan goi Web</button>
       </div>
 
       <div class="card tabpane" id="pane-codes">
@@ -163,7 +165,7 @@
       </div>
 
       <div class="card tabpane hidden" id="pane-setplan">
-        <h3 style="margin:0 0 .5rem">Gan / khoa goi</h3>
+        <h3 style="margin:0 0 .5rem">Gan / khoa goi Telegram</h3>
         <div class="row">
           <div>
             <label>Telegram ID</label>
@@ -189,10 +191,55 @@
         </div>
       </div>
 
+      <div class="card tabpane hidden" id="pane-webusers">
+        <h3 style="margin:0 0 .5rem">Web users (email / Google)</h3>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Ten</th>
+                <th>Goi</th>
+                <th>Het han</th>
+                <th>Usage</th>
+              </tr>
+            </thead>
+            <tbody id="webUsersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card tabpane hidden" id="pane-webplan">
+        <h3 style="margin:0 0 .5rem">Gan goi user Web</h3>
+        <div class="row">
+          <div>
+            <label>Email</label>
+            <input type="email" id="webPlanEmail" placeholder="ban@email.com" />
+          </div>
+          <div>
+            <label>Goi</label>
+            <select id="webPlanId">
+              <option value="trial">trial</option>
+              <option value="basic" selected>basic</option>
+              <option value="pro">pro</option>
+              <option value="business">business</option>
+            </select>
+          </div>
+          <div>
+            <label>So ngay</label>
+            <input type="number" id="webPlanDays" placeholder="30" />
+          </div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn primary" id="btnWebSetPlan">Gan goi Web</button>
+        </div>
+      </div>
+
       <div class="msg hidden" id="dashMsg"></div>
-      <p class="sub">Chat user: <a id="chatLink" href="./" style="color:#6ea8ff">mo chat</a></p>
+      <p class="sub">Chat user: <a id="chatLink" href="./chat.html" style="color:#6ea8ff">mo chat</a></p>
     </div>
   </div>
-  <script src="admin.js?v=2"></script>
+  <script src="admin.js?v=3"></script>
 </body>
 </html>

@@ -175,7 +175,7 @@ def send_otp_email(
 
 
 async def ensure_web_user_columns(conn) -> None:
-    """Add password_hash / email_verified if missing (SQLite)."""
+    """Add password / plan / usage columns if missing (SQLite)."""
 
     def _sync(sync_conn) -> None:
         try:
@@ -183,20 +183,33 @@ async def ensure_web_user_columns(conn) -> None:
         except Exception:
             return
         cols = {r[1] for r in rows}  # name is index 1
+        alters: list[str] = []
         if "password_hash" not in cols:
-            sync_conn.execute(
-                text(
-                    "ALTER TABLE google_web_users "
-                    "ADD COLUMN password_hash VARCHAR(256)"
-                )
+            alters.append(
+                "ALTER TABLE google_web_users ADD COLUMN password_hash VARCHAR(256)"
             )
         if "email_verified" not in cols:
-            sync_conn.execute(
-                text(
-                    "ALTER TABLE google_web_users "
-                    "ADD COLUMN email_verified BOOLEAN DEFAULT 0"
-                )
+            alters.append(
+                "ALTER TABLE google_web_users ADD COLUMN email_verified BOOLEAN DEFAULT 0"
             )
+        if "plan_id" not in cols:
+            alters.append(
+                "ALTER TABLE google_web_users ADD COLUMN plan_id VARCHAR(32) DEFAULT 'trial'"
+            )
+        if "plan_expires_at" not in cols:
+            alters.append(
+                "ALTER TABLE google_web_users ADD COLUMN plan_expires_at DATETIME"
+            )
+        if "usage_day" not in cols:
+            alters.append(
+                "ALTER TABLE google_web_users ADD COLUMN usage_day VARCHAR(10)"
+            )
+        if "usage_count" not in cols:
+            alters.append(
+                "ALTER TABLE google_web_users ADD COLUMN usage_count INTEGER DEFAULT 0"
+            )
+        for sql in alters:
+            sync_conn.execute(text(sql))
 
     await conn.run_sync(_sync)
 
@@ -248,8 +261,16 @@ async def register_email_user(
         existing.name = display
         existing.last_login_at = now
         existing.active = True
+        if not getattr(existing, "plan_id", None):
+            existing.plan_id = "trial"
+        if getattr(existing, "plan_expires_at", None) is None:
+            from datetime import timedelta
+
+            existing.plan_expires_at = now + timedelta(days=3)
         user = existing
     else:
+        from datetime import timedelta
+
         user = GoogleWebUser(
             google_sub=email_subject_id(e),
             email=e,
@@ -258,6 +279,10 @@ async def register_email_user(
             active=True,
             password_hash=pw,
             email_verified=True,
+            plan_id="trial",
+            plan_expires_at=now + timedelta(days=3),
+            usage_day=None,
+            usage_count=0,
             last_login_at=now,
             created_at=now,
         )

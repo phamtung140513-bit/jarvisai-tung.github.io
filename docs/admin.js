@@ -124,6 +124,40 @@
           }
         };
       });
+
+      // Web users
+      try {
+        const wu = await api("/api/admin/web-users", {
+          headers: headers(),
+          cache: "no-store",
+        });
+        const wb = $("webUsersBody");
+        if (wb) {
+          wb.innerHTML = "";
+          (wu.users || []).forEach((u) => {
+            const tr = document.createElement("tr");
+            const exp = u.plan_expires_at ? String(u.plan_expires_at).slice(0, 10) : "-";
+            tr.innerHTML =
+              "<td>" +
+              u.id +
+              "</td><td>" +
+              (u.email || "-") +
+              "</td><td>" +
+              (u.name || "-") +
+              "</td><td>" +
+              (u.plan_id || "trial") +
+              "</td><td>" +
+              exp +
+              "</td><td>" +
+              (u.usage_count || 0) +
+              (u.usage_day ? " (" + u.usage_day + ")" : "") +
+              "</td>";
+            wb.appendChild(tr);
+          });
+        }
+      } catch (we) {
+        console.warn("web-users", we);
+      }
     } catch (e) {
       showMsg($("dashMsg"), String(e.message || e), false);
       if (String(e.message || "").indexOf("401") !== -1 || String(e.message || "").toLowerCase().indexOf("sai") !== -1) {
@@ -252,6 +286,32 @@
       showMsg($("dashMsg"), String(e.message || e), false);
     }
   };
+
+  if ($("btnWebSetPlan")) {
+    $("btnWebSetPlan").onclick = async () => {
+      try {
+        const email = ($("webPlanEmail").value || "").trim();
+        if (!email) throw new Error("Nhap email user web");
+        const daysRaw = ($("webPlanDays").value || "").trim();
+        const body = { email: email, plan: $("webPlanId").value };
+        if (daysRaw) body.days = Number(daysRaw);
+        const data = await api("/api/admin/web-setplan", {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify(body),
+        });
+        const u = data.user || {};
+        showMsg(
+          $("dashMsg"),
+          "OK web " + (u.email || email) + " -> " + (u.plan_id || body.plan),
+          true
+        );
+        refreshAll();
+      } catch (e) {
+        showMsg($("dashMsg"), String(e.message || e), false);
+      }
+    };
+  }
 
   // Prefill API base
   var defaultApi =

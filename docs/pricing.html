@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bảng giá — TungDevAI</title>
-  <meta name="description" content="Gói TungDevAI: Lite, Pro, Business. AI chuyên coder — web + Telegram." />
+  <meta name="description" content="Gói TungDevAI: Trial, Basic, Pro, Business. AI chuyên coder — web + Telegram." />
   <meta name="theme-color" content="#0a0a0c" />
   <link rel="icon" href="./assets/icon.jpg" type="image/jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./pricing.css?v=2" />
+  <link rel="stylesheet" href="./pricing.css?v=3" />
 </head>
 <body class="pricing-page">
   <header class="p-nav">
@@ -22,6 +22,7 @@
       <a href="./">Trang chủ</a>
       <a href="./pricing.html" class="active">Bảng giá</a>
       <a href="./login.html">Đăng nhập</a>
+      <a href="./register.html">Đăng ký</a>
       <a class="p-btn p-btn-sm" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Mở bot</a>
     </nav>
   </header>
@@ -33,7 +34,7 @@
       <p class="p-promo">
         AI chuyên <strong>coder</strong> — web chat + bot Telegram
       </p>
-      <p class="p-sub">Chọn gói phù hợp. Thanh toán qua bot · kích hoạt bằng mã.</p>
+      <p class="p-sub">Chọn gói → thanh toán bot → nhận mã → kích hoạt trên web hoặc Telegram.</p>
 
       <div class="p-tabs" role="tablist">
         <button type="button" class="p-tab active" data-tab="personal" id="tabPersonal">Cá nhân</button>
@@ -41,58 +42,82 @@
       </div>
     </div>
 
-    <!-- Cá nhân: 3 gói -->
+    <!-- Cách mua -->
+    <section class="p-steps" aria-label="Cach mua">
+      <h2 class="p-steps-title">Cách mua trong 4 bước</h2>
+      <ol class="p-steps-list">
+        <li><strong>Đăng ký web</strong> — <a href="./register.html">register.html</a> (Trial free 3 ngày)</li>
+        <li><strong>Mở bot</strong> — <a href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">@grokapiai_bot</a> → <code>/buy</code> hoặc <code>/qr basic</code></li>
+        <li><strong>Chuyển khoản / quét QR</strong> — gửi bill cho admin nếu cần</li>
+        <li><strong>Kích hoạt</strong> — bot: <code>/activate MÃ</code> · web chat: gõ <code>/activate MÃ</code></li>
+      </ol>
+      <p class="p-steps-note">Support: <a href="https://t.me/usertungpham" target="_blank" rel="noopener">@usertungpham</a></p>
+    </section>
+
+    <!-- Cá nhân -->
     <section class="p-grid" id="gridPersonal" aria-label="Goi ca nhan">
       <article class="p-card">
-        <h2>TungDev Lite</h2>
+        <h2>Trial</h2>
+        <p class="p-price"><span class="num">0</span><span class="unit">đ<span>/ 3 ngày</span></span></p>
+        <p class="p-desc">Dùng thử web chat — không cần thẻ</p>
+        <a class="p-cta p-cta-muted" href="./register.html">Bắt đầu Trial</a>
+        <ul class="p-feats">
+          <li><span class="ico">🎁</span> 20 tin nhắn / ngày</li>
+          <li><span class="ico">🔑</span> Đăng nhập email hoặc Google</li>
+          <li><span class="ico">💬</span> Web chat coding</li>
+          <li><span class="ico">➡️</span> Nâng cấp bất cứ lúc nào</li>
+        </ul>
+      </article>
+
+      <article class="p-card">
+        <h2>Basic</h2>
         <p class="p-price"><span class="num">49.000</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Tiếp tục code với quyền truy cập cơ bản</p>
-        <a class="p-cta p-cta-muted" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Nâng cấp lên Lite</a>
+        <p class="p-desc">Cá nhân — code hàng ngày</p>
+        <a class="p-cta p-cta-muted" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Mua Basic</a>
         <ul class="p-feats">
           <li><span class="ico">💬</span> 100 tin nhắn / ngày</li>
           <li><span class="ico">🧠</span> AI senior coding assistant</li>
           <li><span class="ico">🌐</span> Web chat + bot Telegram</li>
           <li><span class="ico">📝</span> Markdown / code highlight</li>
-          <li><span class="ico">🔑</span> Đăng nhập email hoặc Google</li>
+          <li><span class="ico">✨</span> Mọi thứ trong Trial</li>
         </ul>
       </article>
 
       <article class="p-card p-card-featured">
-        <h2>TungDev Pro</h2>
+        <div class="p-badge">Phổ biến</div>
+        <h2>Pro</h2>
         <p class="p-price"><span class="num">99.000</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Câu trả lời sâu hơn, quota cao hơn — cho freelancer</p>
-        <a class="p-cta p-cta-primary" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Nâng cấp lên Pro</a>
+        <p class="p-desc">Freelancer — quota cao + agent</p>
+        <a class="p-cta p-cta-primary" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Mua Pro</a>
         <ul class="p-feats">
           <li><span class="ico">⚡</span> 500 tin nhắn / ngày</li>
           <li><span class="ico">🔧</span> Agent: plan · code · review · debug</li>
           <li><span class="ico">📂</span> Project notes &amp; memory dài hơn</li>
           <li><span class="ico">🖼️</span> Gửi ảnh kèm câu hỏi</li>
-          <li><span class="ico">💬</span> Ưu tiên hỗ trợ qua Telegram</li>
-          <li><span class="ico">✨</span> Mọi thứ trong Lite</li>
+          <li><span class="ico">💬</span> Ưu tiên hỗ trợ Telegram</li>
+          <li><span class="ico">✨</span> Mọi thứ trong Basic</li>
         </ul>
       </article>
 
       <article class="p-card">
-        <div class="p-badge">Phổ biến team</div>
-        <h2>TungDev Business</h2>
+        <h2>Business</h2>
         <p class="p-price"><span class="num">199.000</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Không giới hạn tin — shop / agency / team</p>
-        <a class="p-cta p-cta-primary" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Nhận gói Business</a>
+        <p class="p-desc">Không giới hạn tin — team / shop</p>
+        <a class="p-cta p-cta-primary" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Mua Business</a>
         <ul class="p-feats">
           <li><span class="ico">∞</span> Không giới hạn tin / ngày</li>
           <li><span class="ico">🏢</span> Mọi thứ trong Pro</li>
-          <li><span class="ico">👥</span> Phù hợp multi-user / white-label</li>
-          <li><span class="ico">📊</span> Ưu tiên quota &amp; hỗ trợ</li>
-          <li><span class="ico">🛡️</span> Contact riêng: @usertungpham</li>
+          <li><span class="ico">👥</span> Multi-user / white-label</li>
+          <li><span class="ico">🛡️</span> Contact: @usertungpham</li>
         </ul>
       </article>
     </section>
 
-    <!-- Doanh nghiệp: nhấn Business + custom -->
+    <!-- Doanh nghiệp -->
     <section class="p-grid hidden" id="gridBiz" aria-label="Goi doanh nghiep">
       <article class="p-card p-card-featured p-card-wide">
         <div class="p-badge">Doanh nghiệp</div>
-        <h2>TungDev Business+</h2>
+        <h2>Business+</h2>
         <p class="p-price"><span class="num">199.000+</span><span class="unit">đ<span>/tháng</span></span></p>
         <p class="p-desc">Gói không giới hạn + tư vấn triển khai bot / web cho team</p>
         <a class="p-cta p-cta-primary" href="https://t.me/usertungpham" target="_blank" rel="noopener">Liên hệ sales</a>
@@ -109,7 +134,7 @@
         <h2>Trial</h2>
         <p class="p-price"><span class="num">0</span><span class="unit">đ<span>/ 3 ngày</span></span></p>
         <p class="p-desc">Dùng thử trước khi mua</p>
-        <a class="p-cta p-cta-muted" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Bắt đầu Trial</a>
+        <a class="p-cta p-cta-muted" href="./register.html">Bắt đầu Trial</a>
         <ul class="p-feats">
           <li><span class="ico">🎁</span> 20 tin / ngày · 3 ngày</li>
           <li><span class="ico">🧪</span> Test web + bot</li>
@@ -123,15 +148,19 @@
       <div class="p-faq-grid">
         <div>
           <h3>Thanh toán thế nào?</h3>
-          <p>Mở bot Telegram → chọn gói → chuyển khoản / QR. Admin gửi mã → <code>/activate MÃ</code>.</p>
+          <p>Mở bot Telegram → <code>/buy</code> hoặc <code>/qr basic|pro|business</code> → CK/QR. Admin gửi mã (hoặc auto VietQR).</p>
         </div>
         <div>
           <h3>Web chat có cần gói không?</h3>
-          <p>Web chat dùng backend của bạn (server 7860). Gói SaaS chủ yếu cho bot multi-user &amp; quota.</p>
+          <p>Có. Đăng ký nhận <strong>Trial</strong> (20 tin/ngày, 3 ngày). Hết quota/hạn → mua gói và <code>/activate MÃ</code> trên web chat.</p>
+        </div>
+        <div>
+          <h3>Mã kích hoạt dùng ở đâu?</h3>
+          <p>Bot: <code>/activate JV-XXXXX</code>. Web: trong ô chat gõ <code>/activate JV-XXXXX</code> (đã đăng nhập).</p>
         </div>
         <div>
           <h3>Đổi gói / gia hạn?</h3>
-          <p>Nhắn <a href="https://t.me/usertungpham" target="_blank" rel="noopener">@usertungpham</a> hoặc mở bot.</p>
+          <p>Nhắn <a href="https://t.me/usertungpham" target="_blank" rel="noopener">@usertungpham</a> hoặc mua lại mã qua bot.</p>
         </div>
       </div>
     </section>
@@ -146,6 +175,7 @@
       <a href="./">Trang chủ</a> ·
       <a href="./login.html">Đăng nhập</a> ·
       <a href="./register.html">Đăng ký</a> ·
+      <a href="./chat.html">Chat</a> ·
       <a href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Bot</a>
     </p>
     <p class="fine">Support: @usertungpham</p>

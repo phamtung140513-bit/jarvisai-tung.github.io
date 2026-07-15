@@ -28,6 +28,43 @@ body.pricing-page {
 a { color: inherit; }
 .hidden { display: none !important; }
 
+/* How to buy */
+.p-steps {
+  max-width: 920px;
+  margin: 0 auto 2rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #121216;
+}
+.p-steps-title {
+  margin: 0 0 .75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.p-steps-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  display: grid;
+  gap: .45rem;
+}
+.p-steps-list strong { color: var(--text); }
+.p-steps-list a { color: #9ec1ff; text-decoration: underline; }
+.p-steps-list code {
+  font-size: .85em;
+  background: rgba(255,255,255,.08);
+  padding: .1em .35em;
+  border-radius: 6px;
+  color: #f2f2f4;
+}
+.p-steps-note {
+  margin: .85rem 0 0;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.p-steps-note a { color: #9ec1ff; }
+
 /* Nav */
 .p-nav {
   display: flex;

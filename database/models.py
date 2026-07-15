@@ -140,6 +140,13 @@ class GoogleWebUser(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     password_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # SaaS plan for web chat (same plan ids as Telegram: trial/basic/pro/business)
+    plan_id: Mapped[str] = mapped_column(String(32), default="trial", nullable=False)
+    plan_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    usage_day: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

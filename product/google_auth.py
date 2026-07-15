@@ -24,10 +24,12 @@ def verify_google_id_token(id_token: str, client_id: str) -> dict[str, Any]:
     from google.auth.transport import requests as google_requests
     from google.oauth2 import id_token as google_id_token
 
+    # clock_skew: may Windows dong ho lech Google (loi "Token used too early")
     info = google_id_token.verify_oauth2_token(
         id_token,
         google_requests.Request(),
         audience=client_id,
+        clock_skew_in_seconds=600,
     )
     # Optional: check iss
     iss = info.get("iss", "")
@@ -46,6 +48,8 @@ async def upsert_google_user(session: AsyncSession, info: dict[str, Any]) -> Goo
     user = res.scalar_one_or_none()
     now = datetime.now(timezone.utc)
     if user is None:
+        from datetime import timedelta
+
         user = GoogleWebUser(
             google_sub=sub,
             email=info.get("email"),
@@ -53,6 +57,10 @@ async def upsert_google_user(session: AsyncSession, info: dict[str, Any]) -> Goo
             picture=info.get("picture"),
             active=True,
             email_verified=True,
+            plan_id="trial",
+            plan_expires_at=now + timedelta(days=3),
+            usage_day=None,
+            usage_count=0,
             last_login_at=now,
             created_at=now,
         )
@@ -63,8 +71,10 @@ async def upsert_google_user(session: AsyncSession, info: dict[str, Any]) -> Goo
         user.picture = info.get("picture") or user.picture
         user.email_verified = True
         user.last_login_at = now
+        if not getattr(user, "plan_id", None):
+            user.plan_id = "trial"
         if not user.active:
-            raise ValueError("Tai khoan da bi khoa")
+            raise ValueError("Tài khoản đã bị khóa")
     await session.commit()
     await session.refresh(user)
     return user

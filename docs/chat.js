@@ -131,20 +131,41 @@
     }
     els.modelChip.classList.remove("login-cta");
     const u = googleUser || {};
-    const email = u.email || "";
-    if (serverOnline && lastModel) {
+    const plan = planLabel(u);
+    if (plan) {
+      els.modelChip.textContent = plan;
+    } else if (serverOnline && lastModel) {
       els.modelChip.textContent = lastModel;
     } else if (serverOnline) {
-      els.modelChip.textContent = email || "online";
+      els.modelChip.textContent = u.email || "online";
     } else {
-      // offline: still show email, not "server offline" as identity
-      els.modelChip.textContent = email || "offline";
+      els.modelChip.textContent = u.email || "offline";
     }
+  }
+
+  function planLabel(user) {
+    if (!user) return "";
+    const name = user.plan_name || user.plan_id || "";
+    if (!name) return "";
+    const rem = user.remaining_today;
+    const lim = user.daily_limit;
+    if (lim != null && lim >= 0 && rem != null) {
+      return name + " · " + rem + "/" + lim + " tin";
+    }
+    if (lim === -1) return name + " · ∞";
+    return String(name);
   }
 
   function applyUserUi(user) {
     googleUser = user || null;
+    if (user) {
+      try {
+        localStorage.setItem(LS_GOOGLE_USER, JSON.stringify(user));
+      } catch (e) {}
+    }
     if (!user) {
+      if (els.accountMenuEmail) els.accountMenuEmail.textContent = "";
+      if (els.accountMenuEmailTop) els.accountMenuEmailTop.textContent = "";
       refreshUserChip();
       return;
     }
@@ -159,8 +180,45 @@
       if (els.userPillImg) els.userPillImg.src = "assets/bot-avatar.jpg";
       if (els.userAvatar) els.userAvatar.src = "assets/bot-avatar.jpg";
     }
-    if (els.userPill) els.userPill.title = user.email || name;
+    const emailLine = user.email || name;
+    const plan = planLabel(user);
+    const sub = plan ? emailLine + "\n" + plan : emailLine;
+    if (els.accountMenuEmail) els.accountMenuEmail.textContent = sub;
+    if (els.accountMenuEmailTop) els.accountMenuEmailTop.textContent = sub;
+    if (els.userPill) els.userPill.title = plan ? emailLine + " · " + plan : emailLine;
+    if (els.modelChip && isLoggedIn()) {
+      els.modelChip.classList.remove("login-cta");
+      els.modelChip.textContent = plan || user.email || lastModel || "online";
+    }
     refreshUserChip();
+  }
+
+  async function activateCode(code) {
+    if (!googleSession) {
+      redirectToLogin();
+      return { ok: false, message: "Cần đăng nhập trước." };
+    }
+    const r = await fetch(apiBase() + "/api/auth/activate", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, userHeaders()),
+      body: JSON.stringify({ code: code }),
+    });
+    const text = await r.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { detail: text };
+    }
+    if (!r.ok) {
+      const d = data.detail;
+      let msg = text;
+      if (typeof d === "string") msg = d;
+      else if (d && d.message) msg = d.message;
+      throw new Error(msg || "Kích hoạt thất bại");
+    }
+    if (data.user) applyUserUi(data.user);
+    return data;
   }
 
   function logoutGoogle() {
@@ -702,6 +760,22 @@
     renderAttachPreview();
   }
 
+  function parseApiError(status, errText) {
+    let msg = errText || ("Lỗi " + status);
+    try {
+      const j = JSON.parse(errText);
+      const d = j.detail;
+      if (typeof d === "string") msg = d;
+      else if (d && typeof d === "object") {
+        msg = d.message || JSON.stringify(d);
+        if (d.upgrade_url) {
+          msg += "\n\n→ [Mua gói VIP](" + d.upgrade_url + ")";
+        }
+      } else if (j.message) msg = j.message;
+    } catch (e) {}
+    return msg;
+  }
+
   /** Chat via backend — API keys stay on server */
   async function sendMessage(text) {
     text = (text || "").trim();
@@ -714,6 +788,55 @@
     );
     if (needAuth && !isLoggedIn()) {
       redirectToLogin();
+      return;
+    }
+
+    // /activate CODE — redeem plan on web
+    const act = text.match(/^\/activate\s+(\S+)/i);
+    if (act) {
+      const chat = ensureChat();
+      chat.messages.push({ role: "user", content: text });
+      chat.updated = Date.now();
+      persistChats();
+      renderHistory();
+      els.input.value = "";
+      autoResize();
+      appendMsg("user", text);
+      const contentEl = appendMsg("assistant", "", [], true);
+      contentEl.parentElement.parentElement.classList.add("typing");
+      setBusy(true);
+      try {
+        const data = await activateCode(act[1]);
+        const msg =
+          "✅ " +
+          (data.message || "Đã kích hoạt gói.") +
+          (data.user
+            ? "\n\nGói: **" +
+              (data.user.plan_name || data.user.plan_id) +
+              "** · còn " +
+              (data.user.remaining_today == null
+                ? "∞"
+                : data.user.remaining_today + "/" + data.user.daily_limit) +
+              " tin hôm nay."
+            : "");
+        contentEl.parentElement.parentElement.classList.remove("typing");
+        setAssistantHtml(contentEl, msg);
+        chat.messages.push({ role: "assistant", content: msg });
+        chat.updated = Date.now();
+        persistChats();
+      } catch (err) {
+        contentEl.parentElement.parentElement.classList.remove("typing");
+        const msg =
+          "**Không kích hoạt được**\n\n" +
+          String(err.message || err) +
+          "\n\nMua gói: [pricing.html](pricing.html) · Bot: https://t.me/grokapiai_bot";
+        setAssistantHtml(contentEl, msg);
+        chat.messages.push({ role: "assistant", content: msg });
+        persistChats();
+      } finally {
+        setBusy(false);
+        scrollBottom();
+      }
       return;
     }
 
@@ -758,7 +881,7 @@
       });
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error("Server " + res.status + ": " + errText.slice(0, 200));
+        throw new Error(parseApiError(res.status, errText.slice(0, 800)));
       }
 
       const ctype = res.headers.get("content-type") || "";
@@ -821,12 +944,13 @@
       contentEl.parentElement.parentElement.classList.remove("typing");
       setAssistantHtml(
         contentEl,
-        "**Lỗi kết nối server**\n\n" +
+        "**Lỗi**\n\n" +
           String(err.message || err) +
-          "\n\nChu y:\n" +
-          "1. Chay server: `python -m webapp.server` (port 7860)\n" +
-          "2. Mo dung: http://127.0.0.1:7860/\n" +
-          "3. User khong can API key"
+          "\n\nGợi ý:\n" +
+          "1. Chạy server: `python -m webapp.server` (port 7860)\n" +
+          "2. Mở: http://127.0.0.1:7860/chat.html\n" +
+          "3. Hết quota? [Mua gói VIP](pricing.html) rồi gõ `/activate MÃ`\n" +
+          "4. Bot: https://t.me/grokapiai_bot"
       );
       setStatus(false);
     } finally {
