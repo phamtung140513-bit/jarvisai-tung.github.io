@@ -108,13 +108,15 @@ class Settings(BaseSettings):
     xai_base_url: str = Field("", alias="XAI_BASE_URL")
     xai_model: str = Field("", alias="XAI_MODEL")
 
-    # Plan → model routing (Trial=Groq free, paid=GPT/NVIDIA)
+    # Plan → model routing
+    # Trial = Groq | Basic = GPT-OSS-120B | Pro+ = DeepSeek-V4-Pro
     plan_route_enabled: bool = Field(True, alias="PLAN_ROUTE_ENABLED")
     free_ai_provider: str = Field("groq", alias="FREE_AI_PROVIDER")
     free_ai_model: str = Field("llama-3.3-70b-versatile", alias="FREE_AI_MODEL")
+    basic_ai_provider: str = Field("nvidia", alias="BASIC_AI_PROVIDER")
+    basic_ai_model: str = Field("openai/gpt-oss-120b", alias="BASIC_AI_MODEL")
     paid_ai_provider: str = Field("nvidia", alias="PAID_AI_PROVIDER")
-    # Strongest coding model verified on this NVIDIA key (2026-07)
-    # Alts: openai/gpt-oss-120b · meta/llama-3.1-70b-instruct · nvidia/llama-3.3-nemotron-super-49b-v1.5
+    # Pro / Business / Owner — strongest coding on this NVIDIA key
     paid_ai_model: str = Field(
         "deepseek-ai/deepseek-v4-pro",
         alias="PAID_AI_MODEL",

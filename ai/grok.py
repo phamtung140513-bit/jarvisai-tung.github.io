@@ -214,7 +214,7 @@ class GrokClient:
             client = self._client_for_route(route)
             model_id = model or route.model
 
-        is_paid = bool(route and route.tier == "paid")
+        is_paid = bool(route and route.tier in ("basic", "pro", "paid"))
         payload = self._build_payload(
             messages,
             system=system,
@@ -268,7 +268,7 @@ class GrokClient:
                 plan_id=plan_id, plan_expired=plan_expired, model=model
             )
 
-        is_paid = bool(route and route.tier == "paid")
+        is_paid = bool(route and route.tier in ("basic", "pro", "paid"))
         payload = self._build_payload(
             messages,
             system=system,

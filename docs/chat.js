@@ -265,16 +265,18 @@
   function planLabel(user) {
     if (!user) return "";
     const name = planDisplayName(user);
-    const ai =
-      user.ai_tier === "paid"
-        ? "DeepSeek VIP"
-        : user.ai_label
-          ? user.ai_tier === "free"
-            ? "Groq"
-            : ""
-          : user.plan_id && user.plan_id !== "trial" && !user.plan_expired
-            ? "DeepSeek VIP"
-            : "Groq";
+    const tier = (user.ai_tier || "").toLowerCase();
+    const pid = (user.plan_id || "").toLowerCase();
+    let ai = "";
+    if (tier === "pro" || pid === "pro" || pid === "business" || pid === "owner") {
+      ai = "DeepSeek VIP";
+    } else if (tier === "basic" || pid === "basic") {
+      ai = "GPT";
+    } else if (tier === "paid") {
+      ai = "VIP";
+    } else {
+      ai = "Groq";
+    }
     let base = "Gói " + name;
     if (ai) base += " · " + ai;
     if (user.daily_limit === -1) return base + " · ∞";
@@ -316,13 +318,16 @@
       if (b.nameEl) b.nameEl.textContent = name + (expired ? " (hết hạn)" : "");
       let metaFull = meta || "";
       if (user) {
-        const aiBit =
-          user.ai_tier === "paid" ||
-          (user.plan_id &&
-            user.plan_id !== "trial" &&
-            !user.plan_expired)
-            ? "Model: DeepSeek-V4-Pro (VIP)"
-            : "Model: Groq (free)";
+        const t = (user.ai_tier || "").toLowerCase();
+        const p = (user.plan_id || "").toLowerCase();
+        let aiBit = "Model: Groq (free)";
+        if (t === "pro" || p === "pro" || p === "business" || p === "owner") {
+          aiBit = "Model: DeepSeek-V4-Pro (Pro+)";
+        } else if (t === "basic" || p === "basic") {
+          aiBit = "Model: GPT-OSS-120B (Basic)";
+        } else if (t === "paid") {
+          aiBit = "Model: VIP";
+        }
         metaFull = metaFull ? metaFull + " · " + aiBit : aiBit;
       }
       if (b.metaEl) b.metaEl.textContent = metaFull;
