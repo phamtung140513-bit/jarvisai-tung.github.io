@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     require_software_license: bool = Field(False, alias="REQUIRE_SOFTWARE_LICENSE")
 
     # Provider: groq | openrouter | xai | nvidia | ollama
+    # Default stack (CLI / fallback). Plan routing overrides per-user chat.
     ai_provider: str = Field("groq", alias="AI_PROVIDER")
 
     # Preferred single key (works for any provider)
@@ -105,6 +106,13 @@ class Settings(BaseSettings):
     # Legacy aliases still accepted
     xai_base_url: str = Field("", alias="XAI_BASE_URL")
     xai_model: str = Field("", alias="XAI_MODEL")
+
+    # Plan → model routing (Trial=Groq free, paid=GPT/NVIDIA)
+    plan_route_enabled: bool = Field(True, alias="PLAN_ROUTE_ENABLED")
+    free_ai_provider: str = Field("groq", alias="FREE_AI_PROVIDER")
+    free_ai_model: str = Field("llama-3.3-70b-versatile", alias="FREE_AI_MODEL")
+    paid_ai_provider: str = Field("nvidia", alias="PAID_AI_PROVIDER")
+    paid_ai_model: str = Field("openai/gpt-oss-20b", alias="PAID_AI_MODEL")
 
     ai_temperature: float = Field(0.7, alias="AI_TEMPERATURE")
     ai_max_tokens: int = Field(4096, alias="AI_MAX_TOKENS")

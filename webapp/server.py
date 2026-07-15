@@ -919,7 +919,9 @@ def create_app() -> FastAPI:
 
         # Plan / daily quota for logged-in web users
         web_user_id: int | None = None
-        if guser and guser.get("id"):
+        plan_id: str = "trial"
+        plan_expired: bool = False
+        if guser:
             db_user = await _load_web_user(guser)
             if db_user is not None:
                 ok_q, qmsg, used, limit = check_web_quota(db_user)
@@ -935,6 +937,9 @@ def create_app() -> FastAPI:
                         },
                     )
                 web_user_id = int(db_user.id)
+                pub = user_public(db_user)
+                plan_id = pub.get("plan_id") or "trial"
+                plan_expired = bool(pub.get("plan_expired"))
 
         # Prefer stable session per Google account when logged in
         sid = (body.session_id or "").strip()
@@ -947,6 +952,7 @@ def create_app() -> FastAPI:
 
         mem: SessionMemory = request.app.state.memory
         client: GrokClient = request.app.state.grok
+        route = client.route_for_plan(plan_id, plan_expired=plan_expired)
 
         await _hydrate_session(sid)
         mem.add(sid, "user", text)
@@ -965,11 +971,25 @@ def create_app() -> FastAPI:
         if body.stream:
 
             async def event_gen():
-                yield _sse({"type": "meta", "session_id": sid})
+                yield _sse(
+                    {
+                        "type": "meta",
+                        "session_id": sid,
+                        "plan_id": plan_id,
+                        "ai_tier": route.tier,
+                        "ai_provider": route.provider,
+                        "ai_model": route.model,
+                        "ai_label": route.label,
+                    }
+                )
                 parts: list[str] = []
                 try:
                     async for delta in client.chat_stream(
-                        history, system=WEB_SYSTEM, temperature=0.25
+                        history,
+                        system=WEB_SYSTEM,
+                        temperature=0.25,
+                        plan_id=plan_id,
+                        plan_expired=plan_expired,
                     ):
                         parts.append(delta)
                         yield _sse({"type": "delta", "text": delta})
@@ -994,14 +1014,25 @@ def create_app() -> FastAPI:
 
         try:
             reply = await client.chat(
-                history, system=WEB_SYSTEM, temperature=0.25
+                history,
+                system=WEB_SYSTEM,
+                temperature=0.25,
+                plan_id=plan_id,
+                plan_expired=plan_expired,
             )
         except GrokError as exc:
             raise HTTPException(502, str(exc)) from exc
         mem.add(sid, "assistant", reply)
         await _persist(sid, "assistant", reply)
         await _after_success()
-        return {"session_id": sid, "reply": reply}
+        return {
+            "session_id": sid,
+            "reply": reply,
+            "plan_id": plan_id,
+            "ai_tier": route.tier,
+            "ai_model": route.model,
+            "ai_label": route.label,
+        }
 
     @app.get("/api/chat/history")
     async def chat_history(

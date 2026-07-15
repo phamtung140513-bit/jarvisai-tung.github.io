@@ -38,7 +38,7 @@ def user_public(user: GoogleWebUser) -> dict[str, Any]:
     limit = plan.daily_messages
     remaining = None if limit < 0 else max(0, limit - used)
     expired = bool(expires and expires < _utcnow() and plan.id != "owner")
-    return {
+    out: dict[str, Any] = {
         "id": user.id,
         "email": user.email,
         "name": user.name,
@@ -52,6 +52,19 @@ def user_public(user: GoogleWebUser) -> dict[str, Any]:
         "plan_expired": expired,
         "upgrade_url": "pricing.html",
     }
+    # Which AI stack this user gets (Groq free vs GPT paid)
+    try:
+        from config import get_settings
+        from ai.routing import resolve_route, route_public_dict
+
+        route = resolve_route(
+            get_settings(), plan.id, plan_expired=expired
+        )
+        out.update(route_public_dict(route))
+    except Exception:
+        out["ai_tier"] = "free" if plan.id == "trial" or expired else "paid"
+        out["ai_label"] = "Groq (free)" if out["ai_tier"] == "free" else "GPT (VIP)"
+    return out
 
 
 async def ensure_plan_defaults(session: AsyncSession, user: GoogleWebUser) -> GoogleWebUser:

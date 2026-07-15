@@ -1311,12 +1311,31 @@ def build_router(
         )
 
         try:
+            plan_id = "trial"
+            plan_expired = False
             async with db.session() as session:
                 await memory.add_persist(session, uid, "user", text)
+                # Route model by Telegram plan (owner → GPT, trial → Groq)
+                from product.users import get_user
+
+                bu = await get_user(session, uid)
+                if uid in settings.owner_ids:
+                    plan_id = "owner"
+                elif bu is not None:
+                    plan_id = bu.plan_id or "trial"
+                    if bu.expires_at is not None:
+                        from datetime import datetime, timezone
+
+                        exp = bu.expires_at
+                        if exp.tzinfo is None:
+                            exp = exp.replace(tzinfo=timezone.utc)
+                        plan_expired = exp < datetime.now(timezone.utc)
             reply = await grok.chat(
                 memory.get_messages(uid),
                 system=system_extra,
                 temperature=temp,
+                plan_id=plan_id,
+                plan_expired=plan_expired,
             )
             async with db.session() as session:
                 await memory.add_persist(session, uid, "assistant", reply)

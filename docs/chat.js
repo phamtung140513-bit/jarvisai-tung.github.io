@@ -265,11 +265,23 @@
   function planLabel(user) {
     if (!user) return "";
     const name = planDisplayName(user);
-    if (user.daily_limit === -1) return "Gói " + name + " · ∞";
+    const ai =
+      user.ai_tier === "paid"
+        ? "GPT"
+        : user.ai_label
+          ? user.ai_tier === "free"
+            ? "Groq"
+            : ""
+          : user.plan_id && user.plan_id !== "trial" && !user.plan_expired
+            ? "GPT"
+            : "Groq";
+    let base = "Gói " + name;
+    if (ai) base += " · " + ai;
+    if (user.daily_limit === -1) return base + " · ∞";
     if (user.remaining_today != null && user.daily_limit != null && user.daily_limit >= 0) {
-      return "Gói " + name + " · " + user.remaining_today + "/" + user.daily_limit;
+      return base + " · " + user.remaining_today + "/" + user.daily_limit;
     }
-    return "Gói " + name;
+    return base;
   }
 
   function setPlanMenu(user) {
@@ -302,7 +314,18 @@
       b.wrap.style.display = "block";
       b.wrap.style.visibility = "visible";
       if (b.nameEl) b.nameEl.textContent = name + (expired ? " (hết hạn)" : "");
-      if (b.metaEl) b.metaEl.textContent = meta || "";
+      let metaFull = meta || "";
+      if (user) {
+        const aiBit =
+          user.ai_tier === "paid" ||
+          (user.plan_id &&
+            user.plan_id !== "trial" &&
+            !user.plan_expired)
+            ? "Model: GPT (VIP)"
+            : "Model: Groq (free)";
+        metaFull = metaFull ? metaFull + " · " + aiBit : aiBit;
+      }
+      if (b.metaEl) b.metaEl.textContent = metaFull;
     });
     const pid = ((user && user.plan_id) || "trial").toLowerCase();
     const vipText =
