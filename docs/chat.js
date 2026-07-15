@@ -152,10 +152,13 @@
   }
 
   function planDisplayName(user) {
-    if (!user) return "";
-    const raw = (user.plan_name || user.plan_id || "").toString().trim();
-    if (!raw) return "";
-    // Normalize ids → pretty labels
+    // Always resolve a visible plan name (default Trial)
+    const raw = (
+      (user && (user.plan_name || user.plan_id)) ||
+      "trial"
+    )
+      .toString()
+      .trim();
     const map = {
       trial: "Trial",
       basic: "Basic",
@@ -165,7 +168,6 @@
     };
     const key = raw.toLowerCase();
     if (map[key]) return map[key];
-    // Capitalize first letter if looks like id
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }
 
@@ -177,14 +179,21 @@
     if (lim != null && lim >= 0 && rem != null) {
       return "Còn " + rem + "/" + lim + " tin hôm nay";
     }
+    if (user.plan_expires_at) {
+      try {
+        const d = new Date(user.plan_expires_at);
+        if (!isNaN(d.getTime())) {
+          return "Hết hạn: " + d.toLocaleDateString("vi-VN");
+        }
+      } catch (e) {}
+    }
     return "";
   }
 
   function planLabel(user) {
+    if (!user) return "";
     const name = planDisplayName(user);
-    if (!name) return "";
-    const q = planQuotaText(user);
-    if (q && user.daily_limit === -1) return "Gói " + name + " · ∞";
+    if (user.daily_limit === -1) return "Gói " + name + " · ∞";
     if (user.remaining_today != null && user.daily_limit != null && user.daily_limit >= 0) {
       return "Gói " + name + " · " + user.remaining_today + "/" + user.daily_limit;
     }
@@ -192,8 +201,9 @@
   }
 
   function setPlanMenu(user) {
-    const name = planDisplayName(user);
-    const meta = planQuotaText(user);
+    // Always show plan row when logged in
+    const name = user ? planDisplayName(user) : "";
+    const meta = user ? planQuotaText(user) : "";
     const expired = !!(user && user.plan_expired);
     const blocks = [
       {
@@ -209,15 +219,17 @@
     ];
     blocks.forEach(function (b) {
       if (!b.wrap) return;
-      if (!name) {
+      if (!user || !name) {
         b.wrap.hidden = true;
+        b.wrap.style.display = "none";
         return;
       }
       b.wrap.hidden = false;
+      b.wrap.removeAttribute("hidden");
+      b.wrap.style.display = "";
       if (b.nameEl) b.nameEl.textContent = name + (expired ? " (hết hạn)" : "");
       if (b.metaEl) b.metaEl.textContent = meta || "";
     });
-    // VIP CTA: trial/expired → mua; paid → nâng cấp
     const pid = ((user && user.plan_id) || "trial").toLowerCase();
     const vipText =
       !user || pid === "trial" || expired
@@ -227,6 +239,23 @@
           : "Nâng cấp gói";
     if (els.btnVipMenu) els.btnVipMenu.textContent = vipText;
     if (els.btnVipMenuTop) els.btnVipMenuTop.textContent = vipText;
+  }
+
+  async function refreshPlanFromServer() {
+    if (!googleSession) return false;
+    try {
+      const r = await fetch(apiBase() + "/api/auth/me", {
+        headers: { "X-User-Session": googleSession },
+        cache: "no-store",
+      });
+      if (!r.ok) return false;
+      const j = await r.json();
+      if (j && j.user) {
+        applyUserUi(j.user);
+        return true;
+      }
+    } catch (e) {}
+    return false;
   }
 
   function applyUserUi(user) {
@@ -320,6 +349,7 @@
         cache: "no-store",
       });
       if (!r.ok) {
+        // Session chết (server restart) — xóa cache cũ không có plan
         googleSession = "";
         googleUser = null;
         localStorage.removeItem(LS_GOOGLE);
@@ -331,9 +361,10 @@
       showApp();
       return true;
     } catch (e) {
+      // Offline: only use cache if it already has plan_id
       try {
         const cached = JSON.parse(localStorage.getItem(LS_GOOGLE_USER) || "null");
-        if (cached) {
+        if (cached && (cached.plan_id || cached.plan_name)) {
           applyUserUi(cached);
           showApp();
           return true;
@@ -356,16 +387,27 @@
     closeAccountMenus();
     const email =
       (googleUser && (googleUser.email || googleUser.name)) || "Tài khoản";
+    // Paint plan from memory immediately, then refresh from server
+    if (els.accountMenuEmail) els.accountMenuEmail.textContent = email;
+    if (els.accountMenuEmailTop) els.accountMenuEmailTop.textContent = email;
+    setPlanMenu(googleUser);
     if (which === "side" && els.accountMenu) {
-      if (els.accountMenuEmail) els.accountMenuEmail.textContent = email;
       els.accountMenu.classList.remove("hidden");
       if (els.userChipBtn) els.userChipBtn.setAttribute("aria-expanded", "true");
     }
     if (which === "top" && els.accountMenuTop) {
-      if (els.accountMenuEmailTop) els.accountMenuEmailTop.textContent = email;
       els.accountMenuTop.classList.remove("hidden");
       if (els.userPill) els.userPill.setAttribute("aria-expanded", "true");
     }
+    // Always re-fetch plan (Pro/Basic/…) from DB
+    refreshPlanFromServer().then(function (ok) {
+      if (!ok) return;
+      const email2 =
+        (googleUser && (googleUser.email || googleUser.name)) || email;
+      if (els.accountMenuEmail) els.accountMenuEmail.textContent = email2;
+      if (els.accountMenuEmailTop) els.accountMenuEmailTop.textContent = email2;
+      setPlanMenu(googleUser);
+    });
   }
 
   function onAccountClick(which, e) {

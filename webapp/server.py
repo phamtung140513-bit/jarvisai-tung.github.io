@@ -290,13 +290,34 @@ def create_app() -> FastAPI:
         }
 
     async def _load_web_user(guser: dict[str, Any] | None) -> GoogleWebUser | None:
-        if not guser or not guser.get("id"):
+        """Load DB row by id, else email, else google_sub (so plan always fresh)."""
+        if not guser:
             return None
         async with db.session() as session:
-            res = await session.execute(
-                select(GoogleWebUser).where(GoogleWebUser.id == int(guser["id"]))
-            )
-            user = res.scalar_one_or_none()
+            user = None
+            uid = guser.get("id")
+            if uid is not None and str(uid).strip() != "":
+                try:
+                    res = await session.execute(
+                        select(GoogleWebUser).where(GoogleWebUser.id == int(uid))
+                    )
+                    user = res.scalar_one_or_none()
+                except (TypeError, ValueError):
+                    user = None
+            if user is None:
+                email = (guser.get("email") or "").strip().lower()
+                if email:
+                    res = await session.execute(
+                        select(GoogleWebUser).where(GoogleWebUser.email == email)
+                    )
+                    user = res.scalar_one_or_none()
+            if user is None:
+                sub = (guser.get("google_sub") or "").strip()
+                if sub:
+                    res = await session.execute(
+                        select(GoogleWebUser).where(GoogleWebUser.google_sub == sub)
+                    )
+                    user = res.scalar_one_or_none()
             if user is None:
                 return None
             return await ensure_plan_defaults(session, user)
