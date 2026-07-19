@@ -3,8 +3,9 @@ Trang ADMIN quan ly (khong link tren chat user):
   Local (khuyen nghi, day du chuc nang):
     http://127.0.0.1:7860/j-panel.html
 
-  GitHub Pages (can server local dang chay o 7860):
-    https://phamtung140513-bit.github.io/jarvis-ai/j-panel.html
+  GitHub Pages UI (can API/tunnel/VPS dang chay):
+    https://jarvisai-tung.github.io/j-panel.html
+    (cu: https://phamtung140513-bit.github.io/jarvis-ai/j-panel.html)
 
 Key: WEB_ADMIN_KEY trong .env
   mac dinh: jarvis-admin-change-me  (nen doi)
@@ -16,5 +17,6 @@ Chuc nang:
   - Gan goi trial/basic/pro/business
 
 Chat user:
-  http://127.0.0.1:7860/
-  https://phamtung140513-bit.github.io/jarvis-ai/
+  Local:  http://127.0.0.1:7860/
+  UI free: https://jarvisai-tung.github.io/
+  (Sau VPS: http://IP:7860 hoac https://domain)

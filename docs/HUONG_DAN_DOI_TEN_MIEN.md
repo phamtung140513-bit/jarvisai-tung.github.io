@@ -3,16 +3,23 @@
 ## Miền tĩnh đang dùng (CHỐT)
 
 ```text
-https://phamtung140513-bit.github.io/jarvis-ai/
-https://phamtung140513-bit.github.io/jarvis-ai/landing.html
-https://phamtung140513-bit.github.io/jarvis-ai/login.html
-https://phamtung140513-bit.github.io/jarvis-ai/register.html
+https://jarvisai-tung.github.io/
+https://jarvisai-tung.github.io/landing.html
+https://jarvisai-tung.github.io/login.html
+https://jarvisai-tung.github.io/register.html
 ```
 
-Repo: https://github.com/phamtung140513-bit/jarvis-ai  
+Org: https://github.com/jarvisai-tung  
+Repo site: `jarvisai-tung/jarvisai-tung.github.io` (Pages folder `/docs`)
 
-- **UI (HTML/CSS/JS)**: GitHub Pages free (miền trên)  
-- **API chat**: máy bạn `http://127.0.0.1:7860` hoặc tunnel/VPS (`docs/config.json` → `apiBase`)
+- **UI (HTML/CSS/JS)**: GitHub Pages free — `jarvisai-tung.github.io`  
+- **API chat**: máy bạn / tunnel / **VPS** (`docs/config.json` → `apiBase`)  
+- **Sau VPS**: trỏ domain riêng hoặc `http://IP:7860` — UI github.io vẫn giữ làm landing nếu muốn
+
+Backup (cũ, vẫn chạy được):
+```text
+https://phamtung140513-bit.github.io/jarvis-ai/
+```
 
 ---
 
