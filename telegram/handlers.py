@@ -69,6 +69,7 @@ from product.users import (
 )
 from product.vietqr_client import (
     create_pay_order,
+    get_order_status,
     health_check,
     vietqr_pay_enabled,
 )
@@ -137,9 +138,9 @@ class AuthMiddleware(BaseMiddleware):
             if cmd in self.PUBLIC_COMMANDS:
                 return await handler(event, data)
 
-        # Public callbacks: pricing / QR / bill / menu (khách chưa mua vẫn xem được)
+        # Public callbacks: pricing / QR / check / bill / menu (khách chưa mua vẫn xem được)
         if isinstance(event, CallbackQuery) and event.data:
-            if event.data.startswith(("qr:", "buy:", "bill:", "menu:")):
+            if event.data.startswith(("qr:", "buy:", "check:", "bill:", "menu:")):
                 return await handler(event, data)
 
         # Cho phép gửi ảnh bill (khi đang chờ) dù chưa active
@@ -262,7 +263,7 @@ def build_router(
         plan_id: str,
         telegram_id: int,
     ) -> None:
-        """Tạo đơn trên vietqr-pay + gửi QR; paid → webhook auto-active."""
+        """Tạo đơn vietqr-pay + QR động; SePay BĐSD → webhook → auto-active."""
         plan = get_plan(plan_id)
         if plan.price_vnd <= 0:
             await message.answer(
@@ -284,18 +285,20 @@ def build_router(
         except Exception as exc:
             logger.exception("create_pay_order failed")
             await message.answer(
-                "⚠️ Không tạo được đơn vietqr-pay.\n"
-                f"Lỗi: `{exc}`\n"
-                "Kiểm tra `VIETQR_PAY_URL` và `npm start` trong vietqr-pay.",
+                "⚠️ Không tạo được đơn thanh toán.\n"
+                f"Lỗi: `{exc}`\n\n"
+                "Trên VPS cần chạy *vietqr-pay* (port 3000):\n"
+                "`systemctl start vietqr-pay`\n"
+                "hoặc dán script `Desktop/VPS-BAT-VIETQR.sh`.\n"
+                "Đồng thời kiểm tra `BANK_ACCOUNT` trong `.env`.",
                 parse_mode="Markdown",
             )
             return
 
-        # Ưu tiên STK text từ .env bot (chuẩn chủ bot), fallback order
+        # STK text từ .env bot (chuẩn chủ bot), fallback order
         bank_code = settings.bank_id or order.bank_code
         bank_acc = settings.bank_account or order.bank_account
         bank_name = settings.bank_account_name or order.bank_name
-        # Nội dung CK = mã đơn (để đối soát) + gợi ý AI TUNGDEV
         transfer_content = order.content
 
         caption = order_payment_caption(
@@ -308,20 +311,15 @@ def build_router(
             order_id=order.order_id,
             currency=settings.currency,
             support=settings.support_contact,
+            autobank=True,
         )
         markup = payment_order_keyboard(order.order_id)
 
-        # Ảnh: ƯU TIÊN QR của chủ bot (PAYMENT_QR_PATH), không dùng ảnh auto vietqr.io
-        local = local_qr_path(settings)
+        # Ưu tiên QR ĐỘNG (đúng amount + nội dung riêng) — SePay mới match được
+        # PAYMENT_QR_PATH tĩnh (ảnh cũ) chỉ dùng khi không lấy được QR động
+        photo_sent = False
         try:
-            if local is not None:
-                await message.answer_photo(
-                    FSInputFile(str(local)),
-                    caption=caption,
-                    parse_mode="Markdown",
-                    reply_markup=markup,
-                )
-            elif order.qr_image_url:
+            if order.qr_image_url:
                 import httpx
 
                 async with httpx.AsyncClient(timeout=30.0) as client:
@@ -334,14 +332,83 @@ def build_router(
                     parse_mode="Markdown",
                     reply_markup=markup,
                 )
+                photo_sent = True
             else:
-                await message.answer(
-                    caption, parse_mode="Markdown", reply_markup=markup
-                )
+                local = local_qr_path(settings)
+                if local is not None:
+                    await message.answer_photo(
+                        FSInputFile(str(local)),
+                        caption=caption
+                        + "\n\n⚠️ Ảnh QR tĩnh — *ghi đúng số tiền + nội dung* ở trên.",
+                        parse_mode="Markdown",
+                        reply_markup=markup,
+                    )
+                    photo_sent = True
         except Exception:
             logger.exception("Failed to send pay order QR")
+
+        if not photo_sent:
             await message.answer(
                 caption, parse_mode="Markdown", reply_markup=markup
+            )
+
+        await message.answer(
+            "⏳ *Chờ auto bank…*\n"
+            "CK xong hệ thống (SePay) sẽ tự báo → bot *kích hoạt gói* và nhắn bạn.\n"
+            "Không thấy tin? Bấm *Kiểm tra thanh toán* dưới ảnh QR.",
+            parse_mode="Markdown",
+        )
+
+    @router.callback_query(F.data.startswith("check:"))
+    async def cb_check_paid(callback: CallbackQuery) -> None:
+        """Poll vietqr-pay order status (SePay webhook đã mark paid?)."""
+        if not callback.from_user:
+            await _safe_callback_answer(callback)
+            return
+        order_id = (callback.data or "check:").split(":", 1)[-1].strip()
+        if not order_id:
+            await _safe_callback_answer(callback, "Thiếu mã đơn", show_alert=True)
+            return
+        try:
+            st = await get_order_status(settings, order_id)
+        except Exception as exc:
+            await _safe_callback_answer(callback)
+            if callback.message:
+                await callback.message.answer(
+                    f"⚠️ Không kiểm tra được đơn `{order_id}`.\n`{exc}`",
+                    parse_mode="Markdown",
+                )
+            return
+
+        status = str(st.get("status") or "pending").lower()
+        try:
+            amount = int(st.get("amount") or 0)
+        except (TypeError, ValueError):
+            amount = 0
+        amount_txt = f"{amount:,}" if amount else "—"
+        plan = st.get("plan") or "—"
+        await _safe_callback_answer(callback)
+
+        if status == "paid":
+            if callback.message:
+                await callback.message.answer(
+                    f"✅ *Đã thanh toán*\n"
+                    f"Đơn: `{order_id}`\n"
+                    f"Gói: *{plan}* · {amount_txt} {settings.currency}\n\n"
+                    f"Gói đã/đang kích hoạt — xem /account.\n"
+                    f"Nếu chưa thấy tin auto, báo admin {settings.support_contact}.",
+                    parse_mode="Markdown",
+                )
+            return
+
+        if callback.message:
+            await callback.message.answer(
+                f"⏳ *Chưa nhận tiền*\n"
+                f"Đơn: `{order_id}` · trạng thái: `{status}`\n"
+                f"Nội dung CK: `{st.get('content') or '—'}`\n\n"
+                f"Kiểm tra đã CK *đúng số tiền + đúng nội dung* chưa.\n"
+                f"SePay thường báo trong vài giây–vài phút sau khi tiền vào STK.",
+                parse_mode="Markdown",
             )
 
     @router.callback_query(F.data.startswith("bill:"))
@@ -353,10 +420,11 @@ def build_router(
         _pending_bill[callback.from_user.id] = order_id
         await _safe_callback_answer(callback)
         await callback.message.answer(  # type: ignore[union-attr]
-            "📷 *Gửi ảnh bill xác nhận*\n\n"
+            "📷 *Gửi bill dự phòng* (khi auto bank chậm)\n\n"
             f"Mã đơn: `{order_id}`\n"
-            "Gửi *ảnh chụp màn hình* chuyển khoản thành công ngay tin nhắn tiếp theo.\n"
-            f"Admin sẽ nhận bill và duyệt nhanh ({settings.support_contact}).",
+            "Gửi *ảnh chụp* chuyển khoản thành công ngay tin nhắn tiếp theo.\n"
+            f"Admin nhận bill ({settings.support_contact}).\n\n"
+            "Ưu tiên: CK đúng QR → *SePay auto* kích hoạt, không cần bill.",
             parse_mode="Markdown",
         )
 
@@ -504,8 +572,9 @@ def build_router(
         text += f"\n🆘 {settings.support_contact}"
         if vietqr_pay_enabled(settings):
             text += (
-                "\n\nBấm nút gói bên dưới → bot tạo *đơn + QR*.\n"
-                "CK xong → *tự kích hoạt* (khi webhook nhận tiền)."
+                "\n\n⚡ *Auto bank (SePay)*\n"
+                "Bấm gói bên dưới → bot tạo *đơn + QR động* (nội dung riêng bạn).\n"
+                "CK đúng tiền + nội dung → *tự kích hoạt gói* trên Telegram."
             )
         elif has_qr_source(settings):
             text += "\n\nBấm nút bên dưới để hiện *QR chuyển khoản*."
@@ -560,11 +629,15 @@ def build_router(
             return
         try:
             h = await health_check(settings)
+            sepay = "✅" if h.get("hasSepay") else "❌"
             await message.answer(
-                f"🟢 vietqr-pay OK\n"
-                f"`{settings.vietqr_pay_url}`\n"
+                f"🟢 *Auto bank stack*\n"
+                f"Pay: `{settings.vietqr_pay_url}`\n"
                 f"mode=`{h.get('mode')}` bank=`{h.get('bank')}` "
-                f"account=`{h.get('hasAccount')}`",
+                f"acc=`{h.get('accountMasked') or h.get('hasAccount')}`\n"
+                f"SePay key: {sepay} · merchant=`{h.get('sepayMerchantId') or '—'}`\n"
+                f"Webhook SePay:\n`{h.get('sepayWebhook') or '—'}`\n"
+                f"Fulfill bot: `http://127.0.0.1:{settings.payment_webhook_port}`",
                 parse_mode="Markdown",
             )
         except Exception as exc:
