@@ -1,8 +1,9 @@
-﻿{
-    "appName": "TungDevAI",
-    "publicSite": "https://jarvisai-tung.github.io",
-    "apiBase": "https://assists-trinity-apartment-evanescence.trycloudflare.com",
-    "note": "apiBase = URL tunnel VPS hien tai. Mo thang URL tunnel tot hon github.io. Quick tunnel DOI khi restart tungdevai-tunnel.",
-    "telegramBot": "https://t.me/grokapiai_bot",
-    "sameOrigin": false
+{
+  "appName": "TungDevAI",
+  "publicSite": "https://jarvisai-tung.github.io",
+  "apiBase": "",
+  "google_client_id": "932807715948-fvssk3ukqn636tdbuv1n59kvcoa5lhaf.apps.googleusercontent.com",
+  "telegramBot": "https://t.me/grokapiai_bot",
+  "sameOrigin": true,
+  "note": "google_client_id public (OK). apiBase rong = same-origin khi mo qua tunnel/VPS. Khong de trycloudflare chet o day."
 }

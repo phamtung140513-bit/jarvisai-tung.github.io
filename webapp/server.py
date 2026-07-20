@@ -484,11 +484,13 @@ def create_app() -> FastAPI:
     @app.get("/config.json")
     async def config_json() -> dict[str, Any]:
         # Same-domain: empty apiBase => frontend uses location.origin
+        # google_client_id public — de hien nut Google ngay, khong doi /api/config
         return {
             "apiBase": "",
             "telegramBot": "https://t.me/grokapiai_bot",
             "appName": settings.app_name,
             "sameOrigin": True,
+            "google_client_id": google_client_id or "",
         }
 
     @app.get("/chat.js", response_model=None)
