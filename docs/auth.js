@@ -1,11 +1,14 @@
 /**
  * TungDevAI auth — login.html / register.html
- * Google: OAuth popup (id_token) + GIS button fallback
+ * Google: GIS button + OAuth id_token (popup desktop / full redirect mobile)
  */
 const TungAuth = (() => {
   const LS_API = "jarvis_api_base_v2";
   const LS_GOOGLE = "jarvis_google_session_v1";
   const LS_GOOGLE_USER = "jarvis_google_user_v1";
+  const SS_GOOGLE_TOKEN = "tung_google_id_token";
+  const SS_GOOGLE_RETURN = "tung_google_return";
+  const SS_GOOGLE_NONCE = "tung_google_nonce";
   const CHAT_URL = "chat.html"; // web chat (landing is site root index.html)
 
   const $ = (id) => document.getElementById(id);
@@ -21,20 +24,150 @@ const TungAuth = (() => {
   let mode = "login";
   let gsiReady = false;
   let popupWatch = null;
+  let cfgPublic = { apiBase: "", publicSite: "", sameOrigin: false };
 
+  function isMobileUa() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+  }
+
+  function isStaticHost() {
+    const host = (location.hostname || "").toLowerCase();
+    return host.indexOf("github.io") !== -1 || location.protocol === "file:";
+  }
+
+  function currentOrigin() {
+    return (location.origin || "").replace(/\/$/, "");
+  }
+
+  function googleOriginHelp() {
+    const o = currentOrigin();
+    return (
+      "Google Error 400 = origin/redirect chua khai bao.\n\n" +
+      "Vao https://console.cloud.google.com/apis/credentials\n" +
+      "→ OAuth client (Web) → them:\n\n" +
+      "JavaScript origins:\n" +
+      o +
+      "\n\nRedirect URIs:\n" +
+      o +
+      "/google-callback.html\n\n" +
+      "Luu 1–5 phut roi thu lai. Dung DUNG link dang mo (khong doi tunnel/IP)."
+    );
+  }
+
+  function isLoopbackUrl(url) {
+    return /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?/i.test(
+      String(url || "").trim()
+    );
+  }
+
+  /**
+   * API server URL:
+   * - Same-origin when UI is served by VPS/tunnel (trycloudflare / IP:7860)
+   * - On github.io: config.json apiBase or localStorage (NEVER 127.0.0.1 on phone)
+   * - Ignore saved 127.0.0.1 when page is already on public VPS/tunnel
+   */
   function apiBase() {
     const host = (location.hostname || "").toLowerCase();
-    if (host.indexOf("github.io") !== -1) {
-      const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
-      return fromLs || "http://127.0.0.1:7860";
-    }
-    if (host === "127.0.0.1" || host === "localhost") {
-      return (location.origin || "").replace(/\/$/, "");
-    }
+    const origin = (location.origin || "").replace(/\/$/, "");
     const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
-    if (fromLs) return fromLs;
-    if (location.protocol === "file:") return "http://127.0.0.1:7860";
-    return (location.origin || "").replace(/\/$/, "");
+    const fromCfg = (cfgPublic.apiBase || "").trim().replace(/\/$/, "");
+
+    // Local PC: same origin (webapp.server)
+    if (host === "127.0.0.1" || host === "localhost") {
+      return origin;
+    }
+
+    // Public UI (tunnel / VPS / domain): always same-origin.
+    // Do NOT prefer localStorage 127.0.0.1 left over from github.io testing.
+    if (!isStaticHost() && origin && origin.indexOf("http") === 0) {
+      if (fromLs && isLoopbackUrl(fromLs)) {
+        try {
+          localStorage.removeItem(LS_API);
+        } catch (_) {}
+      }
+      return origin;
+    }
+
+    // github.io / file: need remote API
+    if (fromLs && !isLoopbackUrl(fromLs)) return fromLs;
+    if (fromCfg && !isLoopbackUrl(fromCfg)) return fromCfg;
+    if (fromLs && isLoopbackUrl(fromLs)) {
+      try {
+        localStorage.removeItem(LS_API);
+      } catch (_) {}
+    }
+    return "";
+  }
+
+  async function loadPublicConfig() {
+    try {
+      const r = await fetch("config.json?v=9", { cache: "no-store" });
+      if (r.ok) {
+        cfgPublic = Object.assign(cfgPublic, await r.json());
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function showApiBaseFixer(reason) {
+    let box = $("apiBaseFixer");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "apiBaseFixer";
+      box.style.cssText =
+        "margin-top:0.75rem;padding:0.75rem;border:1px solid #444;border-radius:10px;text-align:left";
+      const hint = $("authHint");
+      if (hint && hint.parentNode) hint.parentNode.insertBefore(box, hint);
+      else {
+        const card = document.querySelector(".auth-card");
+        if (card) card.appendChild(box);
+      }
+    }
+    box.innerHTML =
+      '<p class="auth-hint" style="margin:0 0 0.5rem;white-space:pre-wrap"></p>' +
+      '<label class="auth-label" for="apiBaseInput">Link server VPS / tunnel</label>' +
+      '<input class="auth-input" id="apiBaseInput" type="url" placeholder="https://xxxx.trycloudflare.com" />' +
+      '<button type="button" class="auth-primary" id="btnSaveApi" style="margin-top:0.5rem;width:100%">Lưu & thử lại</button>' +
+      '<p class="auth-hint" style="margin:0.5rem 0 0;font-size:0.75rem">Lay URL tren VPS: journalctl -u tungdevai-tunnel -n 50 --no-pager | grep trycloudflare</p>';
+    const p = box.querySelector("p");
+    if (p) {
+      p.textContent =
+        reason ||
+        "Trang github.io chỉ là giao diện. Server API nằm trên VPS — dán URL public (trycloudflare) vào đây.";
+    }
+    const input = $("apiBaseInput");
+    if (input) {
+      input.value =
+        localStorage.getItem(LS_API) ||
+        (cfgPublic.apiBase || "") ||
+        "";
+    }
+    const btn = $("btnSaveApi");
+    if (btn) {
+      btn.onclick = async function () {
+        const v = (($("apiBaseInput") && $("apiBaseInput").value) || "")
+          .trim()
+          .replace(/\/$/, "");
+        if (!v || !/^https?:\/\//i.test(v)) {
+          showErr("Nhap day du URL, vi du: https://abc.trycloudflare.com");
+          return;
+        }
+        if (/127\.0\.0\.1|localhost/i.test(v) && isStaticHost()) {
+          showErr(
+            "Tren dien thoai/github.io, 127.0.0.1 la chinh may ban — khong phai VPS. Can link trycloudflare.com cua VPS."
+          );
+          return;
+        }
+        try {
+          localStorage.setItem(LS_API, v);
+        } catch (_) {}
+        clearMsgs();
+        setHint("Dang thu ket noi " + v + " …");
+        await loadServerConfig();
+        renderGoogleButton();
+      };
+    }
   }
 
   function clearMsgs() {
@@ -130,25 +263,11 @@ const TungAuth = (() => {
     return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  /**
-   * Primary: OAuth implicit id_token popup — works when GIS button is flaky.
-   * Requires Authorized redirect URI:
-   *   http://127.0.0.1:7860/google-callback.html
-   *   http://localhost:7860/google-callback.html
-   */
-  function startGooglePopupLogin() {
+  function buildGoogleAuthUrl() {
     const clientId = (serverConfig.google_client_id || "").trim();
-    if (!clientId) {
-      showErr("GOOGLE_CLIENT_ID chua cau hinh tren server.");
-      return;
-    }
-    clearMsgs();
-    setHint("Đang mở cửa sổ Google...");
-
-    const redirectUri = location.origin.replace(/\/$/, "") + "/google-callback.html";
+    const redirectUri = currentOrigin() + "/google-callback.html";
     const nonce = randomNonce();
-    sessionStorage.setItem("tung_google_nonce", nonce);
-
+    sessionStorage.setItem(SS_GOOGLE_NONCE, nonce);
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -157,8 +276,39 @@ const TungAuth = (() => {
       nonce: nonce,
       prompt: "select_account",
     });
-    const url = "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
+    return "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
+  }
 
+  /**
+   * OAuth id_token:
+   * - Desktop: popup
+   * - Mobile: full-page redirect (popup bi chan / khong co window.opener)
+   * Can Authorized redirect URI = origin hien tai + /google-callback.html
+   */
+  function startGooglePopupLogin() {
+    const clientId = (serverConfig.google_client_id || "").trim();
+    if (!clientId) {
+      showErr("GOOGLE_CLIENT_ID chua cau hinh tren server.");
+      return;
+    }
+    clearMsgs();
+
+    const url = buildGoogleAuthUrl();
+
+    // Mobile / small screens: full redirect (tranh popup + Error 400 hieu nham)
+    if (isMobileUa()) {
+      setHint("Đang chuyển sang Google…");
+      try {
+        sessionStorage.setItem(
+          SS_GOOGLE_RETURN,
+          location.pathname.split("/").pop() || "login.html"
+        );
+      } catch (_) {}
+      location.href = url;
+      return;
+    }
+
+    setHint("Đang mở cửa sổ Google...");
     const w = 500;
     const h = 640;
     const left = Math.max(0, (screen.width - w) / 2);
@@ -170,12 +320,15 @@ const TungAuth = (() => {
     );
 
     if (!popup) {
-      setHint("");
-      showErr(
-        "Trinh duyet chan popup. Cho phep popup cho " +
-          location.host +
-          " roi bam lai."
-      );
+      // Fallback: full redirect (Chrome mobile desktop mode, popup blocked)
+      setHint("Popup bị chặn — chuyển trang Google…");
+      try {
+        sessionStorage.setItem(
+          SS_GOOGLE_RETURN,
+          location.pathname.split("/").pop() || "login.html"
+        );
+      } catch (_) {}
+      location.href = url;
       return;
     }
 
@@ -185,7 +338,7 @@ const TungAuth = (() => {
         clearInterval(popupWatch);
         popupWatch = null;
         if ($("authHint") && $("authHint").textContent.indexOf("Đang mở") === 0) {
-          setHint("Cua so Google da dong. Bam lai neu chua xong.");
+          setHint("Cửa sổ Google đã đóng. Bấm lại nếu chưa xong.");
         }
       }
     }, 500);
@@ -202,14 +355,11 @@ const TungAuth = (() => {
     if (data.error) {
       setHint("");
       let m = String(data.error);
-      if (/redirect_uri_mismatch/i.test(m)) {
-        m =
-          "redirect_uri_mismatch: trong Google Cloud → Credentials → OAuth client, them Redirect URI:\n" +
-          location.origin +
-          "/google-callback.html";
+      if (/redirect_uri_mismatch|origin_mismatch|Error 400|invalid_request/i.test(m)) {
+        m = googleOriginHelp();
       } else if (/access_denied/i.test(m)) {
         m =
-          "Google tu choi. Neu app o che do Testing: OAuth consent → Test users → them email cua ban.";
+          "Google từ chối. Nếu app ở chế độ Testing: OAuth consent → Test users → thêm email của bạn.";
       }
       showErr(m);
       return;
@@ -217,6 +367,19 @@ const TungAuth = (() => {
     if (data.credential) {
       handleGoogleCredential({ credential: data.credential });
     }
+  }
+
+  /** Resume after mobile full-page OAuth redirect */
+  function resumeGoogleRedirectIfAny() {
+    let token = "";
+    try {
+      token = (sessionStorage.getItem(SS_GOOGLE_TOKEN) || "").trim();
+      if (token) sessionStorage.removeItem(SS_GOOGLE_TOKEN);
+    } catch (_) {}
+    if (!token) return false;
+    setHint("Đang hoàn tất đăng nhập Google…");
+    handleGoogleCredential({ credential: token });
+    return true;
   }
 
   function renderGoogleButton() {
@@ -227,6 +390,29 @@ const TungAuth = (() => {
     if (!clientId) {
       wrap.innerHTML =
         '<p class="auth-hint" style="margin:0">Google chưa cấu hình. Dùng email bên trên.</p>';
+      return;
+    }
+
+    // Mobile: nut redirect on-page (GIS hay bi Error 400 / popup)
+    if (isMobileUa()) {
+      wrap.innerHTML = "";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "auth-primary";
+      btn.style.width = "100%";
+      btn.style.background = "#fff";
+      btn.style.color = "#1f1f1f";
+      btn.style.border = "1px solid #dadce0";
+      btn.textContent = "Tiếp tục với Google";
+      btn.addEventListener("click", startGooglePopupLogin);
+      wrap.appendChild(btn);
+      const tip = document.createElement("p");
+      tip.className = "auth-hint";
+      tip.style.margin = "0.5rem 0 0";
+      tip.style.fontSize = "0.75rem";
+      tip.textContent =
+        "Nếu Google báo 400: thêm origin " + currentOrigin() + " vào Google Cloud OAuth.";
+      wrap.appendChild(tip);
       return;
     }
 
@@ -256,10 +442,25 @@ const TungAuth = (() => {
         width: 320,
         logo_alignment: "left",
       });
+      // Desktop backup if GIS fails (origin 400)
+      const alt = document.createElement("button");
+      alt.type = "button";
+      alt.className = "auth-secondary";
+      alt.style.marginTop = "0.6rem";
+      alt.style.width = "100%";
+      alt.textContent = "Google (cửa sổ khác)";
+      alt.addEventListener("click", startGooglePopupLogin);
+      wrap.appendChild(alt);
     } catch (e) {
       console.warn("GIS render failed", e);
-      wrap.innerHTML =
-        '<p class="auth-hint" style="margin:0">Không vẽ được nút Google. Thử email/mật khẩu.</p>';
+      wrap.innerHTML = "";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "auth-primary";
+      btn.style.width = "100%";
+      btn.textContent = "Tiếp tục với Google";
+      btn.addEventListener("click", startGooglePopupLogin);
+      wrap.appendChild(btn);
     }
   }
 
@@ -308,6 +509,8 @@ const TungAuth = (() => {
       if ($("regCode")) $("regCode").value = "";
 
       if (data.sent) {
+        const panel = $("otpPanel");
+        if (panel) panel.classList.add("is-sent");
         showOk(
           "Đã gửi mã 6 số tới " +
             (data.email || email) +
@@ -315,8 +518,9 @@ const TungAuth = (() => {
         );
         if ($("codeHint")) {
           $("codeHint").textContent =
-            "Mã chỉ có trong hộp thư. Không thấy? Đợi 1 phút / kiểm tra Spam.";
+            "Mã chỉ có trong hộp thư · Không thấy? Đợi 1 phút / kiểm tra Spam";
         }
+        if ($("regCode")) $("regCode").focus();
       } else {
         // Khong hien dev_code tren UI (du server co tra)
         showErr(
@@ -400,26 +604,76 @@ const TungAuth = (() => {
   }
 
   async function loadServerConfig() {
+    await loadPublicConfig();
+
     const host = (location.hostname || "").toLowerCase();
-    if (host === "127.0.0.1" || host === "localhost") {
+    // Xoa 127.0.0.1/localhost trong LS khi dang o VPS/tunnel/github (khong phai PC local)
+    if (!(host === "127.0.0.1" || host === "localhost")) {
       try {
-        localStorage.removeItem(LS_API);
+        const saved = (localStorage.getItem(LS_API) || "").trim();
+        if (isLoopbackUrl(saved)) localStorage.removeItem(LS_API);
       } catch (_) {}
     }
+
+    const base = apiBase();
+    if (!base) {
+      setHint(
+        "Ban dang mo trang tinh (" +
+          (location.hostname || "file") +
+          "). VPS bat roi van can URL public (trycloudflare) — khong dung 127.0.0.1."
+      );
+      showErr(
+        "Thieu dia chi API. Mo thang link trycloudflare cua VPS, hoac dan URL vao o ben duoi."
+      );
+      showApiBaseFixer(
+        "VPS dang chay nhung trang github.io khong goi duoc 127.0.0.1 (do la may ban).\n" +
+          "Mo link:\n" +
+          "  https://assists-trinity-apartment-evanescence.trycloudflare.com/register.html\n" +
+          "hoac dan URL tunnel vao o duoi."
+      );
+      return;
+    }
+
     try {
-      const r = await fetch(apiBase() + "/api/config", { cache: "no-store" });
+      const r = await fetch(base + "/api/config", { cache: "no-store" });
       if (r.ok) {
         serverConfig = Object.assign(serverConfig, await r.json());
+        setHint("");
+        const box = $("apiBaseFixer");
+        if (box) box.remove();
       } else {
-        showErr("Server tra loi config: " + r.status);
+        showErr("Server tra loi config: " + r.status + " (" + base + ")");
+        showApiBaseFixer("Server co phan hoi nhung loi " + r.status);
       }
     } catch (e) {
-      setHint(
-        "Khong ket noi server " +
-          apiBase() +
-          " — chay BAT_DAU_WEB.cmd hoac python -m webapp.server"
+      const detail = String((e && e.message) || e || "");
+      if (isLoopbackUrl(base) || /127\.0\.0\.1|localhost/i.test(base)) {
+        setHint(
+          "Trang dang goi " +
+            base +
+            " (may ban), khong phai VPS. Mo link tunnel VPS."
+        );
+        showErr(
+          "Sai dia chi API: " +
+            base +
+            "\nVPS dang bat o trycloudflare — khong mo github.io / 127.0.0.1 tren dien thoai."
+        );
+        showApiBaseFixer(
+          "Dan URL VPS hien tai:\nhttps://assists-trinity-apartment-evanescence.trycloudflare.com"
+        );
+        return;
+      }
+      setHint("Khong ket noi " + base + (detail ? " — " + detail : ""));
+      showErr(
+        "Khong den duoc server API (" +
+          base +
+          ").\n• Dung: mo URL trycloudflare.com cua VPS\n• Sai: github.io + apiBase cu / 127.0.0.1"
       );
-      showErr("Server dang tat (cong 7860). Bat server roi tai lai trang.");
+      showApiBaseFixer(
+        "VPS dang bat nhung URL nay khong ket noi duoc.\n" +
+          "Thu: https://assists-trinity-apartment-evanescence.trycloudflare.com\n" +
+          "Hoac SSH: journalctl -u tungdevai-tunnel -n 50 --no-pager | grep trycloudflare"
+      );
     }
   }
 
@@ -429,11 +683,13 @@ const TungAuth = (() => {
 
     window.addEventListener("message", onGoogleMessage);
 
-    if (await alreadyLoggedIn()) return;
+    // Mobile OAuth: resume token sau full-page redirect (async)
+    const resumingGoogle = resumeGoogleRedirectIfAny();
+
+    if (!resumingGoogle && (await alreadyLoggedIn())) return;
     await loadServerConfig();
 
-    // Only official Google GIS button (below "hoac") — no white custom button
-    renderGoogleButton();
+    if (!resumingGoogle) renderGoogleButton();
 
     if (mode === "login") {
       const form = $("formLogin");
@@ -446,5 +702,5 @@ const TungAuth = (() => {
     }
   }
 
-  return { init, startGooglePopupLogin };
+  return { init, startGooglePopupLogin, googleOriginHelp };
 })();

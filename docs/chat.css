@@ -102,6 +102,79 @@
   margin-top: .2rem;
 }
 .auth-code-field { min-width: 0; }
+
+/* OTP panel — match web card + Facebook-style code frame */
+.auth-otp-panel {
+  margin-top: .65rem;
+  padding: 1rem 0.95rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(16, 163, 127, 0.28);
+  background:
+    linear-gradient(180deg, rgba(16, 163, 127, 0.10), transparent 55%),
+    var(--bg-elev);
+  text-align: left;
+}
+.auth-otp-head { margin-bottom: .55rem; }
+.auth-otp-badge {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid rgba(16, 163, 127, 0.35);
+  background: rgba(16, 163, 127, 0.12);
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  margin-bottom: 0.45rem;
+}
+.auth-otp-title {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.auth-otp-lead {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.auth-otp-input {
+  font-family: var(--mono);
+  font-size: 1.15rem !important;
+  font-weight: 650;
+  letter-spacing: 0.28em;
+  text-align: center;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+.auth-otp-input::placeholder {
+  letter-spacing: 0.2em;
+  color: rgba(155, 155, 155, 0.55);
+}
+.auth-otp-send {
+  height: 48px;
+  min-width: 5.6rem;
+  border-color: rgba(16, 163, 127, 0.4);
+  background: rgba(16, 163, 127, 0.14);
+  color: #b7f0dc;
+}
+.auth-otp-send:hover {
+  border-color: rgba(16, 163, 127, 0.65);
+  background: rgba(16, 163, 127, 0.22);
+}
+.auth-otp-hint {
+  margin: 0.55rem 0 0 !important;
+  font-size: 0.75rem !important;
+  text-align: center;
+}
+.auth-otp-panel.is-sent {
+  border-color: rgba(16, 163, 127, 0.5);
+  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.12);
+}
+
 .auth-primary {
   margin-top: .75rem;
   width: 100%;
@@ -674,6 +747,77 @@ button, input, textarea, select {
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
+}
+.mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0 0.15rem;
+}
+.mode-chip {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.32rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: var(--font);
+}
+.mode-chip:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+}
+.mode-chip.active {
+  color: #0b1f18;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.45rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #b7f0d9;
+  background: rgba(16, 163, 127, 0.18);
+  border: 1px solid rgba(16, 163, 127, 0.35);
+  vertical-align: middle;
+}
+.stream-status {
+  margin-bottom: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #cfeee2;
+  background: rgba(16, 163, 127, 0.12);
+  border: 1px solid rgba(16, 163, 127, 0.28);
+  animation: pulseSoft 1.4s ease-in-out infinite;
+}
+.stream-status[hidden] { display: none !important; }
+@keyframes pulseSoft {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+.welcome-hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0.15rem 0 0.85rem;
+}
+.welcome-hint code {
+  font-family: var(--mono);
+  font-size: 0.8em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  color: #d4d4d4;
 }
 .attach-preview {
   display: flex;

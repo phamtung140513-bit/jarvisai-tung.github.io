@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="chat.css?v=33" />
+  <link rel="stylesheet" href="chat.css?v=34" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -30,14 +30,21 @@
         <label class="auth-label" for="regPassword">Mật khẩu</label>
         <input class="auth-input" id="regPassword" type="password" placeholder="Tối thiểu 6 ký tự" required minlength="6" autocomplete="new-password" />
 
-        <div class="auth-code-row">
-          <div class="auth-code-field">
-            <label class="auth-label" for="regCode">Mã xác thực</label>
-            <input class="auth-input" id="regCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="6 số từ email" autocomplete="one-time-code" />
+        <div class="auth-otp-panel" id="otpPanel">
+          <div class="auth-otp-head">
+            <span class="auth-otp-badge">Xác thực email</span>
+            <p class="auth-otp-title">Confirm that it's you</p>
+            <p class="auth-otp-lead">Chúng tôi gửi mã 6 số tới email của bạn. Nhập mã bên dưới để hoàn tất đăng ký.</p>
           </div>
-          <button type="button" class="auth-secondary" id="btnSendCode">Gửi mã</button>
+          <div class="auth-code-row">
+            <div class="auth-code-field">
+              <label class="auth-label" for="regCode">Mã bảo mật</label>
+              <input class="auth-input auth-otp-input" id="regCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="• • • • • •" autocomplete="one-time-code" />
+            </div>
+            <button type="button" class="auth-secondary auth-otp-send" id="btnSendCode">Gửi mã</button>
+          </div>
+          <p class="auth-hint auth-otp-hint" id="codeHint">Mã có hiệu lực 10 phút · Không chia sẻ với ai</p>
         </div>
-        <p class="auth-hint" id="codeHint"></p>
         <button type="submit" class="auth-primary" id="btnRegisterSubmit">Tạo tài khoản</button>
       </form>
 
@@ -57,7 +64,7 @@
       </p>
     </div>
   </div>
-  <script src="auth.js?v=12"></script>
+  <script src="auth.js?v=16"></script>
   <script>TungAuth.init("register");</script>
 </body>
 </html>

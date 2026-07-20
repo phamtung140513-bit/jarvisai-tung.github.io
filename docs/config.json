@@ -1,8 +1,8 @@
-{
+﻿{
     "appName": "TungDevAI",
     "publicSite": "https://jarvisai-tung.github.io",
-    "apiBase": "https://allowance-thee-eventually-continued.trycloudflare.com",
-    "note": "UI free: jarvisai-tung.github.io. API: tunnel/VPS (apiBase). Khi co VPS: apiBase = https://IP_hoac_domain, sameOrigin true neu 1 link.",
+    "apiBase": "https://assists-trinity-apartment-evanescence.trycloudflare.com",
+    "note": "apiBase = URL tunnel VPS hien tai. Mo thang URL tunnel tot hon github.io. Quick tunnel DOI khi restart tungdevai-tunnel.",
     "telegramBot": "https://t.me/grokapiai_bot",
     "sameOrigin": false
 }

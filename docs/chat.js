@@ -10,9 +10,17 @@
   const LS_CHATS = "jarvis_chats_v3"; // stable key — survives tab close
   const LS_ACTIVE = "jarvis_active_chat_v3";
   const LS_SID = "jarvis_sid_v3";
+  const LS_MODE = "jarvis_chat_mode_v1";
   const MAX_IMAGES = 4;
   const MAX_EDGE = 1280;
   const JPEG_Q = 0.82;
+  const MODE_LABELS = {
+    default: "Default",
+    coder: "Coder",
+    security: "Security",
+    research: "Research",
+    sales: "Sales",
+  };
 
   const $ = (id) => document.getElementById(id);
 
@@ -114,6 +122,9 @@
     accountMenuPlanMetaTop: $("accountMenuPlanMetaTop"),
     btnVipMenu: $("btnVipMenu"),
     btnVipMenuTop: $("btnVipMenuTop"),
+    modeBar: $("modeBar"),
+    modeBadge: $("modeBadge"),
+    streamStatus: $("streamStatus"),
   };
 
   function refreshElsPlan() {
@@ -147,24 +158,44 @@
   let activeId = null;
   let busy = false;
   let sessionId = localStorage.getItem(LS_SID) || localStorage.getItem("jarvis_sid_v2") || "";
+  let activeMode = (localStorage.getItem(LS_MODE) || "coder").toLowerCase();
+  if (!MODE_LABELS[activeMode]) activeMode = "coder";
 
   /**
    * Same domain as the web UI by default (empty apiBase => location.origin).
-   * On GitHub Pages (static only) there is no API — force local server URL.
+   * GitHub Pages is static only — use config.json apiBase or localStorage (VPS/tunnel).
+   * Never default to 127.0.0.1 on github.io (that is the phone, not the VPS).
    */
   function apiBase() {
     const host = (location.hostname || "").toLowerCase();
-    // Static GitHub Pages cannot run Python API
-    if (host.indexOf("github.io") !== -1) {
-      const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
-      return fromLs || "http://127.0.0.1:7860";
-    }
+    const origin = (location.origin || "").replace(/\/$/, "");
     const fromLs = (localStorage.getItem(LS_API) || "").trim().replace(/\/$/, "");
-    if (fromLs) return fromLs;
     const fromCfg = (cfgPublic.apiBase || "").trim().replace(/\/$/, "");
-    if (fromCfg) return fromCfg;
-    // Same origin (http://127.0.0.1:7860 or VPS domain)
-    return (location.origin || "").replace(/\/$/, "");
+    const isLoop = (u) =>
+      /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?/i.test(String(u || ""));
+
+    // Local PC server
+    if (host === "127.0.0.1" || host === "localhost") return origin;
+
+    // Public VPS/tunnel: same origin; ignore leftover 127.0.0.1 in localStorage
+    if (host.indexOf("github.io") === -1 && location.protocol !== "file:") {
+      if (fromLs && isLoop(fromLs)) {
+        try {
+          localStorage.removeItem(LS_API);
+        } catch (_) {}
+      }
+      return origin;
+    }
+
+    // github.io / file — need remote API (never 127.0.0.1 on phone)
+    if (fromLs && !isLoop(fromLs)) return fromLs;
+    if (fromCfg && !isLoop(fromCfg)) return fromCfg;
+    if (fromLs && isLoop(fromLs)) {
+      try {
+        localStorage.removeItem(LS_API);
+      } catch (_) {}
+    }
+    return "";
   }
 
   function userToken() {
@@ -538,7 +569,7 @@
 
   async function loadPublicConfig() {
     try {
-      const r = await fetch("config.json?v=6", { cache: "no-store" });
+      const r = await fetch("config.json?v=8", { cache: "no-store" });
       if (r.ok) {
         const j = await r.json();
         cfgPublic = Object.assign(cfgPublic, j);
@@ -910,6 +941,57 @@
     els.send.disabled = v;
     els.input.disabled = v;
     if (els.btnPlus) els.btnPlus.disabled = v;
+    if (els.modeBar) {
+      els.modeBar.querySelectorAll(".mode-chip").forEach(function (b) {
+        b.disabled = !!v;
+      });
+    }
+    if (!v) setStreamStatus("");
+  }
+
+  function setStreamStatus(text) {
+    if (!els.streamStatus) return;
+    if (!text) {
+      els.streamStatus.hidden = true;
+      els.streamStatus.textContent = "";
+      return;
+    }
+    els.streamStatus.hidden = false;
+    els.streamStatus.textContent = text;
+  }
+
+  function setActiveMode(modeId, opts) {
+    opts = opts || {};
+    var id = String(modeId || "default").toLowerCase();
+    if (!MODE_LABELS[id]) id = "default";
+    activeMode = id;
+    localStorage.setItem(LS_MODE, id);
+    if (els.modeBadge) els.modeBadge.textContent = MODE_LABELS[id] || id;
+    if (els.modeBar) {
+      els.modeBar.querySelectorAll(".mode-chip").forEach(function (btn) {
+        var on = (btn.getAttribute("data-mode") || "") === id;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+    if (opts.announce) {
+      var tip =
+        id === "coder"
+          ? "Mode Coder — code production-ready, temp thấp."
+          : "Mode " + (MODE_LABELS[id] || id) + " đã bật.";
+      if (els.input) els.input.placeholder = "Nhắn tin… (" + (MODE_LABELS[id] || id) + ") · /plan /code /build /help";
+      console.info("[TungDevAI]", tip);
+    }
+  }
+
+  function bindModeBar() {
+    if (!els.modeBar) return;
+    els.modeBar.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest && e.target.closest(".mode-chip");
+      if (!btn || busy) return;
+      setActiveMode(btn.getAttribute("data-mode"), { announce: true });
+    });
+    setActiveMode(activeMode);
   }
 
   function clearPendingImages() {
@@ -1064,6 +1146,16 @@
       return;
     }
 
+    // Client-side /mode for instant UI switch (server also handles)
+    var modeCmd = text.match(/^\/mode(?:\s+(\S+))?$/i);
+    if (modeCmd) {
+      var mid = (modeCmd[1] || "").toLowerCase();
+      if (mid && MODE_LABELS[mid]) {
+        setActiveMode(mid, { announce: true });
+      }
+      // Fall through so server also confirms in chat transcript
+    }
+
     // Images: note for now backend is text; attach as context note
     let payloadText = text;
     if (images.length) {
@@ -1092,6 +1184,7 @@
     contentEl.parentElement.parentElement.classList.add("typing");
     contentEl.textContent = "";
     setBusy(true);
+    setStreamStatus("Đang kết nối AI…");
 
     try {
       const res = await fetch(apiBase() + "/api/chat", {
@@ -1101,6 +1194,7 @@
           message: payloadText,
           session_id: sessionId,
           stream: true,
+          mode: activeMode,
         }),
       });
       if (!res.ok) {
@@ -1110,6 +1204,7 @@
 
       const ctype = res.headers.get("content-type") || "";
       let full = "";
+      let gotDelta = false;
       if (ctype.indexOf("text/event-stream") !== -1 && res.body) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -1127,17 +1222,55 @@
             if (!data || data === "[DONE]") continue;
             try {
               const j = JSON.parse(data);
-              if (j.type === "meta" && j.session_id) {
-                sessionId = j.session_id;
-                localStorage.setItem(LS_SID, sessionId);
-                var ac = activeChat();
-                if (ac) ac.sessionId = sessionId;
-                persistChats();
+              if (j.type === "meta") {
+                if (j.session_id) {
+                  sessionId = j.session_id;
+                  localStorage.setItem(LS_SID, sessionId);
+                  var ac = activeChat();
+                  if (ac) ac.sessionId = sessionId;
+                  persistChats();
+                }
+                if (j.mode && MODE_LABELS[j.mode]) {
+                  setActiveMode(j.mode);
+                }
+                if (j.ai_label || j.ai_model) {
+                  lastModel = j.ai_label || j.ai_model;
+                  if (els.modelChip && isLoggedIn()) {
+                    // keep plan info; model shown on status
+                  }
+                }
+                if (j.agent && j.agent !== "chat") {
+                  setStreamStatus(
+                    (j.agent === "build" ? "🔧" : "⚙️") +
+                      " Agent " +
+                      j.agent +
+                      " · " +
+                      (j.ai_label || j.ai_model || "")
+                  );
+                } else {
+                  setStreamStatus(
+                    "✦ " +
+                      (MODE_LABELS[activeMode] || activeMode) +
+                      " · " +
+                      (j.ai_label || j.ai_model || "streaming…")
+                  );
+                }
+              }
+              if (j.type === "status" && j.text) {
+                setStreamStatus(j.text);
               }
               if (j.type === "delta" && j.text) {
+                if (!gotDelta) {
+                  gotDelta = true;
+                  contentEl.parentElement.parentElement.classList.remove("typing");
+                  setStreamStatus("");
+                }
                 full += j.text;
                 setAssistantHtml(contentEl, full);
                 scrollBottom();
+              }
+              if (j.type === "done" && j.mode && MODE_LABELS[j.mode]) {
+                setActiveMode(j.mode);
               }
               if (j.type === "error") throw new Error(j.message || "stream error");
             } catch (e) {
@@ -1154,9 +1287,11 @@
           var ac2 = activeChat();
           if (ac2) ac2.sessionId = sessionId;
         }
+        if (j.mode && MODE_LABELS[j.mode]) setActiveMode(j.mode);
       }
 
       contentEl.parentElement.parentElement.classList.remove("typing");
+      setStreamStatus("");
       if (!full) throw new Error("Server tra ve rong. Kiem tra webapp dang chay?");
       setAssistantHtml(contentEl, full);
       chat.messages.push({ role: "assistant", content: full });
@@ -1180,6 +1315,7 @@
       }
     } catch (err) {
       contentEl.parentElement.parentElement.classList.remove("typing");
+      setStreamStatus("");
       setAssistantHtml(
         contentEl,
         "**Lỗi**\n\n" +
@@ -1221,6 +1357,7 @@
   }
 
   // Events
+  bindModeBar();
   els.form.addEventListener("submit", (e) => {
     e.preventDefault();
     sendMessage(els.input.value);
