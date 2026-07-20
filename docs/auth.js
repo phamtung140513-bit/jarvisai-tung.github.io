@@ -442,15 +442,7 @@ const TungAuth = (() => {
         width: 320,
         logo_alignment: "left",
       });
-      // Desktop backup if GIS fails (origin 400)
-      const alt = document.createElement("button");
-      alt.type = "button";
-      alt.className = "auth-secondary";
-      alt.style.marginTop = "0.6rem";
-      alt.style.width = "100%";
-      alt.textContent = "Google (cửa sổ khác)";
-      alt.addEventListener("click", startGooglePopupLogin);
-      wrap.appendChild(alt);
+      // Chi 1 nut Google chuan (GIS) — khong them nut "cửa sổ khác"
     } catch (e) {
       console.warn("GIS render failed", e);
       wrap.innerHTML = "";
