@@ -406,13 +406,6 @@ const TungAuth = (() => {
       btn.textContent = "Tiếp tục với Google";
       btn.addEventListener("click", startGooglePopupLogin);
       wrap.appendChild(btn);
-      const tip = document.createElement("p");
-      tip.className = "auth-hint";
-      tip.style.margin = "0.5rem 0 0";
-      tip.style.fontSize = "0.75rem";
-      tip.textContent =
-        "Nếu Google báo 400: thêm origin " + currentOrigin() + " vào Google Cloud OAuth.";
-      wrap.appendChild(tip);
       return;
     }
 
