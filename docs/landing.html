@@ -22,9 +22,9 @@
     <nav>
       <a href="#features">Tính năng</a>
       <a href="./pricing.html">Bảng giá</a>
-      <a href="./login.html">Đăng nhập</a>
-      <a href="./register.html">Đăng ký</a>
-      <a class="btn btn-sm" href="./chat.html">Web chat</a>
+      <a href="./login.html" id="navLogin">Đăng nhập</a>
+      <a href="./register.html" id="navRegister">Đăng ký</a>
+      <a class="btn btn-sm" href="./chat.html" id="navChat">Web chat</a>
     </nav>
   </header>
 
@@ -136,5 +136,26 @@
     </p>
     <p class="fine">AI third-party · Không cam kết uptime 100% · Support @usertungpham</p>
   </footer>
+
+<script>
+(function () {
+  // On github.io: point login/register/chat CTAs to live API host
+  var host = (location.hostname || "").toLowerCase();
+  if (host.indexOf("github.io") === -1) return;
+  fetch("config.json?v=boot24", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var base = String((j && j.apiBase) || "").replace(/\/$/, "");
+      if (!base || /127\.0\.0\.1|localhost/i.test(base)) return;
+      document.querySelectorAll('a[href*="login.html"],a[href*="register.html"],a[href*="chat.html"],a[href*="pricing.html"]').forEach(function (a) {
+        var href = a.getAttribute("href") || "";
+        var m = href.match(/(login|register|chat|pricing)\.html.*$/i);
+        if (!m) return;
+        a.setAttribute("href", base + "/" + m[0].replace(/^\.\//, ""));
+      });
+    })
+    .catch(function () {});
+})();
+</script>
 </body>
 </html>

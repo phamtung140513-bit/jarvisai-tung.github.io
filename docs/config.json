@@ -1,9 +1,10 @@
 {
-  "appName": "TungDevAI",
-  "publicSite": "https://jarvisai-tung.github.io",
-  "apiBase": "https://reoccupy-alabaster-tantrum.ngrok-free.dev",
-  "google_client_id": "932807715948-fvssk3ukqn636tdbuv1n59kvcoa5lhaf.apps.googleusercontent.com",
-  "telegramBot": "https://t.me/grokapiai_bot",
-  "sameOrigin": false,
-  "note": "apiBase = ngrok/tunnel VPS dang chay. May nha phai giu web+ngrok. Doi tunnel thi sua apiBase + Google Console."
+    "sameOrigin":  false,
+    "apiBase":  "https://reoccupy-alabaster-tantrum.ngrok-free.dev",
+    "appName":  "TungDevAI",
+    "publicSite":  "https://jarvisai-tung.github.io",
+    "telegramBot":  "https://t.me/grokapiai_bot",
+    "google_client_id":  "932807715948-fvssk3ukqn636tdbuv1n59kvcoa5lhaf.apps.googleusercontent.com",
+    "liveApp":  "https://reoccupy-alabaster-tantrum.ngrok-free.dev",
+    "note":  "github.io auto-redirects app pages to apiBase. Keep PC web+ngrok running."
 }

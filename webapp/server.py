@@ -249,13 +249,33 @@ def create_app() -> FastAPI:
         set_db(db)
         logger.info("Web DB ready (email + Google auth)")
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Browser rejects allow_credentials=True together with Allow-Origin: *
+    # (common cause of "Failed to fetch" from github.io → API).
+    _cors_star = cors_origins == ["*"] or (len(cors_origins) == 1 and cors_origins[0] == "*")
+    # Always allow GitHub Pages + common local dev even if env is narrow
+    _extra = [
+        "https://jarvisai-tung.github.io",
+        "https://phamtung140513-bit.github.io",
+        "http://127.0.0.1:7860",
+        "http://localhost:7860",
+    ]
+    if _cors_star:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        merged = list(dict.fromkeys([*cors_origins, *_extra]))
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=merged,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -475,6 +495,15 @@ def create_app() -> FastAPI:
     @app.get("/auth.js", response_model=None)
     async def auth_js():
         p = _docs_file("auth.js")
+        return (
+            _file_nocache(p, "application/javascript")
+            if p
+            else HTMLResponse("x", status_code=404)
+        )
+
+    @app.get("/boot-redirect.js", response_model=None)
+    async def boot_redirect_js():
+        p = _docs_file("boot-redirect.js")
         return (
             _file_nocache(p, "application/javascript")
             if p

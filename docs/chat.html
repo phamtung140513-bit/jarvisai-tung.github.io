@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -6,6 +6,7 @@
   <title>TungDevAI - Chat</title>
   <meta name="description" content="TungDevAI coding chat - Đăng nhập email hoặc Google" />
   <meta name="theme-color" content="#212121" />
+  <script src="boot-redirect.js?v=24"></script>
   <script>
     (function () {
       var p = location.pathname;
@@ -18,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="chat.css?v=28" />
+  <link rel="stylesheet" href="chat.css?v=34" />
 </head>
 <body>
   <div class="app" id="app">
@@ -63,6 +64,7 @@
         <button type="button" class="icon-btn mobile-only" id="btnOpenSidebar" aria-label="Menu">=</button>
         <div class="topbar-title">
           <span id="chatTitle">TungDevAI</span>
+          <span class="mode-badge" id="modeBadge" title="Chế độ AI">Coder</span>
           <span class="dot" id="statusDot" title="Trạng thái"></span>
         </div>
         <div class="account-wrap topbar-account" id="accountWrapTop">
@@ -87,16 +89,27 @@
           <img class="welcome-avatar" src="assets/bot-avatar.jpg" alt="TungDevAI" />
           <h1>TungDevAI</h1>
           <p>Senior coding assistant. Xin chào <strong id="welcomeName">bạn</strong>!</p>
+          <p class="welcome-hint">Chọn mode · gõ <code>/help</code> · agent: <code>/plan</code> <code>/code</code> <code>/build</code></p>
           <div class="suggestions">
-            <button type="button" data-q="Viết API FastAPI CRUD user (SQLAlchemy + Pydantic), có error handling">FastAPI CRUD</button>
-            <button type="button" data-q="Review code Python về bug và security (tôi sẽ paste code)">Code review</button>
-            <button type="button" data-q="Giải thích traceback và đưa patch (tôi sẽ paste log)">Debug</button>
-            <button type="button" data-q="Thiết kế kiến trúc bot Telegram SaaS multi-user">Kiến trúc bot</button>
+            <button type="button" data-q="/code Viết API FastAPI CRUD user (SQLAlchemy + Pydantic), error handling đầy đủ">/code FastAPI</button>
+            <button type="button" data-q="/build Mini app todo list Python CLI + file JSON storage">/build Todo CLI</button>
+            <button type="button" data-q="/review # paste code dưới đây\n">/review code</button>
+            <button type="button" data-q="/debug # paste traceback dưới đây\n">/debug log</button>
+            <button type="button" data-q="/plan Thiết kế kiến trúc bot Telegram SaaS multi-user + thanh toán">/plan kiến trúc</button>
+            <button type="button" data-q="Viết unit test pytest cho hàm validate email">Unit test</button>
           </div>
         </div>
       </section>
 
       <div class="composer-wrap">
+        <div class="mode-bar" id="modeBar" role="toolbar" aria-label="Chế độ AI">
+          <button type="button" class="mode-chip active" data-mode="coder" title="Senior engineer — code / debug">Coder</button>
+          <button type="button" class="mode-chip" data-mode="default" title="Trợ lý đa năng">Default</button>
+          <button type="button" class="mode-chip" data-mode="security" title="Review bảo mật phòng thủ">Security</button>
+          <button type="button" class="mode-chip" data-mode="research" title="Phân tích / so sánh sâu">Research</button>
+          <button type="button" class="mode-chip" data-mode="sales" title="Tư vấn gói">Sales</button>
+        </div>
+        <div class="stream-status" id="streamStatus" hidden></div>
         <div class="attach-preview" id="attachPreview" hidden></div>
         <form class="composer" id="form">
           <input type="file" id="fileImage" accept="image/*" multiple hidden />
@@ -105,7 +118,7 @@
               <span class="plus-glyph">+</span>
             </button>
           </div>
-          <textarea id="input" rows="1" placeholder="Nhắn tin cho TungDevAI..." autocomplete="off" enterkeyhint="send"></textarea>
+          <textarea id="input" rows="1" placeholder="Nhắn tin… hoặc /plan /code /build /help" autocomplete="off" enterkeyhint="send"></textarea>
           <button type="submit" id="btnSend" aria-label="Gửi" title="Gửi">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
@@ -114,6 +127,6 @@
     </main>
   </div>
 
-  <script src="chat.js?v=32"></script>
+  <script src="chat.js?v=34"></script>
 </body>
 </html>

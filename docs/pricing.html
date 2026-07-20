@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -10,7 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./pricing.css?v=4" />
+  <link rel="stylesheet" href="./pricing.css?v=5" />
+  <script src="boot-redirect.js?v=24"></script>
 </head>
 <body class="pricing-page">
   <header class="p-nav">
@@ -34,7 +35,7 @@
       <p class="p-promo">
         AI chuyên <strong>coder</strong> — web chat + bot Telegram
       </p>
-      <p class="p-sub">Chọn gói phù hợp · đăng nhập rồi bấm Mua gói.</p>
+      <p class="p-sub">Chọn gói · bấm Mua → chưa login sẽ mở trang đăng nhập.</p>
 
       <div class="p-tabs" role="tablist">
         <button type="button" class="p-tab active" data-tab="personal" id="tabPersonal">Cá nhân</button>
@@ -165,7 +166,7 @@
       <a href="./chat.html">Chat</a> ·
       <a href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Bot</a>
     </p>
-    <p class="fine">Support: @usertungpham · <a href="./HUONG_DAN_VIETQR_STK.html">Hướng dẫn VietQR + STK</a></p>
+    <p class="fine">Support: @usertungpham · <a href="./huong-dan-stk.html">Hướng dẫn VietQR + STK</a></p>
   </footer>
 
   <!-- Modal QR autobank -->
@@ -206,6 +207,6 @@
       tabB.addEventListener("click", function () { show("biz"); });
     })();
   </script>
-  <script src="pricing-billing.js?v=1"></script>
+  <script src="pricing-billing.js?v=4"></script>
 </body>
 </html>
