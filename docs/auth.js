@@ -212,9 +212,15 @@ const TungAuth = (() => {
   }
 
   async function exchangeGoogleCredential(credential) {
-    if (!credential) throw new Error("Thieu credential Google");
+    if (!credential) throw new Error("Thiếu credential Google");
+    const base = apiBase();
+    if (!base) {
+      throw new Error(
+        "Chưa có server API. Mở đúng link tunnel/VPS (không mở github.io một mình)."
+      );
+    }
     setHint("Đang xác thực Google với server...");
-    const r = await fetch(apiBase() + "/api/auth/google", {
+    const r = await fetch(base + "/api/auth/google", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential: credential }),
@@ -227,10 +233,17 @@ const TungAuth = (() => {
   async function handleGoogleCredential(response) {
     try {
       clearMsgs();
-      await exchangeGoogleCredential(response && response.credential);
+      const cred =
+        (response && response.credential) ||
+        (typeof response === "string" ? response : "");
+      await exchangeGoogleCredential(cred);
     } catch (e) {
       setHint("");
-      showErr(e.message || e);
+      let m = String(e.message || e);
+      if (/origin|redirect|400|invalid_client|unauthorized/i.test(m)) {
+        m = googleOriginHelp();
+      }
+      showErr(m);
     }
   }
 
@@ -244,11 +257,18 @@ const TungAuth = (() => {
     const clientId = googleClientId();
     const redirectUri = currentOrigin() + "/google-callback.html";
     const nonce = randomNonce();
-    sessionStorage.setItem(SS_GOOGLE_NONCE, nonce);
+    try {
+      sessionStorage.setItem(SS_GOOGLE_NONCE, nonce);
+      sessionStorage.setItem(
+        SS_GOOGLE_RETURN,
+        location.pathname.split("/").pop() || "login.html"
+      );
+    } catch (_) {}
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: "id_token",
+      response_mode: "fragment",
       scope: "openid email profile",
       nonce: nonce,
       prompt: "select_account",
@@ -257,12 +277,14 @@ const TungAuth = (() => {
   }
 
   /**
-   * OAuth id_token:
-   * - Desktop: popup
-   * - Mobile: full-page redirect (popup bi chan / khong co window.opener)
-   * Can Authorized redirect URI = origin hien tai + /google-callback.html
+   * Full-page OAuth id_token → google-callback.html tự POST /api/auth/google.
+   * Tin cậy hơn popup/sessionStorage trên mobile.
    */
   function startGooglePopupLogin() {
+    startGoogleOAuthRedirect();
+  }
+
+  function startGoogleOAuthRedirect() {
     const clientId = googleClientId();
     if (!clientId) {
       showErr("Google chưa sẵn sàng. Tải lại trang.");
@@ -270,56 +292,9 @@ const TungAuth = (() => {
     }
     clearMsgs();
     removeApiBaseFixer();
-
     const url = buildGoogleAuthUrl();
-
-    // Mobile / small screens: full redirect (tranh popup + Error 400 hieu nham)
-    if (isMobileUa()) {
-      setHint("Đang chuyển sang Google…");
-      try {
-        sessionStorage.setItem(
-          SS_GOOGLE_RETURN,
-          location.pathname.split("/").pop() || "login.html"
-        );
-      } catch (_) {}
-      location.href = url;
-      return;
-    }
-
-    setHint("Đang mở cửa sổ Google...");
-    const w = 500;
-    const h = 640;
-    const left = Math.max(0, (screen.width - w) / 2);
-    const top = Math.max(0, (screen.height - h) / 2);
-    const popup = window.open(
-      url,
-      "tungdevai_google_login",
-      "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top + ",menubar=no,toolbar=no"
-    );
-
-    if (!popup) {
-      // Fallback: full redirect (Chrome mobile desktop mode, popup blocked)
-      setHint("Popup bị chặn — chuyển trang Google…");
-      try {
-        sessionStorage.setItem(
-          SS_GOOGLE_RETURN,
-          location.pathname.split("/").pop() || "login.html"
-        );
-      } catch (_) {}
-      location.href = url;
-      return;
-    }
-
-    if (popupWatch) clearInterval(popupWatch);
-    popupWatch = setInterval(function () {
-      if (popup.closed) {
-        clearInterval(popupWatch);
-        popupWatch = null;
-        if ($("authHint") && $("authHint").textContent.indexOf("Đang mở") === 0) {
-          setHint("Cửa sổ Google đã đóng. Bấm lại nếu chưa xong.");
-        }
-      }
-    }, 500);
+    setHint("Đang chuyển sang Google…");
+    location.href = url;
   }
 
   function onGoogleMessage(ev) {
@@ -379,7 +354,10 @@ const TungAuth = (() => {
       '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
       '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
       "</svg>Tiếp tục với Google</span>";
-    btn.addEventListener("click", startGooglePopupLogin);
+    btn.addEventListener("click", function () {
+      // Full redirect OAuth — callback tự login server (mobile tin cậy)
+      startGoogleOAuthRedirect();
+    });
     wrap.appendChild(btn);
   }
 
@@ -391,28 +369,22 @@ const TungAuth = (() => {
     const clientId = googleClientId();
     serverConfig.google_client_id = clientId;
 
-    // Mobile: nut redirect on-page (GIS hay bi Error 400 / popup)
+    // Mobile: nút OAuth redirect (GIS hay lỗi 400 / FedCM)
     if (isMobileUa()) {
       makeGoogleFallbackButton(wrap);
+      // Vẫn init GIS nếu có (phòng desktop-mode)
+      tryInitGis(clientId, null);
       return;
     }
 
     if (typeof google === "undefined" || !google.accounts || !google.accounts.id) {
       makeGoogleFallbackButton(wrap);
-      setTimeout(renderGoogleButton, 500);
+      setTimeout(renderGoogleButton, 400);
       return;
     }
 
     try {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleCredential,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-        use_fedcm_for_prompt: false,
-        itp_support: true,
-      });
-      gsiReady = true;
+      tryInitGis(clientId, handleGoogleCredential);
       wrap.innerHTML = "";
       google.accounts.id.renderButton(wrap, {
         theme: "outline",
@@ -422,9 +394,40 @@ const TungAuth = (() => {
         width: 320,
         logo_alignment: "left",
       });
+      // Thêm nút fallback "cửa sổ Google" nếu GIS kẹt
+      const alt = document.createElement("button");
+      alt.type = "button";
+      alt.className = "auth-secondary";
+      alt.style.cssText = "width:100%;margin-top:0.5rem;font-size:0.85rem";
+      alt.textContent = "Không hiện nút? Đăng nhập Google (chuyển trang)";
+      alt.addEventListener("click", startGoogleOAuthRedirect);
+      wrap.appendChild(alt);
     } catch (e) {
       console.warn("GIS render failed", e);
       makeGoogleFallbackButton(wrap);
+    }
+  }
+
+  function tryInitGis(clientId, callback) {
+    if (typeof google === "undefined" || !google.accounts || !google.accounts.id) {
+      return false;
+    }
+    try {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: callback || handleGoogleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: false,
+        itp_support: true,
+        context: "signin",
+      });
+      gsiReady = true;
+      return true;
+    } catch (e) {
+      console.warn("GIS init failed", e);
+      gsiReady = false;
+      return false;
     }
   }
 

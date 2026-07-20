@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Google login…</title>
   <style>
     body {
@@ -12,67 +13,219 @@
       place-items: center;
       min-height: 100vh;
       margin: 0;
+      padding: 1rem;
+      text-align: center;
     }
-    p { opacity: 0.85; }
+    p { opacity: 0.95; max-width: 32rem; line-height: 1.5; white-space: pre-wrap; }
+    a {
+      color: #10a37f;
+      display: inline-block;
+      margin-top: 1rem;
+    }
+    code { font-size: 0.8em; word-break: break-all; }
   </style>
 </head>
 <body>
-  <p id="msg">Đang xử lý đăng nhập Google…</p>
+  <div>
+    <p id="msg">Đang xử lý đăng nhập Google…</p>
+    <p id="extra" hidden></p>
+    <a id="backLogin" href="login.html" hidden>← Về trang đăng nhập</a>
+  </div>
   <script>
     (function () {
-      const msg = document.getElementById("msg");
+      var LS_SESSION = "jarvis_google_session_v1";
+      var LS_USER = "jarvis_google_user_v1";
+      var SS_TOKEN = "tung_google_id_token";
+      var SS_RETURN = "tung_google_return";
+      var msg = document.getElementById("msg");
+      var extra = document.getElementById("extra");
+      var back = document.getElementById("backLogin");
+
+      function originHelp() {
+        var o = (location.origin || "").replace(/\/$/, "");
+        return (
+          "Google Error 400 / redirect_uri_mismatch.\n\n" +
+          "Vào https://console.cloud.google.com/apis/credentials\n" +
+          "→ OAuth client (Web) → thêm ĐÚNG:\n\n" +
+          "JavaScript origins:\n" +
+          o +
+          "\n\nRedirect URIs:\n" +
+          o +
+          "/google-callback.html\n\n" +
+          "Lưu → đợi 1–5 phút → mở lại " +
+          o +
+          "/login.html"
+        );
+      }
+
       function fail(t) {
-        msg.textContent = t || "Lỗi đăng nhập Google";
+        var text = t || "Lỗi đăng nhập Google";
+        if (/redirect_uri_mismatch|origin_mismatch|Error 400|invalid_request|400\.|access_denied/i.test(text)) {
+          if (/access_denied/i.test(text)) {
+            text =
+              "Google từ chối.\nNếu app đang Testing: OAuth consent → Test users → thêm email Google của bạn.";
+          } else {
+            text = originHelp();
+          }
+        }
+        msg.textContent = text;
+        msg.style.textAlign = "left";
+        back.hidden = false;
         try {
-          if (window.opener) {
+          if (window.opener && !window.opener.closed) {
             window.opener.postMessage(
-              { type: "tungdevai-google-auth", error: t || "Loi" },
+              { type: "tungdevai-google-auth", error: text },
               location.origin
             );
           }
         } catch (e) {}
-        setTimeout(function () {
-          try { window.close(); } catch (e2) {}
-        }, 2500);
+        if (window.opener) {
+          setTimeout(function () {
+            try { window.close(); } catch (e2) {}
+          }, 4000);
+        }
       }
-      try {
-        const hash = (location.hash || "").replace(/^#/, "");
-        const q = new URLSearchParams(hash);
-        const idToken = q.get("id_token");
-        const err = q.get("error");
-        const desc = q.get("error_description");
-        if (err) {
-          fail(err + (desc ? ": " + desc : ""));
+
+      function setMsg(t) {
+        msg.textContent = t;
+      }
+
+      /** Hoàn tất login: gọi API luôn (không qua sessionStorage — mobile hay mất) */
+      async function completeLogin(token) {
+        if (!token) {
+          fail("Không có token Google.");
           return;
         }
-        if (!idToken) {
-          // Also try query string (some flows)
-          const qs = new URLSearchParams(location.search);
-          const t2 = qs.get("id_token");
-          if (!t2) {
-            fail("Không nhận được id_token từ Google. Kiểm tra Redirect URI trong Google Cloud.");
+
+        // Desktop popup: gửi về opener nếu có
+        if (window.opener && !window.opener.closed) {
+          try {
+            window.opener.postMessage(
+              { type: "tungdevai-google-auth", credential: token },
+              location.origin
+            );
+            setMsg("Thành công — đang đóng…");
+            setTimeout(function () {
+              try { window.close(); } catch (e) {}
+            }, 400);
+            return;
+          } catch (e) {
+            /* fall through — tự exchange */
+          }
+        }
+
+        setMsg("Đang xác thực với server…");
+        var api = (location.origin || "").replace(/\/$/, "");
+        try {
+          var r = await fetch(api + "/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: token }),
+          });
+          var text = await r.text();
+          var data;
+          try {
+            data = JSON.parse(text);
+          } catch (_) {
+            data = { detail: text };
+          }
+          if (!r.ok) {
+            var d = data.detail;
+            var err =
+              typeof d === "string"
+                ? d
+                : d
+                  ? JSON.stringify(d)
+                  : text || "Lỗi server";
+            fail("Server từ chối token:\n" + err);
             return;
           }
-          finish(t2);
+          try {
+            localStorage.setItem(LS_SESSION, data.session_token || "");
+            localStorage.setItem(LS_USER, JSON.stringify(data.user || {}));
+          } catch (e) {
+            fail("Không lưu được phiên đăng nhập.");
+            return;
+          }
+          // dọn token tạm
+          try {
+            sessionStorage.removeItem(SS_TOKEN);
+          } catch (_) {}
+
+          var ret = "chat.html";
+          try {
+            var r2 = sessionStorage.getItem(SS_RETURN);
+            if (r2 && /\.html$/i.test(r2) && r2.indexOf("login") === -1 && r2.indexOf("register") === -1) {
+              ret = r2;
+            }
+          } catch (_) {}
+
+          setMsg("Thành công — đang vào app…");
+          location.replace(ret);
+        } catch (e) {
+          fail(
+            "Không gọi được API (" +
+              api +
+              ").\n" +
+              String((e && e.message) || e) +
+              "\n\nHãy mở đúng link tunnel/VPS đang chạy server."
+          );
+        }
+      }
+
+      function parseTokenFromUrl() {
+        var hash = (location.hash || "").replace(/^#/, "");
+        var q = new URLSearchParams(hash);
+        var idToken = q.get("id_token") || q.get("credential");
+        var err = q.get("error");
+        var desc = q.get("error_description");
+        if (err) {
+          return { error: err + (desc ? ": " + desc : "") };
+        }
+        if (idToken) return { token: idToken };
+
+        var qs = new URLSearchParams(location.search);
+        err = qs.get("error");
+        desc = qs.get("error_description");
+        if (err) {
+          return { error: err + (desc ? ": " + desc : "") };
+        }
+        idToken = qs.get("id_token") || qs.get("credential");
+        if (idToken) return { token: idToken };
+
+        // token tạm từ session (flow cũ)
+        try {
+          var t = (sessionStorage.getItem(SS_TOKEN) || "").trim();
+          if (t) return { token: t };
+        } catch (_) {}
+
+        return null;
+      }
+
+      try {
+        var parsed = parseTokenFromUrl();
+        if (!parsed) {
+          fail(
+            "Không nhận được id_token từ Google.\n\n" +
+              originHelp()
+          );
           return;
         }
-        finish(idToken);
+        if (parsed.error) {
+          fail(parsed.error);
+          return;
+        }
+        // Xóa hash để token không kẹt trên thanh địa chỉ / history
+        try {
+          history.replaceState(
+            null,
+            "",
+            location.pathname + location.search
+          );
+        } catch (_) {}
+        completeLogin(parsed.token);
       } catch (e) {
         fail(String(e.message || e));
-      }
-      function finish(token) {
-        if (!window.opener) {
-          msg.textContent = "Mở lại trang đăng nhập rồi thử lại.";
-          return;
-        }
-        window.opener.postMessage(
-          { type: "tungdevai-google-auth", credential: token },
-          location.origin
-        );
-        msg.textContent = "Thành công — đang đóng…";
-        setTimeout(function () {
-          try { window.close(); } catch (e) {}
-        }, 400);
       }
     })();
   </script>
