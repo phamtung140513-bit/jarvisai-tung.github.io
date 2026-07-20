@@ -516,10 +516,13 @@ const TungAuth = (() => {
       } else {
         // Khong hien dev_code tren UI (du server co tra)
         showErr(
-          "Chưa gửi được email. Trên VPS: điền SMTP_USER=tung140513@gmail.com + SMTP_PASSWORD (App Password), AUTH_DEV_SHOW_CODE=false, rồi: systemctl restart tungdevai-web"
+          "Chưa gửi được email — VPS chưa bật SMTP (smtp_configured: false).\n" +
+            "SSH VPS → paste file Desktop\\VPS-PASTE-OTP.sh → restart web.\n" +
+            "Hoặc test trên PC: http://127.0.0.1:7860/register.html (SMTP máy nhà đã OK)."
         );
         if ($("codeHint")) {
-          $("codeHint").textContent = "SMTP chưa gửi mail — mã không vào ô và không vào email.";
+          $("codeHint").textContent =
+            "Server public chưa gửi mail. Cần SMTP trên VPS (1 lần paste script).";
         }
       }
       sendCodeCooldown = 45;
