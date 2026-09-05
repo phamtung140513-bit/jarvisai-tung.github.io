@@ -12,18 +12,21 @@ Chay:
 """
 
 from __future__ import annotations
+from datetime import datetime, timezone, timedelta
 
+import asyncio
 import hashlib
 import json
 import logging
 import os
 import secrets
 import sys
+import time
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any, Deque
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -34,6 +37,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ai.coder import CoderAgent  # noqa: E402
+from ai.doc_parser import parse_uploaded_document  # noqa: E402
+from ai.web_search import extract_urls, fetch_url_content, execute_web_search  # noqa: E402
 from ai.debugger import DebuggerAgent  # noqa: E402
 from ai.grok import GrokClient, GrokError  # noqa: E402
 from ai.modes import MODES, get_mode, merge_prompt_layers  # noqa: E402
@@ -42,9 +47,10 @@ from ai.planner import PlannerAgent  # noqa: E402
 from ai.prompts import SYSTEM_PROMPT  # noqa: E402
 from ai.reviewer import ReviewerAgent  # noqa: E402
 from config import get_settings  # noqa: E402
-from database.sqlite import Database, set_db  # noqa: E402
+from database.sqlite import Database, get_db, set_db  # noqa: E402
 from product.access_codes import create_access_code  # noqa: E402
-from product.plans import PLANS, get_plan  # noqa: E402
+from product.plans import PLANS, get_plan
+from product.cmd_keys import activate_cmd_key  # noqa: E402
 from database.repos import load_recent_messages, save_message  # noqa: E402
 from product.email_auth import (  # noqa: E402
     OtpStore,
@@ -77,8 +83,8 @@ from product.vietqr_client import (  # noqa: E402
     get_order_status,
     vietqr_pay_enabled,
 )
-from database.models import GoogleWebUser  # noqa: E402
-from sqlalchemy import select  # noqa: E402
+from database.models import GoogleWebUser, WebSession, DiscountCoupon, CmdLicenseKey  # noqa: E402
+from sqlalchemy import select, delete  # noqa: E402
 
 
 def _session_uid(session_id: str) -> int:
@@ -97,11 +103,14 @@ WEB_SYSTEM = SYSTEM_PROMPT
 
 
 class ChatBody(BaseModel):
-    message: str = Field(..., min_length=1, max_length=32000)
-    session_id: str = Field(default="", max_length=64)
+    model_config = {"extra": "allow"}
+    message: str = Field(..., min_length=1)
+    session_id: str = Field(default="")
     stream: bool = True
-    # Chat mode: default | coder | security | research | sales
-    mode: str = Field(default="default", max_length=32)
+    mode: str = Field(default="default")
+    model: str | None = Field(default=None)
+    history: list[dict[str, Any]] | None = Field(default=None)
+
 
 
 WEB_HELP = """\
@@ -154,7 +163,9 @@ class WebSetPlanBody(BaseModel):
 
 
 class WebBuyBody(BaseModel):
+    model_config = {"extra": "allow"}
     plan: str = Field(default="basic")
+    coupon_code: str | None = None
 
 
 class GoogleLoginBody(BaseModel):
@@ -293,42 +304,45 @@ def create_app() -> FastAPI:
             return authorization[7:].strip()
         return ""
 
-    def _check_user_token(
+    async def _check_user_token(
         authorization: str | None,
         x_token: str | None,
         x_user_session: str | None = None,
     ) -> dict[str, Any] | None:
-        """Validate optional WEB_ACCESS_TOKEN and/or Google session."""
-        # Legacy shared token
+        """Validate optional WEB_ACCESS_TOKEN and/or persistent user session."""
+        bearer = _bearer(authorization)
+        sess_token = (x_user_session or "").strip()
+        if not sess_token and bearer and bearer != access_token:
+            sess_token = bearer
+
+        guser = await _get_session(sess_token)
+        
+        # If legacy access token required
         if access_token:
-            bearer = _bearer(authorization)
             got = (x_token or bearer or "").strip()
-            if got != access_token:
-                # allow Google session instead of access token
-                if not (x_user_session and x_user_session in user_sessions):
-                    raise HTTPException(status_code=401, detail="Sai user access token")
+            if got != access_token and not guser:
+                raise HTTPException(status_code=401, detail="Sai user access token")
 
         if auth_required:
-            sess = (x_user_session or "").strip()
-            if not sess or sess not in user_sessions:
+            if not guser:
                 raise HTTPException(
                     status_code=401,
                     detail="Cần đăng nhập (email hoặc Google)",
                 )
-            return user_sessions[sess]
-        if x_user_session and x_user_session in user_sessions:
-            return user_sessions[x_user_session]
-        return None
+            return guser
+        return guser
 
-    def _issue_session(user: Any) -> dict[str, Any]:
+    async def _issue_session(user: Any) -> dict[str, Any]:
         sess = secrets.token_urlsafe(32)
         pub = user_public(user)
+        uid = getattr(user, "id", None) or pub.get("id")
+        email = getattr(user, "email", None) or pub.get("email")
         payload = {
-            "id": getattr(user, "id", None),
-            "google_sub": getattr(user, "google_sub", None),
-            "email": getattr(user, "email", None),
-            "name": getattr(user, "name", None),
-            "picture": getattr(user, "picture", None),
+            "id": uid,
+            "google_sub": getattr(user, "google_sub", None) or pub.get("google_sub"),
+            "email": email,
+            "name": getattr(user, "name", None) or pub.get("name"),
+            "picture": getattr(user, "picture", None) or pub.get("picture"),
             "plan_id": pub.get("plan_id"),
             "plan_name": pub.get("plan_name"),
             "daily_limit": pub.get("daily_limit"),
@@ -338,11 +352,95 @@ def create_app() -> FastAPI:
             "plan_expired": pub.get("plan_expired"),
         }
         user_sessions[sess] = payload
+        if uid and email:
+            try:
+                await _save_session(sess, int(uid), str(email), days=90)
+            except Exception as e:
+                logger.warning("Failed to save session to DB: %s", e)
         return {
             "ok": True,
             "session_token": sess,
             "user": pub,
         }
+
+
+
+    async def _save_session(tok: str, uid: int, email: str, days: int = 90) -> None:
+        """Persist session token to SQLite DB for 90 days surviving server restarts."""
+        if not tok or not uid:
+            return
+        now = datetime.now(timezone.utc)
+        exp = now + timedelta(days=days)
+        database = get_db()
+        async with database.session() as session:
+            res = await session.execute(select(WebSession).where(WebSession.token == tok))
+            ws = res.scalar_one_or_none()
+            if not ws:
+                ws = WebSession(
+                    token=tok,
+                    user_id=int(uid),
+                    email=(email or "").lower().strip(),
+                    expires_at=exp,
+                )
+                session.add(ws)
+            else:
+                ws.expires_at = exp
+            await session.commit()
+
+    async def _delete_session(tok: str | None) -> None:
+        """Delete session from memory and DB upon logout."""
+        if not tok:
+            return
+        user_sessions.pop(tok, None)
+        database = get_db()
+        async with database.session() as session:
+            await session.execute(delete(WebSession).where(WebSession.token == tok))
+            await session.commit()
+
+    async def _get_session(tok: str | None) -> dict[str, Any] | None:
+        """Fetch session: checks memory cache first, falls back to SQLite DB."""
+        if not tok or not tok.strip():
+            return None
+        token = tok.strip()
+        
+        # 1. Memory cache check
+        if token in user_sessions:
+            return user_sessions[token]
+
+        # 2. SQLite DB lookup
+        try:
+            database = get_db()
+            async with database.session() as session:
+                res = await session.execute(select(WebSession).where(WebSession.token == token))
+                ws = res.scalar_one_or_none()
+                if not ws:
+                    return None
+
+                # Check expiration
+                now = datetime.now(timezone.utc)
+                ws_exp = ws.expires_at
+                if ws_exp and ws_exp.tzinfo is None:
+                    ws_exp = ws_exp.replace(tzinfo=timezone.utc)
+                if ws_exp and ws_exp < now:
+                    return None
+
+                # Load full user by ID or Email
+                res_u = await session.execute(
+                    select(GoogleWebUser).where(
+                        (GoogleWebUser.id == ws.user_id) | (GoogleWebUser.email == (ws.email or "").lower().strip())
+                    )
+                )
+                db_user = res_u.scalar_one_or_none()
+                if not db_user or not db_user.active:
+                    return None
+
+                db_user = await ensure_plan_defaults(session, db_user)
+                pub = user_public(db_user)
+                user_sessions[token] = pub
+                return pub
+        except Exception as exc:
+            logger.warning("_get_session DB lookup failed: %s", exc)
+            return None
 
     async def _load_web_user(guser: dict[str, Any] | None) -> GoogleWebUser | None:
         """Load DB row by id, else email, else google_sub (so plan always fresh)."""
@@ -461,6 +559,28 @@ def create_app() -> FastAPI:
         p = _docs_file("pricing.css")
         return _file_nocache(p, "text/css") if p else HTMLResponse("x", status_code=404)
 
+
+    @app.get("/install-cmd.ps1", response_model=None)
+    async def install_cmd_ps1():
+        """Serve 1-click PowerShell installer."""
+        p = _docs_file("install-cmd.ps1")
+        if p and p.is_file():
+            return FileResponse(p, media_type="text/plain; charset=utf-8")
+        return HTMLResponse("Not found", status_code=404)
+
+    @app.get("/downloads/{filename}", response_model=None)
+    async def download_file(filename: str):
+        """Serve downloadable files (e.g. TungDevAI-CMD.zip)."""
+        if not filename or ".." in filename or "/" in filename:
+            raise HTTPException(400, "Bad filename")
+        p = (DOCS_DIR / "downloads" / filename).resolve()
+        try:
+            if p.is_file() and p.relative_to(DOCS_DIR.resolve()):
+                return FileResponse(p, filename=filename)
+        except ValueError:
+            pass
+        return HTMLResponse("Not found", status_code=404)
+
     @app.get("/pricing-billing.js", response_model=None)
     async def pricing_billing_js():
         p = _docs_file("pricing-billing.js")
@@ -491,6 +611,26 @@ def create_app() -> FastAPI:
     async def google_callback_page():
         p = _docs_file("google-callback.html")
         return _file_nocache(p) if p else HTMLResponse("Not found", status_code=404)
+
+    @app.get("/workspace_engine.js", response_model=None)
+    async def workspace_engine_js():
+        p = _docs_file("workspace_engine.js")
+        return (
+            _file_nocache(p, "application/javascript")
+            if p
+            else HTMLResponse("x", status_code=404)
+        )
+
+    @app.get("/{js_name}.js", response_model=None)
+    async def docs_js_file(js_name: str):
+        if not js_name or "/" in js_name or ".." in js_name:
+            return HTMLResponse("Not found", status_code=404)
+        p = _docs_file(f"{js_name}.js")
+        return (
+            _file_nocache(p, "application/javascript")
+            if p
+            else HTMLResponse("Not found", status_code=404)
+        )
 
     @app.get("/auth.js", response_model=None)
     async def auth_js():
@@ -569,6 +709,189 @@ def create_app() -> FastAPI:
             if p:
                 return _file_nocache(p)
         return HTMLResponse("Not found", status_code=404)
+
+
+    @app.post("/api/upload-doc")
+    async def api_upload_doc(
+        file: UploadFile = File(...),
+        x_user_session: str | None = Header(default=None, alias="X-User-Session"),
+    ) -> dict[str, Any]:
+        """Upload and parse text from PDF, DOCX, TXT, CSV, JSON, and source code files."""
+        try:
+            content_bytes = await file.read()
+            if len(content_bytes) > 25 * 1024 * 1024:
+                raise HTTPException(400, "Tệp vượt quá giới hạn 25MB.")
+            extracted_text, meta_info = parse_uploaded_document(file.filename or "unknown", content_bytes)
+            return {
+                "ok": True,
+                "filename": file.filename,
+                "meta": meta_info,
+                "chars": len(extracted_text),
+                "content": extracted_text,
+            }
+        except Exception as exc:
+            logger.exception("Upload doc parse error")
+            raise HTTPException(400, f"Lỗi đọc tệp tài liệu: {exc}") from exc
+
+    @app.post("/api/run-code")
+    async def api_run_code(request: Request) -> dict[str, Any]:
+        """Execute sandboxed C++, Python, or JavaScript code asynchronously."""
+        import tempfile, asyncio, shutil
+
+        import html as _html_mod
+        data = await request.json()
+        lang = str(data.get("lang") or "cpp").lower().strip()
+        code = _html_mod.unescape(str(data.get("code") or ""))
+        stdin_data = _html_mod.unescape(str(data.get("stdin") or ""))
+
+        if not code.strip():
+            return {"ok": True, "stdout": "", "stderr": "", "execution_time_ms": 0, "lang": lang.upper()}
+
+        t0 = time.perf_counter()
+        tmp_dir = tempfile.mkdtemp(prefix="tung_exec_")
+
+        try:
+            if lang in ("cpp", "c++", "c", "cc", "hpp"):
+                src_file = os.path.join(tmp_dir, "main.cpp")
+                exe_file = os.path.join(tmp_dir, "main.exe" if os.name == "nt" else "main.out")
+                with open(src_file, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                # Compile with G++ -O3
+                comp_proc = await asyncio.create_subprocess_exec(
+                    "g++", "-O3", "-std=c++20", src_file, "-o", exe_file,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                try:
+                    c_out, c_err = await asyncio.wait_for(comp_proc.communicate(), timeout=30.0)
+                except asyncio.TimeoutError:
+                    return {
+                        "ok": False,
+                        "lang": "C++ (G++ 11.4)",
+                        "stderr": "Biên dịch C++ quá thời gian 30 giây.",
+                        "stdout": "",
+                        "exit_code": -1,
+                        "execution_time_ms": int((time.perf_counter() - t0) * 1000)
+                    }
+
+                if comp_proc.returncode != 0:
+                    return {
+                        "ok": False,
+                        "lang": "C++ (G++ 11.4)",
+                        "stderr": c_err.decode("utf-8", errors="replace"),
+                        "stdout": "",
+                        "exit_code": comp_proc.returncode,
+                        "execution_time_ms": int((time.perf_counter() - t0) * 1000)
+                    }
+
+                # Execute binary
+                run_proc = await asyncio.create_subprocess_exec(
+                    exe_file,
+                    stdin=asyncio.subprocess.PIPE if stdin_data else None,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                try:
+                    r_out, r_err = await asyncio.wait_for(
+                        run_proc.communicate(input=stdin_data.encode("utf-8") if stdin_data else None),
+                        timeout=300.0
+                    )
+                    t_dur = int((time.perf_counter() - t0) * 1000)
+                    return {
+                        "ok": run_proc.returncode == 0,
+                        "lang": "C++ (G++ 11.4)",
+                        "stdout": r_out.decode("utf-8", errors="replace"),
+                        "stderr": r_err.decode("utf-8", errors="replace"),
+                        "exit_code": run_proc.returncode,
+                        "execution_time_ms": t_dur
+                    }
+                except asyncio.TimeoutError:
+                    return {
+                        "ok": False,
+                        "lang": "C++ (G++ 11.4)",
+                        "stderr": "Chương trình C++ chạy quá giới hạn thời gian (5 phút / 300 giây).",
+                        "stdout": "",
+                        "exit_code": -1,
+                        "execution_time_ms": int((time.perf_counter() - t0) * 1000)
+                    }
+
+            elif lang in ("python", "py", "python3"):
+                src_file = os.path.join(tmp_dir, "main.py")
+                with open(src_file, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                py_bin = sys.executable or "python3"
+                run_proc = await asyncio.create_subprocess_exec(
+                    py_bin, "-u", src_file,
+                    stdin=asyncio.subprocess.PIPE if stdin_data else None,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                try:
+                    r_out, r_err = await asyncio.wait_for(
+                        run_proc.communicate(input=stdin_data.encode("utf-8") if stdin_data else None),
+                        timeout=300.0
+                    )
+                    t_dur = int((time.perf_counter() - t0) * 1000)
+                    return {
+                        "ok": run_proc.returncode == 0,
+                        "lang": "Python 3",
+                        "stdout": r_out.decode("utf-8", errors="replace"),
+                        "stderr": r_err.decode("utf-8", errors="replace"),
+                        "exit_code": run_proc.returncode,
+                        "execution_time_ms": t_dur
+                    }
+                except asyncio.TimeoutError:
+                    return {
+                        "ok": False,
+                        "lang": "Python 3",
+                        "stderr": "Chương trình Python chạy quá giới hạn thời gian (5 phút / 300 giây).",
+                        "stdout": "",
+                        "exit_code": -1,
+                        "execution_time_ms": int((time.perf_counter() - t0) * 1000)
+                    }
+
+            elif lang in ("js", "javascript", "node"):
+                src_file = os.path.join(tmp_dir, "main.js")
+                with open(src_file, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                run_proc = await asyncio.create_subprocess_exec(
+                    "node", src_file,
+                    stdin=asyncio.subprocess.PIPE if stdin_data else None,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                try:
+                    r_out, r_err = await asyncio.wait_for(
+                        run_proc.communicate(input=stdin_data.encode("utf-8") if stdin_data else None),
+                        timeout=300.0
+                    )
+                    t_dur = int((time.perf_counter() - t0) * 1000)
+                    return {
+                        "ok": run_proc.returncode == 0,
+                        "lang": "Node.js v20",
+                        "stdout": r_out.decode("utf-8", errors="replace"),
+                        "stderr": r_err.decode("utf-8", errors="replace"),
+                        "exit_code": run_proc.returncode,
+                        "execution_time_ms": t_dur
+                    }
+                except asyncio.TimeoutError:
+                    return {
+                        "ok": False,
+                        "lang": "Node.js v20",
+                        "stderr": "Chương trình JavaScript chạy quá 6 giây.",
+                        "stdout": "",
+                        "exit_code": -1,
+                        "execution_time_ms": int((time.perf_counter() - t0) * 1000)
+                    }
+
+            else:
+                raise HTTPException(400, f"Ngôn ngữ {lang} chưa được hỗ trợ thực thi.")
+
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
@@ -727,7 +1050,7 @@ def create_app() -> FastAPI:
                 user = await ensure_plan_defaults(session, user)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
-        return _issue_session(user)
+        return await _issue_session(user)
 
     @app.post("/api/auth/login")
     async def auth_login_email(body: EmailLoginBody) -> dict[str, Any]:
@@ -740,7 +1063,7 @@ def create_app() -> FastAPI:
                 user = await ensure_plan_defaults(session, user)
         except ValueError as exc:
             raise HTTPException(401, str(exc)) from exc
-        return _issue_session(user)
+        return await _issue_session(user)
 
     @app.post("/api/auth/google")
     async def auth_google(body: GoogleLoginBody) -> dict[str, Any]:
@@ -763,15 +1086,19 @@ def create_app() -> FastAPI:
             except ValueError as exc:
                 raise HTTPException(403, str(exc)) from exc
 
-        return _issue_session(user)
+        return await _issue_session(user)
 
     @app.get("/api/auth/me")
     async def auth_me(
         x_user_session: str | None = Header(default=None, alias="X-User-Session"),
+        authorization: str | None = Header(default=None),
     ) -> dict[str, Any]:
-        if not x_user_session or x_user_session not in user_sessions:
+        sess_token = (x_user_session or "").strip()
+        if not sess_token and authorization and authorization.lower().startswith("bearer "):
+            sess_token = authorization[7:].strip()
+        guser = await _get_session(sess_token)
+        if not guser:
             raise HTTPException(401, "Chưa đăng nhập")
-        guser = user_sessions[x_user_session]
         db_user = await _load_web_user(guser)
         if db_user is not None:
             pub = user_public(db_user)
@@ -779,6 +1106,65 @@ def create_app() -> FastAPI:
             user_sessions[x_user_session] = guser
             return {"ok": True, "user": pub}
         return {"ok": True, "user": guser}
+
+    @app.post("/api/billing/validate-coupon")
+    async def billing_validate_coupon(
+        request: Request,
+        x_user_session: str | None = Header(default=None, alias="X-User-Session"),
+    ) -> dict[str, Any]:
+        """Validate coupon code and return discount details."""
+        b = {}
+        try:
+            b = await request.json()
+        except Exception:
+            pass
+        code = str(b.get("code", "")).strip().upper()
+        plan_id = str(b.get("plan", "basic")).strip().lower()
+        if not code:
+            raise HTTPException(400, "Vui lòng nhập mã giảm giá")
+
+        plan = get_plan(plan_id)
+        if not plan:
+            raise HTTPException(400, f"Gói {plan_id} không hợp lệ")
+
+        base_price = int(plan.price_vnd or 0)
+        now = datetime.now(timezone.utc)
+
+        async with db.session() as session:
+            res = await session.execute(
+                select(DiscountCoupon).where(DiscountCoupon.code == code)
+            )
+            cp = res.scalar_one_or_none()
+            if not cp:
+                raise HTTPException(404, f"Mã giảm giá '{code}' không tồn tại")
+            if not cp.active:
+                raise HTTPException(400, f"Mã giảm giá '{code}' đã bị tạm dừng")
+            if cp.expires_at and (cp.expires_at.replace(tzinfo=timezone.utc) if cp.expires_at.tzinfo is None else cp.expires_at) < datetime.now(timezone.utc):
+                raise HTTPException(400, f"Mã giảm giá '{code}' đã hết hạn")
+            if cp.max_uses > 0 and cp.uses >= cp.max_uses:
+                raise HTTPException(400, f"Mã giảm giá '{code}' đã hết lượt sử dụng ({cp.uses}/{cp.max_uses})")
+            if cp.plan_id != "all" and cp.plan_id.lower() != plan_id:
+                raise HTTPException(400, f"Mã '{code}' chỉ áp dụng cho gói {cp.plan_id.upper()}")
+
+            discount_vnd = 0
+            if cp.discount_percent >= 100 or cp.discount_amount >= base_price:
+                discount_vnd = base_price
+                final_price = 0
+            elif cp.discount_percent > 0:
+                discount_vnd = int(base_price * cp.discount_percent / 100)
+                final_price = max(0, base_price - discount_vnd)
+            elif cp.discount_amount > 0:
+                discount_vnd = int(cp.discount_amount)
+                final_price = max(0, base_price - discount_vnd)
+
+            return {
+                "ok": True,
+                "code": cp.code,
+                "discount_percent": cp.discount_percent,
+                "discount_amount": discount_vnd,
+                "final_price": final_price,
+                "base_price": base_price,
+            }
 
     @app.post("/api/billing/create-order")
     async def billing_create_order(
@@ -805,6 +1191,67 @@ def create_app() -> FastAPI:
         amount = int(plan.price_vnd or 0)
         if amount <= 0:
             raise HTTPException(400, "Gói này không bán (giá 0)")
+
+        # Apply coupon if provided
+        coupon_code = str(getattr(body, "coupon_code", "") or "").strip().upper()
+        if coupon_code:
+            now = datetime.now(timezone.utc)
+            async with db.session() as session:
+                res = await session.execute(
+                    select(DiscountCoupon).where(DiscountCoupon.code == coupon_code)
+                )
+                cp = res.scalar_one_or_none()
+                if (
+                    cp
+                    and cp.active
+                    and (
+                        not cp.expires_at
+                        or (
+                            cp.expires_at.replace(tzinfo=timezone.utc)
+                            if cp.expires_at.tzinfo is None
+                            else cp.expires_at
+                        )
+                        >= now
+                    )
+                    and (cp.max_uses <= 0 or cp.uses < cp.max_uses)
+                    and (cp.plan_id == "all" or cp.plan_id.lower() == plan_id)
+                ):
+                    discount_vnd = 0
+                    if cp.discount_percent >= 100 or cp.discount_amount >= amount:
+                        discount_vnd = amount
+                        amount = 0
+                    elif cp.discount_percent > 0:
+                        discount_vnd = int(amount * cp.discount_percent / 100)
+                        amount = max(0, amount - discount_vnd)
+                    elif cp.discount_amount > 0:
+                        discount_vnd = int(cp.discount_amount)
+                        amount = max(0, amount - discount_vnd)
+
+                    cp.uses += 1
+                    await session.commit()
+
+        # If 0d (100% Free Coupon), activate immediately without VietQR bank transfer!
+        if amount <= 0:
+            async with db.session() as session:
+                updated_user = await set_web_user_plan(
+                    session,
+                    user_id=int(db_user.id),
+                    plan_id=plan.id,
+                    days=30,
+                )
+                pub = user_public(updated_user)
+                guser.update(pub)
+                user_sessions[x_user_session] = guser
+                return {
+                    "ok": True,
+                    "free": True,
+                    "status": "paid",
+                    "amount": 0,
+                    "plan": plan.id,
+                    "plan_name": plan.name,
+                    "user": pub,
+                    "message": f"🎉 Chúc mừng bạn! Gói {plan.name} đã được kích hoạt thành công miễn phí 100%!",
+                }
 
         try:
             order = await create_pay_order(
@@ -885,6 +1332,221 @@ def create_app() -> FastAPI:
                 if p.id not in ("owner", "trial")
             ],
         }
+
+
+    # =========================================================================
+    # DEDICATED CMD LICENSE KEY PRICING & VIETQR BILLING
+    # =========================================================================
+
+    CMD_PLANS = {
+        "cmd_7d": {
+            "id": "cmd_7d",
+            "name": "CMD Trải Nghiệm (7 Ngày)",
+            "days": 7,
+            "price_vnd": 29000,
+            "max_uses": 1,
+            "badge": "⚡ Trải Nghiệm",
+            "desc": "Thử nghiệm sức mạnh AI Terminal với đầy đủ 4 siêu mô hình lập trình.",
+        },
+        "cmd_30d": {
+            "id": "cmd_30d",
+            "name": "CMD Pro Standard (30 Ngày)",
+            "days": 30,
+            "price_vnd": 89000,
+            "max_uses": 1,
+            "badge": "🔥 Bán Chạy Nhất",
+            "desc": "Gói tiêu chuẩn cho Developer chinh chiến dự án thực tế hàng ngày.",
+        },
+        "cmd_90d": {
+            "id": "cmd_90d",
+            "name": "CMD Quarter Master (90 Ngày)",
+            "days": 90,
+            "price_vnd": 199000,
+            "max_uses": 2,
+            "badge": "💎 Tiết Kiệm 40%",
+            "desc": "3 tháng sử dụng liên tục, hỗ trợ 2 thiết bị và cập nhật sớm nhất.",
+        },
+        "cmd_365d": {
+            "id": "cmd_365d",
+            "name": "CMD Enterprise Lifetime (365 Ngày)",
+            "days": 365,
+            "price_vnd": 499000,
+            "max_uses": 3,
+            "badge": "👑 Siêu VIP 1 Năm",
+            "desc": "Bản quyền tối thượng 1 năm, kích hoạt 3 thiết bị và hỗ trợ kỹ thuật 1-1.",
+        },
+    }
+
+    _cmd_orders: dict[str, dict[str, Any]] = {}
+
+    @app.get("/api/cmd/pricing")
+    async def api_cmd_pricing() -> dict[str, Any]:
+        """Return list of dedicated CMD key pricing plans."""
+        return {
+            "ok": True,
+            "plans": list(CMD_PLANS.values()),
+            "currency": settings.currency,
+        }
+
+    @app.post("/api/billing/create-cmd-order")
+    async def billing_create_cmd_order(request: Request) -> dict[str, Any]:
+        """Create VietQR order specifically for CMD License Key."""
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+
+        plan_id = str(body.get("plan", "cmd_30d")).lower().strip()
+        if plan_id not in CMD_PLANS:
+            raise HTTPException(400, "Gói CMD không hợp lệ (cmd_7d, cmd_30d, cmd_90d, cmd_365d)")
+
+        plan_info = CMD_PLANS[plan_id]
+        amount = int(plan_info["price_vnd"])
+        email = str(body.get("email", "")).strip().lower()
+        coupon_code = str(body.get("coupon_code", "")).strip().upper()
+
+        # Handle discount coupon if applicable
+        if coupon_code:
+            async with db.session() as session:
+                res = await session.execute(
+                    select(DiscountCoupon).where(DiscountCoupon.code == coupon_code)
+                )
+                cp = res.scalar_one_or_none()
+                if cp and cp.active:
+                    if cp.discount_percent > 0:
+                        disc = int(amount * cp.discount_percent / 100)
+                        amount = max(0, amount - disc)
+                    elif cp.discount_amount > 0:
+                        amount = max(0, amount - cp.discount_amount)
+
+        # 0d Instant Free Activation
+        if amount == 0:
+            key_code = f"CMD-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+            async with db.session() as session:
+                k = CmdLicenseKey(
+                    code=key_code,
+                    days=plan_info["days"],
+                    max_uses=plan_info["max_uses"],
+                    note=f"Free/Coupon ({email or 'free'})",
+                    active=True,
+                )
+                session.add(k)
+                await session.commit()
+            return {
+                "ok": True,
+                "free": True,
+                "status": "paid",
+                "plan": plan_id,
+                "plan_name": plan_info["name"],
+                "key_code": key_code,
+                "days": plan_info["days"],
+                "amount": 0,
+                "message": "🎉 Chúc mừng bạn! Key bản quyền đã được kích hoạt miễn phí 100%!",
+            }
+
+        try:
+            order = await create_pay_order(
+                settings,
+                amount=amount,
+                plan=plan_id,
+                note=f"cmd:{email or 'anon'}:{plan_id}",
+            )
+        except Exception as exc:
+            logger.exception("create cmd pay order failed")
+            raise HTTPException(502, f"Không tạo được mã QR: {exc}") from exc
+
+        _cmd_orders[order.order_id] = {
+            "plan_id": plan_id,
+            "plan_info": plan_info,
+            "days": plan_info["days"],
+            "max_uses": plan_info["max_uses"],
+            "email": email,
+            "amount": amount,
+            "key_code": None,
+            "created_at": time.time(),
+        }
+
+        return {
+            "ok": True,
+            "orderId": order.order_id,
+            "plan": plan_id,
+            "plan_name": plan_info["name"],
+            "days": plan_info["days"],
+            "amount": order.amount,
+            "content": order.content,
+            "status": order.status,
+            "qrImageUrl": order.qr_image_url,
+            "payPage": order.pay_page,
+            "bank": {
+                "code": order.bank_code,
+                "account": order.bank_account,
+                "name": order.bank_name,
+            },
+            "hint": "Chuyển khoản đúng số tiền + nội dung. Hệ thống auto cấp Key bản quyền ngay khi nhận tiền.",
+        }
+
+    @app.get("/api/billing/cmd-order-status")
+    async def billing_cmd_order_status(order_id: str = "") -> dict[str, Any]:
+        """Poll VietQR status for CMD order and auto-generate license key upon payment."""
+        oid = (order_id or "").strip()
+        if not oid:
+            raise HTTPException(400, "Thiếu order_id")
+
+        cmd_info = _cmd_orders.get(oid)
+        # If already generated key previously
+        if cmd_info and cmd_info.get("key_code"):
+            return {
+                "ok": True,
+                "status": "paid",
+                "key_code": cmd_info["key_code"],
+                "days": cmd_info["days"],
+                "plan_name": cmd_info["plan_info"]["name"],
+                "message": "Đã nhận thanh toán thành công! Key bản quyền của bạn đã sẵn sàng.",
+            }
+
+        try:
+            data = await get_order_status(settings, oid)
+        except Exception as exc:
+            raise HTTPException(502, str(exc)) from exc
+
+        st = str(data.get("status") or "").lower()
+        if st == "paid":
+            plan_days = 30
+            max_uses = 1
+            email = "customer"
+            plan_name = "CMD Pro"
+            if cmd_info:
+                plan_days = cmd_info.get("days", 30)
+                max_uses = cmd_info.get("max_uses", 1)
+                email = cmd_info.get("email") or "customer"
+                plan_name = cmd_info.get("plan_info", {}).get("name", "CMD Pro")
+
+            key_code = f"CMD-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+            async with db.session() as session:
+                k = CmdLicenseKey(
+                    code=key_code,
+                    days=plan_days,
+                    max_uses=max_uses,
+                    note=f"VietQR Order {oid} ({email})",
+                    active=True,
+                )
+                session.add(k)
+                await session.commit()
+
+            if cmd_info:
+                cmd_info["key_code"] = key_code
+
+            return {
+                "ok": True,
+                "status": "paid",
+                "key_code": key_code,
+                "days": plan_days,
+                "plan_name": plan_name,
+                "message": "Đã nhận thanh toán thành công! Key bản quyền của bạn đã sẵn sàng.",
+            }
+
+        return {"ok": True, "status": st or "pending", "orderId": oid}
 
     @app.post("/api/auth/activate")
     async def auth_activate(
@@ -1110,6 +1772,364 @@ def create_app() -> FastAPI:
             ok = await deactivate_user(session, body.telegram_id)
         return {"ok": ok, "telegram_id": body.telegram_id}
 
+    # =========================================================================
+    # DISCOUNT COUPON MANAGEMENT ENDPOINTS
+    # =========================================================================
+
+
+    @app.get("/api/admin/coupons")
+    async def admin_get_coupons(
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        async with db.session() as session:
+            res = await session.execute(
+                select(DiscountCoupon).order_by(DiscountCoupon.id.desc())
+            )
+            rows = res.scalars().all()
+            return {
+                "ok": True,
+                "coupons": [
+                    {
+                        "id": c.id,
+                        "code": c.code,
+                        "discount_percent": c.discount_percent,
+                        "discount_amount": c.discount_amount,
+                        "plan_id": c.plan_id,
+                        "max_uses": c.max_uses,
+                        "uses": c.uses,
+                        "note": c.note,
+                        "active": c.active,
+                        "expires_at": c.expires_at.isoformat() if c.expires_at else None,
+                        "created_at": c.created_at.isoformat() if c.created_at else None,
+                    }
+                    for c in rows
+                ],
+            }
+
+    @app.post("/api/admin/coupons")
+    async def admin_create_coupon(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        b = {}
+        try:
+            b = await request.json()
+        except Exception:
+            pass
+        code_clean = str(b.get("code", "")).strip().upper()
+        if not code_clean:
+            raise HTTPException(400, "Mã code không được rỗng")
+        days = int(b.get("days", 30))
+        now = datetime.now(timezone.utc)
+        exp = now + timedelta(days=days) if days > 0 else None
+        async with db.session() as session:
+            res = await session.execute(
+                select(DiscountCoupon).where(DiscountCoupon.code == code_clean)
+            )
+            existing = res.scalar_one_or_none()
+            if existing:
+                raise HTTPException(400, f"Mã {code_clean} đã tồn tại")
+            cp = DiscountCoupon(
+                code=code_clean,
+                discount_percent=int(b.get("discount_percent", 0)),
+                discount_amount=int(b.get("discount_amount", 0)),
+                plan_id=str(b.get("plan_id", "all")),
+                max_uses=int(b.get("max_uses", 100)),
+                note=str(b.get("note", "")),
+                expires_at=exp,
+                active=True,
+            )
+            session.add(cp)
+            await session.commit()
+            await session.refresh(cp)
+            return {
+                "ok": True,
+                "coupon": {
+                    "id": cp.id,
+                    "code": cp.code,
+                    "discount_percent": cp.discount_percent,
+                    "discount_amount": cp.discount_amount,
+                    "plan_id": cp.plan_id,
+                    "max_uses": cp.max_uses,
+                    "uses": cp.uses,
+                    "note": cp.note,
+                    "active": cp.active,
+                    "expires_at": cp.expires_at.isoformat() if cp.expires_at else None,
+                },
+            }
+
+    @app.post("/api/admin/coupons/toggle")
+    async def admin_toggle_coupon(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        b = {}
+        try:
+            b = await request.json()
+        except Exception:
+            pass
+        code_clean = str(b.get("code", "")).strip().upper()
+        active_val = bool(b.get("active", True))
+        async with db.session() as session:
+            res = await session.execute(
+                select(DiscountCoupon).where(DiscountCoupon.code == code_clean)
+            )
+            cp = res.scalar_one_or_none()
+            if not cp:
+                raise HTTPException(404, f"Không tìm thấy mã {code_clean}")
+            cp.active = active_val
+            await session.commit()
+            return {"ok": True, "code": cp.code, "active": cp.active}
+
+    @app.post("/api/admin/coupons/delete")
+    async def admin_delete_coupon(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        b = {}
+        try:
+            b = await request.json()
+        except Exception:
+            pass
+        code_clean = str(b.get("code", "")).strip().upper()
+        async with db.session() as session:
+            res = await session.execute(
+                select(DiscountCoupon).where(DiscountCoupon.code == code_clean)
+            )
+            cp = res.scalar_one_or_none()
+            if not cp:
+                raise HTTPException(404, f"Không tìm thấy mã {code_clean}")
+            await session.delete(cp)
+            await session.commit()
+            return {"ok": True, "deleted": code_clean}
+
+    # =========================================================================
+    # CMD LICENSE KEYS MANAGEMENT ENDPOINTS
+    # =========================================================================
+
+
+    @app.get("/api/admin/cmd-keys")
+    async def admin_get_cmd_keys(
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        async with db.session() as session:
+            res = await session.execute(
+                select(CmdLicenseKey).order_by(CmdLicenseKey.id.desc()).limit(100)
+            )
+            rows = res.scalars().all()
+            return {
+                "ok": True,
+                "keys": [
+                    {
+                        "id": k.id,
+                        "code": k.code,
+                        "days": k.days,
+                        "max_uses": k.max_uses,
+                        "uses": k.uses,
+                        "note": k.note,
+                        "last_machine": k.last_machine,
+                        "last_activated_at": k.last_activated_at.isoformat() if k.last_activated_at else None,
+                        "active": k.active,
+                        "created_at": k.created_at.isoformat() if k.created_at else None,
+                    }
+                    for k in rows
+                ],
+            }
+
+    @app.post("/api/admin/cmd-keys")
+    async def admin_create_cmd_key(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        days = int(body.get("days", 30))
+        max_uses = int(body.get("max_uses", 1))
+        note = str(body.get("note", "Admin Created"))
+        code = f"CMD-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+        async with db.session() as session:
+            k = CmdLicenseKey(
+                code=code,
+                days=days,
+                max_uses=max_uses,
+                note=note,
+                active=True,
+            )
+            session.add(k)
+            await session.commit()
+            await session.refresh(k)
+            return {
+                "ok": True,
+                "key": {
+                    "code": k.code,
+                    "days": k.days,
+                    "max_uses": k.max_uses,
+                    "note": k.note,
+                    "active": k.active,
+                }
+            }
+
+    @app.post("/api/admin/cmd-keys/revoke")
+    async def admin_revoke_cmd_key(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        _check_admin(authorization, x_admin_token)
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        code_clean = str(body.get("code", "")).strip()
+        async with db.session() as session:
+            res = await session.execute(
+                select(CmdLicenseKey).where(CmdLicenseKey.code == code_clean)
+            )
+            k = res.scalar_one_or_none()
+            if not k:
+                raise HTTPException(404, "Không tìm thấy key")
+            k.active = False
+            await session.commit()
+            return {"ok": True, "code": k.code, "active": False}
+
+
+
+
+    # =========================================================================
+    # PUBLIC CMD LICENSE VERIFICATION & ACTIVATION
+    # =========================================================================
+
+    @app.post("/api/cmd/verify-license")
+    async def api_cmd_verify_license(request: Request) -> dict[str, Any]:
+        """Verify CMD license against database (checks deleted, revoked, expired)."""
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        code = str(body.get("code", "")).strip().upper()
+        machine = str(body.get("machine", "")).strip()
+        payment_url = "https://tungai.fun/cmd-pricing.html"
+        
+        if not code:
+            return {
+                "ok": False,
+                "reason": "no_code",
+                "message": "Chưa có mã bản quyền CMD.",
+                "payment_url": payment_url,
+            }
+
+        async with db.session() as session:
+            res = await session.execute(
+                select(CmdLicenseKey).where(CmdLicenseKey.code == code)
+            )
+            row = res.scalar_one_or_none()
+            if not row:
+                return {
+                    "ok": False,
+                    "reason": "deleted",
+                    "message": "Key bản quyền không tồn tại hoặc đã bị xóa trên hệ thống.",
+                    "payment_url": payment_url,
+                }
+            if not row.active:
+                return {
+                    "ok": False,
+                    "reason": "revoked",
+                    "message": "Key bản quyền đã bị vô hiệu hóa hoặc thu hồi bởi Quản trị viên.",
+                    "payment_url": payment_url,
+                }
+            
+            # Check expiration
+            now = datetime.now(timezone.utc)
+            if row.last_activated_at:
+                exp = row.last_activated_at + timedelta(days=int(row.days or 30))
+                if exp < now:
+                    return {
+                        "ok": False,
+                        "reason": "expired",
+                        "message": f"Key bản quyền đã hết hạn vào ngày {exp.strftime('%d/%m/%Y')}.",
+                        "payment_url": payment_url,
+                    }
+                days_left = max(0, (exp - now).days)
+            else:
+                days_left = int(row.days or 30)
+
+            return {
+                "ok": True,
+                "code": row.code,
+                "days_left": days_left,
+                "message": f"Key hợp lệ (còn {days_left} ngày)",
+                "payment_url": payment_url,
+            }
+
+    @app.post("/api/cmd/activate")
+    async def api_cmd_activate(request: Request) -> dict[str, Any]:
+        """Activate a CMD key and return license details."""
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        code = str(body.get("code", "")).strip().upper()
+        machine = str(body.get("machine", "")).strip()
+        payment_url = "https://tungai.fun/cmd-pricing.html"
+        if not code:
+            return {
+                "ok": False,
+                "message": "Vui lòng nhập mã key.",
+                "payment_url": payment_url,
+            }
+
+        async with db.session() as session:
+            ok, msg, payload = await activate_cmd_key(session, code, machine=machine)
+            return {
+                "ok": ok,
+                "message": msg,
+                "license": payload,
+                "payment_url": payment_url,
+            }
+
+    @app.post("/api/admin/cmd-keys/delete")
+    async def admin_delete_cmd_key(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    ) -> dict[str, Any]:
+        """Delete a CMD key permanently from database."""
+        _check_admin(authorization, x_admin_token)
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        code_clean = str(body.get("code", "")).strip().upper()
+        async with db.session() as session:
+            res = await session.execute(
+                select(CmdLicenseKey).where(CmdLicenseKey.code == code_clean)
+            )
+            k = res.scalar_one_or_none()
+            if not k:
+                raise HTTPException(404, "Không tìm thấy key")
+            await session.delete(k)
+            await session.commit()
+            return {"ok": True, "code": code_clean, "deleted": True}
+
     async def _hydrate_session(sid: str) -> list[dict[str, str]]:
         """Load history: RAM first, else SQLite (survives server restart)."""
         mem: SessionMemory = app.state.memory
@@ -1164,7 +2184,7 @@ def create_app() -> FastAPI:
         x_web_token: str | None = Header(default=None, alias="X-Web-Token"),
         x_user_session: str | None = Header(default=None, alias="X-User-Session"),
     ):
-        guser = _check_user_token(authorization, x_web_token, x_user_session)
+        guser = await _check_user_token(authorization, x_web_token, x_user_session)
         text = body.message.strip()
         if not text:
             raise HTTPException(400, "Tin nhắn trống")
@@ -1209,12 +2229,58 @@ def create_app() -> FastAPI:
 
         mem: SessionMemory = request.app.state.memory
         client: GrokClient = request.app.state.grok
+        # Route specifically if user requested Gemini 3.8 High
+        target_model = getattr(body, "model", None)
+        if target_model in ("gemini-3.8-high", "3.8-high", "3.8"):
+            target_model = "gemini-3.8-flash"
         route = client.route_for_plan(plan_id, plan_expired=plan_expired)
         planner = PlannerAgent(client)
         coder = CoderAgent(client)
         reviewer = ReviewerAgent(client)
         debugger = DebuggerAgent(client)
         pipeline = AgentPipeline(client)
+
+        # Check Image Studio (Vision 1.5)
+        from ai.image_gen import is_image_request, generate_image_markdown
+        if is_image_request(text, mode=mode_id, model=getattr(body, "model", None)):
+            img_reply = generate_image_markdown(text)
+            await _hydrate_session(sid)
+            mem.add(sid, "user", text)
+            await _persist(sid, "user", text)
+            mem.add(sid, "assistant", img_reply)
+            await _persist(sid, "assistant", img_reply)
+
+            async def img_gen():
+                yield _sse({
+                    "type": "meta",
+                    "session_id": sid,
+                    "plan_id": plan_id,
+                    "mode": mode_id,
+                    "agent": "vision_1.5",
+                    "ai_tier": "pro",
+                    "ai_provider": "vision",
+                    "ai_model": "TungDevAI Vision 1.5 (Image Studio 🖼️)",
+                    "ai_label": "🎨 TungDevAI Vision 1.5 (Image Studio 🖼️)",
+                })
+                yield _sse({"type": "delta", "text": img_reply})
+                yield _sse({"type": "done", "session_id": sid})
+
+            if body.stream:
+                return StreamingResponse(
+                    img_gen(),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+                )
+            return {
+                "session_id": sid,
+                "reply": img_reply,
+                "plan_id": plan_id,
+                "mode": mode_id,
+                "agent": "vision_1.5",
+                "ai_tier": "pro",
+                "ai_model": "TungDevAI Vision 1.5 (Image Studio 🖼️)",
+                "ai_label": "🎨 TungDevAI Vision 1.5 (Image Studio 🖼️)",
+            }
 
         cmd, args = _parse_slash(text)
 
@@ -1333,10 +2399,60 @@ def create_app() -> FastAPI:
             }
             raise HTTPException(400, hints.get(cmd or "", "Thiếu tham số lệnh"))
 
+        # 1. Process document attachments
+        doc_contexts = []
+        if getattr(body, "attachments", None) and isinstance(body.attachments, list):
+            for att in body.attachments:
+                fn = att.get("filename") or "Tệp đính kèm"
+                cnt = att.get("content") or ""
+                meta = att.get("meta") or ""
+                if cnt.strip():
+                    doc_contexts.append(f"\n\n[TÀI LIỆU ĐÍNH KÈM: {fn} ({meta})]:\n{cnt}\n[HẾT TÀI LIỆU {fn}]")
+
+        # 2. Process Web Search & URL extraction
+        search_context = ""
+        is_search_requested = getattr(body, "web_search", False) or text.lower().startswith(("/search", "/timkiem", "tìm kiếm:", "tra cứu:"))
+        detected_urls = extract_urls(text)
+
+        if detected_urls and not is_search_requested:
+            target_url = detected_urls[0]
+            url_res = await fetch_url_content(target_url)
+            if url_res.get("ok"):
+                search_context = f"\n\n[NỘI DUNG TRÍCH XUẤT TỪ ĐƯỜNG DẪN WEB {target_url}]:\nTiêu đề: {url_res.get('title')}\n{url_res.get('content')}\n[HẾT NỘI DUNG WEB]\n"
+
+        elif is_search_requested:
+            search_query = re.sub(r"^(/(?:search|timkiem)|tìm\s*kiếm:?|tra\s*cứu:?)\s*", "", text, flags=re.IGNORECASE).strip()
+            if not search_query:
+                search_query = text
+            s_ctx, _ = await execute_web_search(search_query)
+            if s_ctx:
+                search_context = f"\n\n{s_ctx}\n"
+
+        augmented_text = text
+        if doc_contexts:
+            augmented_text += "".join(doc_contexts)
+        if search_context:
+            augmented_text += search_context
+
+        payload_text = augmented_text
+
+
         await _hydrate_session(sid)
         mem.add(sid, "user", text)
         await _persist(sid, "user", text)
-        history = mem.get(sid)
+        
+        if body.history and len(body.history) > 0:
+            history = [dict(m) for m in body.history]
+            if history and history[-1].get("role") == "user":
+                history[-1]["content"] = payload_text
+            else:
+                history.append({"role": "user", "content": payload_text})
+        else:
+            history = [dict(m) for m in mem.get(sid)]
+            if history and history[-1].get("role") == "user":
+                history[-1]["content"] = payload_text
+            else:
+                history.append({"role": "user", "content": payload_text})
 
         async def _after_success() -> None:
             if web_user_id is None:
@@ -1482,6 +2598,7 @@ def create_app() -> FastAPI:
                             temperature=temperature,
                             plan_id=plan_id,
                             plan_expired=plan_expired,
+                            model=target_model,
                         ):
                             parts.append(delta)
                             yield _sse({"type": "delta", "text": delta})
@@ -1524,6 +2641,7 @@ def create_app() -> FastAPI:
                     temperature=temperature,
                     plan_id=plan_id,
                     plan_expired=plan_expired,
+                    model=target_model,
                 )
         except GrokError as exc:
             raise HTTPException(502, str(exc)) from exc
@@ -1549,7 +2667,7 @@ def create_app() -> FastAPI:
         x_user_session: str | None = Header(default=None, alias="X-User-Session"),
     ) -> dict[str, Any]:
         """Load persisted messages for a browser session (after tab close / restart)."""
-        _check_user_token(authorization, x_web_token, x_user_session)
+        await _check_user_token(authorization, x_web_token, x_user_session)
         sid = (session_id or "").strip()
         if not sid:
             return {"ok": True, "session_id": "", "messages": []}
@@ -1564,7 +2682,7 @@ def create_app() -> FastAPI:
         x_web_token: str | None = Header(default=None, alias="X-Web-Token"),
         x_user_session: str | None = Header(default=None, alias="X-User-Session"),
     ) -> dict[str, Any]:
-        _check_user_token(authorization, x_web_token, x_user_session)
+        await _check_user_token(authorization, x_web_token, x_user_session)
         sid = (body or {}).get("session_id", "").strip()
         if sid:
             request.app.state.memory.clear(sid)

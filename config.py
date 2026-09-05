@@ -15,7 +15,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
     "groq": {
         "base_url": "https://api.groq.com/openai/v1",
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-120b",
         "label": "Groq (free tier)",
     },
     "openrouter": {
@@ -32,8 +32,13 @@ PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
     # Default paid stack uses DeepSeek-V4-Pro (best coding among available key models)
     "nvidia": {
         "base_url": "https://integrate.api.nvidia.com/v1",
-        "model": "deepseek-ai/deepseek-v4-pro",
-        "label": "DeepSeek-V4-Pro (VIP coding)",
+        "model": "openai/gpt-oss-120b",
+        "label": "👑 TungDevAI Coder v1.0 (Flagship ⭐)",
+    },
+    "gemini": {
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "model": "gemini-3.8-flash",
+        "label": "Google Gemini 3.8 High (Deep Reasoning 🧠)",
     },
     "ollama": {
         "base_url": "http://127.0.0.1:11434/v1",
@@ -79,6 +84,9 @@ class Settings(BaseSettings):
     # vietqr-pay integration (Node server)
     # VIETQR_PAY_URL=http://127.0.0.1:3000  → /buy tạo đơn + QR qua server
     vietqr_pay_url: str = Field("", alias="VIETQR_PAY_URL")
+    # Template ảnh QR từ my.vietqr.io (vd Ar2xlTX) + host api.vietqr.io
+    vietqr_template: str = Field("rRpDP7W", alias="VIETQR_TEMPLATE")
+    vietqr_image_host: str = Field("api.vietqr.io", alias="VIETQR_IMAGE_HOST")
     # Webhook nhận "paid" từ vietqr-pay → auto kích hoạt gói
     payment_webhook_enabled: bool = Field(True, alias="PAYMENT_WEBHOOK_ENABLED")
     payment_webhook_host: str = Field("127.0.0.1", alias="PAYMENT_WEBHOOK_HOST")
@@ -100,6 +108,7 @@ class Settings(BaseSettings):
     openrouter_api_key: str = Field("", alias="OPENROUTER_API_KEY")
     xai_api_key: str = Field("", alias="XAI_API_KEY")
     nvidia_api_key: str = Field("", alias="NVIDIA_API_KEY")
+    gemini_api_key: str = Field("", alias="GEMINI_API_KEY")
 
     # Optional overrides (empty = use provider default)
     ai_base_url: str = Field("", alias="AI_BASE_URL")
@@ -109,16 +118,15 @@ class Settings(BaseSettings):
     xai_model: str = Field("", alias="XAI_MODEL")
 
     # Plan → model routing
-    # Trial = Groq | Basic = GPT-OSS-120B | Pro+ = DeepSeek-V4-Pro
     plan_route_enabled: bool = Field(True, alias="PLAN_ROUTE_ENABLED")
     free_ai_provider: str = Field("groq", alias="FREE_AI_PROVIDER")
     free_ai_model: str = Field("llama-3.3-70b-versatile", alias="FREE_AI_MODEL")
-    basic_ai_provider: str = Field("nvidia", alias="BASIC_AI_PROVIDER")
-    basic_ai_model: str = Field("openai/gpt-oss-120b", alias="BASIC_AI_MODEL")
+    basic_ai_provider: str = Field("gemini", alias="BASIC_AI_PROVIDER")
+    basic_ai_model: str = Field("gemini-1.5-flash", alias="BASIC_AI_MODEL")
     paid_ai_provider: str = Field("nvidia", alias="PAID_AI_PROVIDER")
-    # Pro / Business / Owner — strongest coding on this NVIDIA key
+    # Business / Owner — strongest coding on this NVIDIA key
     paid_ai_model: str = Field(
-        "deepseek-ai/deepseek-v4-pro",
+        "deepseek-ai/deepseek-v4-pro-0813",
         alias="PAID_AI_MODEL",
     )
 
@@ -159,6 +167,10 @@ class Settings(BaseSettings):
     smtp_tls: bool = Field(True, alias="SMTP_TLS")
     # When SMTP not set: log OTP to server console and return dev_code in API
     auth_dev_show_code: bool = Field(True, alias="AUTH_DEV_SHOW_CODE")
+
+    # CMD / CLI license keys (admin tao key → user /activate)
+    # false = free local (chu may); true = bat buoc key hop le
+    cli_license_required: bool = Field(False, alias="CLI_LICENSE_REQUIRED")
 
     @field_validator("workspace_dir", mode="before")
     @classmethod
@@ -229,6 +241,8 @@ class Settings(BaseSettings):
             specific = self.xai_api_key.strip()
         elif p == "nvidia":
             specific = self.nvidia_api_key.strip()
+        elif p == "gemini":
+            specific = self.gemini_api_key.strip()
         if specific:
             return specific
         return self.ai_api_key.strip()
