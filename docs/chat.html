@@ -1,12 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>TungDevAI - Chat</title>
-  <meta name="description" content="TungDevAI coding chat - Đăng nhập email hoặc Google" />
-  <meta name="theme-color" content="#212121" />
-  <script src="boot-redirect.js?v=24"></script>
+  <title>TungDevAI Studio — Trợ Lý AI Lập Trình & Công Nghệ</title>
+  <meta name="description" content="TungDevAI Studio: AI chuyên Coding, Review, Debug và Kiến Trúc Hệ Thống. Hỗ trợ Real-time Stream SSE." />
+  <meta name="theme-color" content="#060813" />
+  
+  <script src="boot-redirect.js?v=25"></script>
   <script>
     (function () {
       var p = location.pathname;
@@ -15,43 +16,86 @@
       }
     })();
   </script>
-  <link rel="icon" href="assets/icon.jpg" type="image/jpeg" />
+  
+  <link rel="icon" href="assets/tungdevai-core-logo.jpg?v=core2026" type="image/jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="chat.css?v=34" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+    <!-- PrismJS Multi-color Syntax Highlighter -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <link rel="stylesheet" href="chat.css?v=terminal2026_v4" />
+  <link rel="stylesheet" href="styles.css?v=cyber2026" />
 </head>
-<body>
-  <div class="app" id="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-top">
-        <button type="button" class="btn new-chat" id="btnNew" title="Chat mới">
-          <span class="ico">+</span> Chat mới
-        </button>
-        <button type="button" class="icon-btn mobile-only" id="btnCloseSidebar" aria-label="Đóng">X</button>
+<body class="chat-studio-body">
+      
+  <div class="app-layout" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar-studio" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-badge">
+          <img src="assets/tungdevai-core-logo.jpg?v=core2026" alt="TungDevAI" class="brand-avatar" />
+          <div class="brand-info">
+            <span class="brand-name">TungDevAI</span>
+            <span class="brand-edition" id="brandEdition">Studio Pro</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-sidebar mobile-only" id="btnCloseSidebar" aria-label="Đóng sidebar">✕</button>
       </div>
 
-      <div class="history" id="history" aria-label="Lịch sử"></div>
+      <div class="sidebar-action-wrap">
+        <button type="button" class="btn-new-chat" id="btnNew" title="Bắt đầu cuộc trò chuyện mới">
+          <span class="plus-icon">+</span>
+          <span>Đoạn Chat Mới</span>
+        </button>
+      </div>
 
-      <div class="sidebar-bottom">
-        <a class="side-link" href="./">Trang giới thiệu</a>
-        <a class="side-link" id="tgLink" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Bot Telegram</a>
+      <div class="history-section-title">Lịch Sử Trò Chuyện</div>
+      <div class="history-list" id="history" aria-label="Danh sách lịch sử"></div>
+
+      <!-- VIP Banner in Sidebar -->
+            <!-- Team Business Button (Visible for Business plan) -->
+      <div id="sidebarTeamWrap" class="sidebar-team-box hidden" style="margin: 0 12px 10px;">
+        <button type="button" class="btn-manage-team" id="btnSidebarTeam" style="width:100%; display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.25)); border:1.5px solid #6366f1; border-radius:12px; color:#a5b4fc; font-weight:700; font-size:0.88rem; cursor:pointer; box-shadow:0 0 15px rgba(99,102,241,0.25); transition:all 0.2s ease;">
+          <span style="display:flex; align-items:center; gap:8px;">👥 Quản Lý Team</span>
+          <span id="sidebarTeamCount" style="background:#6366f1; color:#ffffff; padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:800;">0/5</span>
+        </button>
+      </div>
+
+      <div class="sidebar-vip-box">
+        <div class="vip-box-glow"></div>
+        <div class="vip-box-title">✨ TungDevAI VIP Pro</div>
+        <div class="vip-box-desc">Mở khóa 500 tin/ngày, Coder Pro (NVIDIA NIM ⚡) & Vision 1.5 tạo ảnh 8K.</div>
+        <a href="pricing.html" class="btn-vip-action">Nâng Cấp Ngay →</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-quick-links">
+          <a href="./" class="footer-link">🏠 Trang Chủ</a>
+          <a href="https://t.me/grokapiai_bot" target="_blank" rel="noopener" class="footer-link">✈️ Telegram Bot</a>
+        </div>
+
         <div class="account-wrap" id="accountWrap">
-          <button type="button" class="user-chip as-btn" id="userChipBtn" title="Tài khoản" aria-haspopup="menu" aria-expanded="false">
-            <img src="assets/bot-avatar.jpg" alt="" width="28" height="28" id="userAvatar" />
-            <div class="user-chip-text">
-              <div class="user-name" id="appNameLabel">TungDevAI</div>
-              <div class="user-sub" id="modelChip">Đăng nhập</div>
+          <button type="button" class="user-profile-btn" id="userChipBtn" title="Quản lý tài khoản" aria-haspopup="menu" aria-expanded="false">
+            <img src="assets/tungdevai-core-logo.jpg?v=core2026" alt="" class="user-avatar" id="userAvatar" />
+            <div class="user-details">
+              <div class="user-display-name" id="appNameLabel">TungDevAI</div>
+              <div class="user-status-text" id="modelChip">Đăng nhập</div>
             </div>
+            <span class="chevron-up">⚙️</span>
           </button>
-          <div class="account-menu hidden" id="accountMenu" role="menu">
-            <div class="account-menu-email" id="accountMenuEmail"></div>
-            <div class="account-menu-plan" id="accountMenuPlan">
-              Gói của bạn: <strong id="accountMenuPlanName">…</strong>
-              <span class="account-menu-plan-meta" id="accountMenuPlanMeta"></span>
+          
+          <div class="account-popover hidden" id="accountMenu" role="menu">
+            <div class="popover-email" id="accountMenuEmail"></div>
+            <div class="popover-plan" id="accountMenuPlan">
+              Gói hiện tại: <strong id="accountMenuPlanName">…</strong>
+              <div class="popover-meta" id="accountMenuPlanMeta"></div>
             </div>
-            <a class="account-menu-item account-menu-vip" id="btnVipMenu" href="pricing.html" role="menuitem">Mua gói VIP</a>
-            <button type="button" class="account-menu-item" id="btnLogout" role="menuitem">Đăng xuất</button>
+            <button type="button" class="popover-item hidden" id="btnManageTeam">👥 Quản Lý Team (5 Người)</button>
+              <a class="popover-item popover-vip" id="btnVipMenu" href="pricing.html" role="menuitem">⭐ Mua Gói VIP</a>
+            <button type="button" class="popover-item" id="btnLogout" role="menuitem">🚪 Đăng Xuất</button>
           </div>
         </div>
       </div>
@@ -59,74 +103,506 @@
 
     <div class="sidebar-backdrop" id="backdrop" hidden></div>
 
-    <main class="main">
-      <header class="topbar">
-        <button type="button" class="icon-btn mobile-only" id="btnOpenSidebar" aria-label="Menu">=</button>
-        <div class="topbar-title">
-          <span id="chatTitle">TungDevAI</span>
-          <span class="mode-badge" id="modeBadge" title="Chế độ AI">Coder</span>
-          <span class="dot" id="statusDot" title="Trạng thái"></span>
-        </div>
-        <div class="account-wrap topbar-account" id="accountWrapTop">
-          <button type="button" class="user-pill as-btn" id="userPill" title="Tài khoản" aria-haspopup="menu" aria-expanded="false">
-            <img id="userPillImg" alt="" width="24" height="24" src="assets/bot-avatar.jpg" />
-            <span id="userPillName">Đăng nhập</span>
-          </button>
-          <div class="account-menu account-menu-top hidden" id="accountMenuTop" role="menu">
-            <div class="account-menu-email" id="accountMenuEmailTop"></div>
-            <div class="account-menu-plan" id="accountMenuPlanTop">
-              Gói của bạn: <strong id="accountMenuPlanNameTop">…</strong>
-              <span class="account-menu-plan-meta" id="accountMenuPlanMetaTop"></span>
+    <!-- Main Chat Workspace -->
+    <main class="chat-workspace" id="chatColumn">
+      <!-- Topbar -->
+      <header class="chat-topbar">
+        <div class="topbar-left">
+          <button type="button" class="btn-menu-toggle mobile-only" id="btnOpenSidebar" aria-label="Mở menu">☰</button>
+          <div class="topbar-branding">
+              <button type="button" class="btn-toggle-workspace" id="btnToggleWorkspace" title="Mở / Đóng Không Gian Lập Trình Workspace (2/3)">
+                <span style="font-size:0.9rem;">💻</span>
+                <span>Workspace IDE</span>
+              </button>
+
+            <span class="active-chat-title" id="chatTitle">TungDevAI Studio</span>
+            <span class="active-mode-tag" id="modeBadge" title="Chế độ hiện tại">Coder Pro</span>
+            <div class="system-status-indicator" title="Trạng thái hệ thống">
+              <span class="pulse-emerald-dot" id="statusDot"></span>
+              <span class="status-label">Online</span>
             </div>
-            <a class="account-menu-item account-menu-vip" id="btnVipMenuTop" href="pricing.html" role="menuitem">Mua gói VIP</a>
-            <button type="button" class="account-menu-item" id="btnLogoutTop" role="menuitem">Đăng xuất</button>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="account-wrap topbar-account" id="accountWrapTop">
+            <button type="button" class="user-pill-btn" id="userPill" title="Tài khoản" aria-haspopup="menu" aria-expanded="false">
+              <img id="userPillImg" alt="" class="pill-avatar" src="assets/tungdevai-core-logo.jpg?v=core2026" />
+              <span id="userPillName" class="pill-username">Đăng nhập</span>
+            </button>
+            <div class="account-popover topbar-popover hidden" id="accountMenuTop" role="menu">
+              <div class="popover-email" id="accountMenuEmailTop"></div>
+              <div class="popover-plan" id="accountMenuPlanTop">
+                Gói hiện tại: <strong id="accountMenuPlanNameTop">…</strong>
+                
+              </div>
+              <a class="popover-item popover-vip" id="btnVipMenuTop" href="pricing.html" role="menuitem">⭐ Mua Gói VIP</a>
+              <button type="button" class="popover-item" id="btnLogoutTop" role="menuitem">🚪 Đăng Xuất</button>
+            </div>
           </div>
         </div>
       </header>
 
-      <section class="messages" id="messages" aria-live="polite">
-        <div class="welcome" id="welcome">
-          <img class="welcome-avatar" src="assets/bot-avatar.jpg" alt="TungDevAI" />
-          <h1>TungDevAI</h1>
-          <p>Senior coding assistant. Xin chào <strong id="welcomeName">bạn</strong>!</p>
-          <p class="welcome-hint">Chọn mode · gõ <code>/help</code> · agent: <code>/plan</code> <code>/code</code> <code>/build</code></p>
-          <div class="suggestions">
-            <button type="button" data-q="/code Viết API FastAPI CRUD user (SQLAlchemy + Pydantic), error handling đầy đủ">/code FastAPI</button>
-            <button type="button" data-q="/build Mini app todo list Python CLI + file JSON storage">/build Todo CLI</button>
-            <button type="button" data-q="/review # paste code dưới đây\n">/review code</button>
-            <button type="button" data-q="/debug # paste traceback dưới đây\n">/debug log</button>
-            <button type="button" data-q="/plan Thiết kế kiến trúc bot Telegram SaaS multi-user + thanh toán">/plan kiến trúc</button>
-            <button type="button" data-q="Viết unit test pytest cho hàm validate email">Unit test</button>
+      <!-- Message History / Welcome Screen (ChatGPT Minimalist Style) -->
+      <section class="messages-container" id="messages" aria-live="polite">
+        <div class="welcome-studio" id="welcome">
+          <div class="welcome-logo-wrap">
+            <img class="welcome-hero-logo" src="assets/tungdevai-core-logo.jpg?v=core2026" alt="TungDevAI" />
           </div>
+          
+          <h1 class="welcome-title">Hôm nay tôi có thể giúp gì cho bạn?</h1>
+          <span id="welcomeEdition" style="display:none;">Studio Pro</span>
+          <span id="welcomeName" style="display:none;">bạn</span>
         </div>
       </section>
 
-      <div class="composer-wrap">
-        <div class="mode-bar" id="modeBar" role="toolbar" aria-label="Chế độ AI">
-          <button type="button" class="mode-chip active" data-mode="coder" title="Senior engineer — code / debug">Coder</button>
-          <button type="button" class="mode-chip" data-mode="default" title="Trợ lý đa năng">Default</button>
-          <button type="button" class="mode-chip" data-mode="security" title="Review bảo mật phòng thủ">Security</button>
-          <button type="button" class="mode-chip" data-mode="research" title="Phân tích / so sánh sâu">Research</button>
-          <button type="button" class="mode-chip" data-mode="sales" title="Tư vấn gói">Sales</button>
-        </div>
+      <!-- Composer / Input Section -->
+            <div class="composer-container">
         <div class="stream-status" id="streamStatus" hidden></div>
-        <div class="attach-preview" id="attachPreview" hidden></div>
-        <form class="composer" id="form">
-          <input type="file" id="fileImage" accept="image/*" multiple hidden />
-          <div class="plus-wrap" id="plusWrap">
-            <button type="button" class="plus-btn" id="btnPlus" title="Ảnh từ máy" aria-label="Thêm ảnh">
-              <span class="plus-glyph">+</span>
-            </button>
+        
+        <!-- Unified Glass Composer Card -->
+        <form class="glass-composer-card" id="form">
+          <input type="file" id="fileImage" accept="image/*,.pdf,.docx,.doc,.txt,.md,.csv,.json,.py,.js,.html,.css,.sql,.log,.ts,.jsx,.tsx" multiple hidden />
+          <div class="attach-preview" id="attachPreview" hidden></div>
+          
+          <div class="composer-textarea-wrap">
+            <textarea 
+              id="input" 
+              rows="1" 
+              placeholder="Nhắn tin cho TungDevAI..." 
+              autocomplete="off" 
+              enterkeyhint="send"
+            ></textarea>
           </div>
-          <textarea id="input" rows="1" placeholder="Nhắn tin… hoặc /plan /code /build /help" autocomplete="off" enterkeyhint="send"></textarea>
-          <button type="submit" id="btnSend" aria-label="Gửi" title="Gửi">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-          </button>
+
+          <!-- Bottom Action Bar inside Composer -->
+          <div class="composer-bottom-bar">
+            <div class="composer-bar-left">
+              <button type="button" class="btn-tool-pill" id="btnPlus" title="Đính kèm tệp / hình ảnh / PDF / Word / Code" aria-label="Đính kèm tệp">
+                <span class="tool-icon">📎</span>
+                <span class="tool-text">Đính kèm</span>
+              </button>
+
+              <button type="button" class="btn-tool-pill" id="btnWebSearch" title="Bật/Tắt Tìm kiếm Web thời gian thực (Live Search)">
+                <span class="tool-icon search-globe-icon">🌐</span>
+                <span class="tool-text">Web Search</span>
+              </button>
+
+              <button type="button" class="btn-tool-pill btn-agent-pill" id="btnAgentSelect" title="Chọn Trợ Lý AI Chuyên Nghiệp (Kho 6 Chuyên Gia)">
+                <span class="tool-icon" id="agentSelectIcon">💻</span>
+                <span class="tool-text" id="agentSelectName">Coder Pro</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+            </div>
+
+            <div class="composer-bar-right">
+              <!-- AI Model Selector Pill Button -->
+              <div class="model-selector-wrap" id="modelSelectorWrap">
+                <button type="button" class="btn-model-select" id="btnModelSelect" title="Chọn Mô Hình AI" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="model-select-icon" id="modelSelectIcon">👑</span>
+                  <span class="model-select-name" id="modelSelectName">Coder v1.0</span>
+                  <svg class="model-chevron-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                
+                <!-- Floating Glass Dropdown Menu -->
+                <div class="model-dropdown-popover hidden" id="modelDropdown" role="listbox">
+                  <div class="model-dropdown-header">
+                    <span>⚡ CHỌN MÔ HÌNH AI</span>
+                    <span style="font-size:0.7rem; color: #818cf8; font-weight:800;">Active</span>
+                  </div>
+                  
+                  <div class="model-opt-item active" data-model="coder-v1" data-icon="👑" data-label="Coder v1.0" role="option">
+                    <div class="model-opt-top">
+                      <span class="model-opt-title">👑 TungDevAI Coder v1.0</span>
+                      <span class="model-opt-tag tag-auto" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#ffffff; font-weight:800;">Flagship ⭐</span>
+                    </div>
+                    <div class="model-opt-desc">Mô hình Lập Trình độc quyền, sinh code sạch, chuẩn Production.</div>
+                  </div>
+
+                  <div class="model-opt-item" data-model="deepseek" data-icon="💻" data-label="Coder Pro" role="option">
+                    <div class="model-opt-top">
+                      <span class="model-opt-title">💻 TungDevAI Coder Pro</span>
+                      <span class="model-opt-tag" style="background:linear-gradient(135deg, #3b82f6, #6366f1); color:#fff; font-weight:800;">Chuyên Code 💻</span>
+                    </div>
+                    <div class="model-opt-desc">Chuyên gia Lập trình chuyên sâu, giải thuật phức tạp (NVIDIA NIM ⚡).</div>
+                  </div>
+
+                  <div class="model-opt-item" data-model="fast" data-icon="⚡" data-label="Ultra Fast" role="option">
+                    <div class="model-opt-top">
+                      <span class="model-opt-title">⚡ TungDevAI Ultra Fast</span>
+                      <span class="model-opt-tag tag-fast">Siêu tốc 🚀</span>
+                    </div>
+                    <div class="model-opt-desc">Google Gemini 3.1 Flash-Lite. Phản hồi tức thì dưới 85ms.</div>
+                  </div>
+
+                  <div class="model-opt-item" data-model="vision" data-icon="🎨" data-label="Vision 1.5" role="option">
+                    <div class="model-opt-top">
+                      <span class="model-opt-title">🎨 TungDevAI Vision 1.5</span>
+                      <span class="model-opt-tag" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: #fff; font-weight: 800;">Image Studio 🖼️</span>
+                    </div>
+                    <div class="model-opt-desc">Tạo tác phẩm nghệ thuật AI, Photorealistic 8K & Anime siêu thực.</div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-send-msg" id="btnSend" aria-label="Gửi tin nhắn" title="Gửi (Enter)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5"></line>
+                  <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
         </form>
+        <div class="composer-disclaimer">
+          TungDevAI có thể mắc lỗi. Hãy kiểm tra lại các thông tin quan trọng.
+        </div>
       </div>
     </main>
+
+    <!-- ==========================================================================
+         2/3 WORKSPACE IDE PANEL (v0 / Bolt / Cursor Style)
+         ========================================================================== -->
+    <section class="workspace-column hidden" id="workspaceColumn">
+      <!-- Workspace Top Toolbar Header -->
+      <div class="ws-header-bar">
+        <div class="ws-header-left">
+          <div class="ws-brand-title">
+            <span class="ws-icon">⚡</span>
+            <span class="ws-title-text">TungDevAI Studio Workspace</span>
+            <span class="ws-badge">v1.0 IDE</span>
+          </div>
+          
+          <!-- Workspace Navigation Tabs -->
+          <div class="ws-tabs-nav">
+            <button type="button" class="ws-tab-btn active" id="tabPreview">
+              <span class="tab-ico">👁️</span>
+              <span>Live Preview</span>
+            </button>
+            <button type="button" class="ws-tab-btn" id="tabEditor">
+              <span class="tab-ico">📝</span>
+              <span>Code Editor</span>
+              <span class="tab-active-file" id="activeFileName">index.html</span>
+            </button>
+            <button type="button" class="ws-tab-btn" id="tabTerminal">
+              <span class="tab-ico">💻</span>
+              <span>Terminal</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="ws-header-right">
+          <!-- Viewport toggles for Preview -->
+          <div class="ws-viewport-controls" id="viewportControls">
+            <button type="button" class="btn-viewport active" data-viewport="desktop" title="Màn hình Desktop (100%)">🖥️</button>
+            <button type="button" class="btn-viewport" data-viewport="tablet" title="Màn hình Tablet (768px)">📱</button>
+            <button type="button" class="btn-viewport" data-viewport="mobile" title="Màn hình Mobile (375px)">📲</button>
+          </div>
+
+          <button type="button" class="ws-btn ws-btn-ghost" id="btnReloadPreview" title="Làm mới Sandbox">🔄 Làm mới</button>
+          <button type="button" class="ws-btn ws-btn-primary" id="btnExportZip" title="Tải xuống toàn bộ dự án">⬇️ Xuất Dự Án</button>
+          <button type="button" class="ws-btn-close" id="btnCloseWorkspace" title="Đóng Workspace (1/3 Chat)">✕</button>
+        </div>
+      </div>
+
+      <!-- Auto-Fix Alert Banner (Self-Healing Loop) -->
+      <div class="auto-fix-banner hidden" id="autoFixBar">
+        <div class="auto-fix-left">
+          <span class="pulse-dot"></span>
+          <span class="auto-fix-text" id="autoFixMsg">Phát hiện lỗi trong ứng dụng!</span>
+        </div>
+        <button type="button" class="btn-auto-fix" id="btnAutoFix">⚡ AI Tự Sửa Lỗi Ngay</button>
+      </div>
+
+      <!-- Workspace Body Content -->
+      <div class="ws-body-wrap">
+        <!-- Collapsible File Tree Sidebar -->
+        <aside class="ws-file-tree-sidebar" id="fileTreeSidebar">
+          <div class="file-tree-header">
+            <span>📁 FILES</span>
+            <span class="file-count" id="fileTreeCount">3 files</span>
+          </div>
+          <div class="file-tree-list" id="fileTree">
+            <!-- Files injected dynamically -->
+          </div>
+        </aside>
+
+        <!-- Main Workspace Panes Area -->
+        <div class="ws-main-panes">
+          <!-- Pane 1: Live Preview Sandbox -->
+          <div class="ws-pane-view" id="panePreview">
+            <div class="preview-device-wrap viewport-desktop" id="previewDeviceWrap">
+              <iframe id="previewIframe" class="preview-sandbox-frame" sandbox="allow-scripts allow-modals allow-same-origin allow-forms"></iframe>
+            </div>
+          </div>
+
+          <!-- Pane 2: Code Editor -->
+          <div class="ws-pane-view hidden" id="paneCode">
+            <div class="code-editor-layout">
+              <div class="line-numbers-col" id="lineNumbers"></div>
+              <textarea class="code-editor-textarea" id="codeEditor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+            </div>
+          </div>
+
+          <!-- Pane 3: Terminal Console -->
+          <div class="ws-pane-view hidden" id="paneTerminal">
+            <div class="terminal-container" id="terminalContainer"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
-  <script src="chat.js?v=34"></script>
+  <script src="workspace_engine.js?v=ws1"></script>
+  <script src="effects.js?v=cyber2026"></script>
+  <script src="chat.js?v=terminal2026_v4"></script>
+
+    <!-- Team Management Modal (Obsidian & Mint Glow Theme) -->
+  <div id="teamModal" class="p-modal hidden" style="position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:99999; display:none; align-items:center; justify-content:center; padding:1.5rem; box-sizing:border-box;">
+    <div class="p-modal-backdrop" id="teamModalBackdrop" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(1,4,2,0.88); backdrop-filter:blur(14px); z-index:1;"></div>
+    <div class="p-modal-content" style="position:relative; z-index:2; background:linear-gradient(145deg, rgba(6,18,11,0.98), rgba(2,10,6,0.99)); border:1.5px solid rgba(52,211,153,0.4); border-radius:24px; box-shadow:0 0 60px rgba(52,211,153,0.25), 0 20px 40px rgba(0,0,0,0.85); max-width:500px; width:100%; padding:2rem; box-sizing:border-box; color:#f0fdf4; font-family:'Plus Jakarta Sans', system-ui, sans-serif;">
+      <button id="btnCloseTeam" type="button" style="position:absolute; top:1.25rem; right:1.25rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; font-size:1.4rem; width:36px; height:36px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+      
+      <div style="text-align:center; margin-bottom:1.25rem;">
+        <div style="font-size:2.5rem; margin-bottom:0.4rem;">👥</div>
+        <h3 style="font-family:'Space Grotesk', sans-serif; font-size:1.4rem; font-weight:800; margin:0 0 0.3rem 0; color:#6ee7b7;">Quản Lý Team Business</h3>
+        <p style="color:#94a3b8; font-size:0.85rem; margin:0;">Gói Business hỗ trợ tối đa <strong style="color:#818cf8;">5 thành viên</strong> dùng chung VIP không giới hạn.</p>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); border:1px solid rgba(52,211,153,0.2); border-radius:12px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.88rem;">
+        <span style="color:#94a3b8;">Số thành viên hiện tại:</span>
+        <span id="modalTeamCounter" style="font-weight:800; color:#818cf8; font-size:1rem;">0 / 5 người</span>
+      </div>
+
+      <!-- Add Member Input Form -->
+      <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
+        <input type="email" id="teamInviteEmail" placeholder="Nhập email thành viên cần thêm..." style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(52,211,153,0.3); border-radius:10px; color:#fff; padding:0.7rem 0.9rem; font-size:0.88rem; outline:none;" />
+        <button type="button" id="btnAddTeam" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); border:none; border-radius:10px; color:#ffffff; font-weight:800; font-size:0.85rem; padding:0.7rem 1.1rem; cursor:pointer; white-space:nowrap;">+ Thêm</button>
+      </div>
+      <div id="teamMsg" style="display:none; font-size:0.82rem; padding:0.5rem 0.8rem; border-radius:8px; margin-bottom:1rem;"></div>
+
+      <!-- Team Members List -->
+      <div style="font-size:0.8rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Danh Sách Thành Viên:</div>
+      <div id="teamList" style="max-height:220px; overflow-y:auto; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:0.5rem;">
+        <p style="color:#94a3b8; font-size:0.85rem; text-align:center; padding:1rem 0; margin:0;">Đang tải danh sách...</p>
+      </div>
+
+      <div style="margin-top:1.5rem; text-align:center;">
+        <p style="font-size:0.78rem; color:#64748b; margin:0;">💡 Thành viên được thêm chỉ cần đăng nhập bằng đúng Email là được lên VIP Business ngay.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Agent Hub / Persona Marketplace Modal -->
+  <div class="agent-hub-modal-backdrop hidden" id="agentHubModal" role="dialog" aria-modal="true" aria-labelledby="agentHubTitle">
+    <div class="agent-hub-modal">
+      <div class="agent-hub-header">
+        <div class="agent-hub-title-wrap">
+          <span class="agent-hub-badge">AI AGENT MARKETPLACE</span>
+          <h2 id="agentHubTitle">🤖 Kho Trợ Lý AI Chuyên Nghiệp</h2>
+          <p class="agent-hub-sub">Lựa chọn trợ lý AI chuyên biệt theo lĩnh vực để tối ưu hóa năng suất công việc của bạn.</p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseAgentHub" title="Đóng">✖</button>
+      </div>
+
+      <div class="agent-grid">
+        <!-- Agent 1: Coder Pro -->
+        <div class="agent-card" data-agent-mode="coder">
+          <div class="agent-card-top">
+            <div class="agent-card-icon" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35);">💻</div>
+            <div class="agent-card-info">
+              <div class="agent-card-name">Senior Fullstack & Architect</div>
+              <span class="agent-card-tag" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">Coding Master 👑</span>
+            </div>
+          </div>
+          <p class="agent-card-desc">Kiến trúc sư phần mềm cấp cao. Sinh code hoàn chỉnh, Clean Architecture, tối ưu thuật toán, debug và xây dựng hệ thống chịu tải cao.</p>
+          <div class="agent-card-features">
+            <span>⚡ Python/TS/Rust/Go</span>
+            <span>⚡ Clean Architecture</span>
+            <span>⚡ CI/CD & Docker</span>
+          </div>
+          <button type="button" class="btn-select-agent">Chọn Trợ Lý Này →</button>
+        </div>
+
+        <!-- Agent 2: Security White-Hat -->
+        <div class="agent-card" data-agent-mode="security">
+          <div class="agent-card-top">
+            <div class="agent-card-icon" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35);">🛡️</div>
+            <div class="agent-card-info">
+              <div class="agent-card-name">Hacker Mũ Trắng & Pentester</div>
+              <span class="agent-card-tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">Cyber Security 🔒</span>
+            </div>
+          </div>
+          <p class="agent-card-desc">Chuyên gia an ninh mạng. Rà quét lỗ hổng OWASP Top 10, SQLi, XSS, CSRF, kiểm thử xâm nhập và cung cấp giải pháp vá lỗi bảo mật triệt để.</p>
+          <div class="agent-card-features">
+            <span>⚡ OWASP & Pentest</span>
+            <span>⚡ Code Security Audit</span>
+            <span>⚡ Hardening VPS/Linux</span>
+          </div>
+          <button type="button" class="btn-select-agent">Chọn Trợ Lý Này →</button>
+        </div>
+
+        <!-- Agent 3: Marketing Viral -->
+        <div class="agent-card" data-agent-mode="marketing">
+          <div class="agent-card-top">
+            <div class="agent-card-icon" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.35);">📈</div>
+            <div class="agent-card-info">
+              <div class="agent-card-name">Phù Thủy Content & Marketing</div>
+              <span class="agent-card-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">Growth Hacker 🚀</span>
+            </div>
+          </div>
+          <p class="agent-card-desc">Bậc thầy sáng tạo nội dung. Viết kịch bản video TikTok viral giữ chân 3s đầu, bài viết quảng cáo chuyển đổi AIDA/PAS và tối ưu SEO.</p>
+          <div class="agent-card-features">
+            <span>⚡ Kịch bản TikTok Viral</span>
+            <span>⚡ Copywriting AIDA/PAS</span>
+            <span>⚡ Xây Kênh & Chiến Dịch</span>
+          </div>
+          <button type="button" class="btn-select-agent">Chọn Trợ Lý Này →</button>
+        </div>
+
+        <!-- Agent 4: Business Advisor -->
+        <div class="agent-card" data-agent-mode="business">
+          <div class="agent-card-top">
+            <div class="agent-card-icon" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35);">💼</div>
+            <div class="agent-card-info">
+              <div class="agent-card-name">Cố Vấn Khởi Nghiệp & Kinh Doanh</div>
+              <span class="agent-card-tag" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Startup Advisor 💎</span>
+            </div>
+          </div>
+          <p class="agent-card-desc">Cố vấn chiến lược doanh nghiệp. Lập kế hoạch kinh doanh, mô hình Lean Canvas, định giá sản phẩm, phân tích đối thủ và tối ưu dòng tiền.</p>
+          <div class="agent-card-features">
+            <span>⚡ Business Plan & Lean</span>
+            <span>⚡ Định Giá & Phân Tích</span>
+            <span>⚡ Tối Ưu Tăng Trưởng MRR</span>
+          </div>
+          <button type="button" class="btn-select-agent">Chọn Trợ Lý Này →</button>
+        </div>
+
+        <!-- Agent 5: AI Tutor -->
+        <div class="agent-card" data-agent-mode="tutor">
+          <div class="agent-card-top">
+            <div class="agent-card-icon" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.35);">🎓</div>
+            <div class="agent-card-info">
+              <div class="agent-card-name">Gia Sư Lập Trình & Thuật Toán</div>
+              <span class="agent-card-tag" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">DSA Mentor 🧠</span>
+            </div>
+          </div>
+          <p class="agent-card-desc">Huấn luyện viên thuật toán & cấu trúc dữ liệu. Giải thích bài toán LeetCode từng bước từ dễ đến khó, kèm sơ đồ trực quan và bài tập rèn luyện.</p>
+          <div class="agent-card-features">
+            <span>⚡ Luyện Thi LeetCode</span>
+            <span>⚡ Giải Thích Trực Quan</span>
+            <span>⚡ Phân Tích Độ Phức Tạp</span>
+          </div>
+          <button type="button" class="btn-select-agent">Chọn Trợ Lý Này →</button>
+        </div>
+
+        <!-- Agent 6: Data Scientist -->
+        <div class="agent-card" data-agent-mode="data">
+          <div class="agent-card-top">
+            <div class="agent-card-icon" style="background: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.35);">📊</div>
+            <div class="agent-card-info">
+              <div class="agent-card-name">Data Scientist & AI Researcher</div>
+              <span class="agent-card-tag" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">Data Analytics 📈</span>
+            </div>
+          </div>
+          <p class="agent-card-desc">Chuyên gia Khoa học Dữ liệu. Xử lý & trực quan hóa dữ liệu (Pandas/Matplotlib), xây dựng mô hình Học máy (Machine Learning) và dự báo số liệu.</p>
+          <div class="agent-card-features">
+            <span>⚡ Phân Tích Pandas/NumPy</span>
+            <span>⚡ Vẽ Biểu Đồ Trực Quan</span>
+            <span>⚡ Mô Hình Machine Learning</span>
+          </div>
+          <button type="button" class="btn-select-agent">Chọn Trợ Lý Này →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Cloud Terminal Modal (Obsidian Cyber Window) -->
+  <div class="terminal-modal-backdrop hidden" id="terminalModal" role="dialog" aria-modal="true" aria-labelledby="termModalTitle">
+    <div class="terminal-modal-window" id="terminalModalWindow">
+      <!-- Mac Window Header -->
+      <div class="term-window-header">
+        <div class="term-mac-dots">
+          <button type="button" class="term-dot dot-close" id="btnCloseTerminal" title="Đóng Terminal (Esc)"></button>
+          <button type="button" class="term-dot dot-min" id="btnMinTerminal" title="Thu nhỏ"></button>
+          <button type="button" class="term-dot dot-max" id="btnMaxTerminal" title="Phóng to toàn màn hình"></button>
+        </div>
+        <div class="term-window-title" id="termModalTitle">
+          <span class="term-icon" id="termIcon">🐍</span>
+          <span id="termTitleText">Python 3.10 Cloud Terminal — TungDevAI</span>
+        </div>
+        <div class="term-header-actions">
+          <button type="button" class="btn-term-action" id="btnTermRerun" title="Chạy lại chương trình">🔄 Chạy lại</button>
+          <button type="button" class="btn-term-action" id="btnTermClear" title="Xóa màn hình Terminal">🧹 Xóa màn hình</button>
+          <button type="button" class="btn-term-action" id="btnTermCopy" title="Sao chép kết quả Terminal">📋 Copy</button>
+          <button type="button" class="btn-term-action btn-term-close-action" id="btnTermCloseBtn" title="Đóng">✕</button>
+        </div>
+      </div>
+
+      <!-- Terminal Body Content -->
+      <div class="term-window-body">
+        <div class="term-console-output" id="termConsoleOutput">
+          <div class="term-welcome-line">
+            <span class="term-sys-tag">[TungDevAI Cloud Sandbox v4.0 — Linux Kernel 5.15 x86_64]</span>
+          </div>
+          <div class="term-command-line">
+            <span class="term-prompt">root@tungai.fun:~$</span> <span class="term-command" id="termExecutedCmd">python3 main.py</span>
+          </div>
+          <div class="term-output-stream" id="termOutputStream">
+            <span class="term-running-indicator"><span class="pulse-code-dot"></span> Đang khởi chạy sandbox và thực thi mã nguồn...</span>
+          </div>
+        </div>
+
+        <!-- STDIN Input Bar -->
+        <div class="term-stdin-bar">
+          <span class="stdin-prompt">STDIN ❯</span>
+          <input type="text" id="termStdinInput" class="stdin-input" placeholder="Nhập dữ liệu đầu vào cho input() / cin (nếu chương trình yêu cầu)..." autocomplete="off" />
+          <button type="button" id="btnTermSendStdin" class="btn-stdin-send">Gửi & Chạy ▶</button>
+        </div>
+      </div>
+
+      <!-- Terminal Footer Stats -->
+      <div class="term-window-footer">
+        <div class="term-stat-item">
+          <span class="stat-dot" id="termStatusDot"></span>
+          <span class="stat-label" id="termStatusText">Đang chạy...</span>
+        </div>
+        <div class="term-stat-item">
+          <span>⚡ Thời gian: </span>
+          <strong id="termExecutionTime">-</strong>
+        </div>
+        <div class="term-stat-item">
+          <span>💾 Sandbox: </span>
+          <strong id="termSandboxType">G++ 11.4 / Python 3.10 Isolation</strong>
+        </div>
+        <div class="term-stat-item">
+          <span>🟢 Trạng thái: </span>
+          <strong id="termExitCode">-</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+    <!-- Chat History Context Menu (Pin / Rename / Delete) -->
+    <div id="histContextMenu" class="hist-context-menu hidden" role="menu">
+      <button type="button" class="hist-menu-item" id="histMenuPin">
+        <span class="hist-menu-icon">📌</span>
+        <span class="hist-menu-label" id="histMenuPinLabel">Ghim đoạn chat</span>
+      </button>
+      <button type="button" class="hist-menu-item" id="histMenuRename">
+        <span class="hist-menu-icon">✏️</span>
+        <span>Đổi tên đoạn chat</span>
+      </button>
+      <div class="hist-menu-divider"></div>
+      <button type="button" class="hist-menu-item delete" id="histMenuDelete">
+        <span class="hist-menu-icon">🗑️</span>
+        <span>Xóa đoạn chat</span>
+      </button>
+    </div>
+
 </body>
 </html>

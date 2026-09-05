@@ -1121,6 +1121,127 @@
       pointer-events: none;
     }
 
+
+    /* =========================================================================
+       8D HOLOGRAPHIC CYBER-HEXAGON & CELESTIAL HUD MOTIF (HỌA TIẾT LƯỢNG TỬ 8D)
+       ========================================================================= */
+    .hud-compass-dial-8d {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 440px;
+      height: 440px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.65;
+    }
+    .hud-dial-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px dashed rgba(56, 189, 248, 0.28);
+      animation: dialSpinSlow 45s linear infinite;
+    }
+    .hud-dial-ring-inner {
+      position: absolute;
+      inset: 45px;
+      border-radius: 50%;
+      border: 1.5px dotted rgba(129, 140, 248, 0.35);
+      animation: dialSpinSlow 28s linear infinite reverse;
+    }
+    .hud-dial-ring-outer {
+      position: absolute;
+      inset: -25px;
+      border-radius: 50%;
+      border: 1px solid rgba(14, 165, 233, 0.15);
+      border-left: 2px solid #38bdf8;
+      border-right: 2px solid #ec4899;
+      animation: dialSpinSlow 22s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes dialSpinSlow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .hud-crosshair-h {
+      position: absolute;
+      top: 50%;
+      left: -20px;
+      right: -20px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3) 20%, rgba(56, 189, 248, 0.5) 50%, rgba(56, 189, 248, 0.3) 80%, transparent);
+      transform: translateY(-50%);
+    }
+    .hud-crosshair-v {
+      position: absolute;
+      left: 50%;
+      top: -20px;
+      bottom: -20px;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.3) 20%, rgba(56, 189, 248, 0.5) 50%, rgba(56, 189, 248, 0.3) 80%, transparent);
+      transform: translateX(-50%);
+    }
+
+    /* 8D Floating Cyber-Hexagon Motif Shields */
+    .hex-motif-left, .hex-motif-right {
+      position: absolute;
+      top: 15%;
+      width: 160px;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.85;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: floatHexMotif 5s ease-in-out infinite alternate;
+    }
+    .hex-motif-left {
+      left: 6%;
+    }
+    .hex-motif-right {
+      right: 6%;
+      animation-delay: -2.5s;
+    }
+    @media (max-width: 1100px) {
+      .hex-motif-left, .hex-motif-right { display: none; }
+      .hud-compass-dial-8d { width: 320px; height: 320px; }
+    }
+    @keyframes floatHexMotif {
+      0% { transform: translateY(0px) rotate(0deg); }
+      100% { transform: translateY(-15px) rotate(2deg); }
+    }
+    .hex-cell-svg {
+      filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.45));
+      transition: all 0.3s ease;
+    }
+    .hex-telemetry-box {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #7dd3fc;
+      background: rgba(10, 15, 33, 0.88);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 4px 12px;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 12px rgba(14, 165, 233, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hex-dot-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+      animation: pulse-dot 1.2s infinite alternate;
+    }
+    .hex-dot-pulse.pink {
+      background: #ec4899;
+      box-shadow: 0 0 8px #ec4899;
+    }
+
   </style>
 </head>
 <body>
@@ -1163,15 +1284,50 @@
   <main class="site-wrapper">
     <!-- Hero Section -->
     <section class="hero-section">
-      <!-- 8D Holographic Quantum Core Reactor -->
-      <div class="gyro-stage-8d" id="gyroStage" title="TungDevAI 8D Quantum Hologram Core">
-        <div class="gyro-core-wrap">
-          <div class="gyro-ring gyro-ring-1"><div class="gyro-satellite"></div></div>
-          <div class="gyro-ring gyro-ring-2"><div class="gyro-satellite sat-pink"></div></div>
-          <div class="gyro-ring gyro-ring-3"></div>
-          <div class="gyro-central-orb">
-            <img src="assets/tungdevai-core-logo.jpg" alt="TungDevAI 8D Core" onerror="this.src='assets/tungdevai-core-logo.jpg'" />
+      <!-- 8D Celestial HUD Compass Dial & Hexagon Motif Centerpiece -->
+      <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
+        <div class="hud-compass-dial-8d">
+          <div class="hud-dial-ring-outer"></div>
+          <div class="hud-dial-ring"></div>
+          <div class="hud-dial-ring-inner"></div>
+          <div class="hud-crosshair-h"></div>
+          <div class="hud-crosshair-v"></div>
+        </div>
+
+        <!-- Left Holographic Cyber-Hexagon Motif -->
+        <div class="hex-motif-left">
+          <svg class="hex-cell-svg" width="85" height="85" viewBox="0 0 100 100" fill="none">
+            <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" stroke="rgba(56, 189, 248, 0.7)" stroke-width="2" fill="rgba(14, 165, 233, 0.09)" />
+            <polygon points="50,18 80,35 80,65 50,82 20,65 20,35" stroke="rgba(129, 140, 248, 0.5)" stroke-width="1.5" stroke-dasharray="4 3" fill="rgba(99, 102, 241, 0.07)" />
+            <circle cx="50" cy="50" r="7" fill="#38bdf8" />
+            <line x1="50" y1="5" x2="50" y2="95" stroke="rgba(56, 189, 248, 0.3)" />
+            <line x1="10" y1="50" x2="90" y2="50" stroke="rgba(56, 189, 248, 0.3)" />
+          </svg>
+          <div class="hex-telemetry-box"><span class="hex-dot-pulse"></span>SYS // Q-CORE 8D</div>
+        </div>
+
+        <!-- 8D Holographic Quantum Core Reactor -->
+        <div class="gyro-stage-8d" id="gyroStage" title="TungDevAI 8D Quantum Hologram Core">
+          <div class="gyro-core-wrap">
+            <div class="gyro-ring gyro-ring-1"><div class="gyro-satellite"></div></div>
+            <div class="gyro-ring gyro-ring-2"><div class="gyro-satellite sat-pink"></div></div>
+            <div class="gyro-ring gyro-ring-3"></div>
+            <div class="gyro-central-orb">
+              <img src="assets/tungdevai-core-logo.jpg" alt="TungDevAI 8D Core" />
+            </div>
           </div>
+        </div>
+
+        <!-- Right Holographic Cyber-Hexagon Motif -->
+        <div class="hex-motif-right">
+          <svg class="hex-cell-svg" width="85" height="85" viewBox="0 0 100 100" fill="none">
+            <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" stroke="rgba(236, 72, 153, 0.7)" stroke-width="2" fill="rgba(236, 72, 153, 0.09)" />
+            <polygon points="50,18 80,35 80,65 50,82 20,65 20,35" stroke="rgba(56, 189, 248, 0.5)" stroke-width="1.5" stroke-dasharray="4 3" fill="rgba(14, 165, 233, 0.07)" />
+            <circle cx="50" cy="50" r="7" fill="#ec4899" />
+            <line x1="50" y1="5" x2="50" y2="95" stroke="rgba(236, 72, 153, 0.3)" />
+            <line x1="10" y1="50" x2="90" y2="50" stroke="rgba(236, 72, 153, 0.3)" />
+          </svg>
+          <div class="hex-telemetry-box"><span class="hex-dot-pulse pink"></span>NEURAL // 14.8 GHz</div>
         </div>
       </div>
       <div class="hero-badge-pill">

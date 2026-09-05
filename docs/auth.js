@@ -239,11 +239,20 @@ const TungAuth = (() => {
     return data;
   }
 
-  function onAuthSuccess(data) {
-    localStorage.setItem(LS_GOOGLE, data.session_token || "");
-    localStorage.setItem(LS_GOOGLE_USER, JSON.stringify(data.user || {}));
-    const next = new URLSearchParams(location.search).get("next") || CHAT_URL;
-    location.href = next;
+      function onAuthSuccess(data) {
+    if (data && data.session_token) {
+      localStorage.setItem(LS_GOOGLE, data.session_token);
+      localStorage.setItem("jarvis_session_token", data.session_token);
+      // Set long-lived cookie for seamless cross-tab & browser restart persistence
+      try {
+        const expDate = new Date(Date.now() + 90 * 86400 * 1000).toUTCString();
+        document.cookie = "tungdev_session=" + encodeURIComponent(data.session_token) + "; path=/; expires=" + expDate + "; SameSite=Lax";
+      } catch (_) {}
+    }
+    if (data && data.user) {
+      localStorage.setItem(LS_GOOGLE_USER, JSON.stringify(data.user));
+    }
+    window.location.href = "chat.html";
   }
 
   async function exchangeGoogleCredential(credential) {
@@ -306,11 +315,50 @@ const TungAuth = (() => {
   }
 
   /**
-   * Full-page OAuth id_token → google-callback.html tự POST /api/auth/google.
-   * Tin cậy hơn popup/sessionStorage trên mobile.
+   * Popup OAuth: Google mở trong cửa sổ nhỏ nổi, tự đóng sau khi chọn tài khoản.
+   * Người dùng KHÔNG bao giờ bị chuyển hướng qua trang callback xấu!
    */
+  let googleAuthWindow = null;
+
   function startGooglePopupLogin() {
-    startGoogleOAuthRedirect();
+    const clientId = googleClientId();
+    if (!clientId) {
+      showErr("Google chưa sẵn sàng. Tải lại trang.");
+      return;
+    }
+    clearMsgs();
+    removeApiBaseFixer();
+    const url = buildGoogleAuthUrl();
+    setHint("Đang mở cửa sổ đăng nhập Google…");
+
+    const w = 500, h = 640;
+    const left = window.screenLeft + Math.max(0, (window.outerWidth - w) / 2);
+    const top = window.screenTop + Math.max(0, (window.outerHeight - h) / 2);
+
+    try {
+      googleAuthWindow = window.open(
+        url,
+        "GoogleAuthPopup",
+        `width=${w},height=${h},top=${top},left=${left},status=no,resizable=yes,scrollbars=yes`
+      );
+    } catch (_) {
+      googleAuthWindow = null;
+    }
+
+    if (!googleAuthWindow || googleAuthWindow.closed || typeof googleAuthWindow.closed === "undefined") {
+      // Nếu trình duyệt chặn popup, fallback sang redirect thông thường
+      location.href = url;
+      return;
+    }
+
+    if (popupWatch) clearInterval(popupWatch);
+    popupWatch = setInterval(() => {
+      if (!googleAuthWindow || googleAuthWindow.closed) {
+        clearInterval(popupWatch);
+        popupWatch = null;
+        setHint("");
+      }
+    }, 1000);
   }
 
   function startGoogleOAuthRedirect() {
@@ -347,6 +395,9 @@ const TungAuth = (() => {
       return;
     }
     if (data.credential) {
+      if (googleAuthWindow && !googleAuthWindow.closed) {
+        try { googleAuthWindow.close(); } catch (_) {}
+      }
       handleGoogleCredential({ credential: data.credential });
     }
   }
@@ -363,6 +414,13 @@ const TungAuth = (() => {
     handleGoogleCredential({ credential: token });
     return true;
   }
+
+      const btnGoogleStatic = $("btnGoogleContinue");
+    if (btnGoogleStatic) {
+      btnGoogleStatic.onclick = () => {
+        startGooglePopupLogin();
+      };
+    }
 
   function makeGoogleFallbackButton(wrap) {
     wrap.innerHTML = "";
@@ -384,8 +442,7 @@ const TungAuth = (() => {
       '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
       "</svg>Tiếp tục với Google</span>";
     btn.addEventListener("click", function () {
-      // Full redirect OAuth — callback tự login server (mobile tin cậy)
-      startGoogleOAuthRedirect();
+      startGooglePopupLogin();
     });
     wrap.appendChild(btn);
   }
@@ -474,11 +531,7 @@ const TungAuth = (() => {
       if (data.sent) {
         const panel = $("otpPanel");
         if (panel) panel.classList.add("is-sent");
-        showOk(
-          "Đã gửi mã 6 số tới " +
-            (data.email || email) +
-            ". Mở email (và Spam), rồi gõ mã vào ô — web không tự điền."
-        );
+        showOk("Đã gửi mã xác nhận 6 số tới " + (data.email || email) + ". Vui lòng kiểm tra hộp thư của bạn.");
         if ($("codeHint")) {
           $("codeHint").textContent =
             "Mã chỉ có trong hộp thư · Không thấy? Đợi 1 phút / kiểm tra Spam";
@@ -608,12 +661,10 @@ const TungAuth = (() => {
         if (!(serverConfig.google_client_id || "").trim()) {
           serverConfig.google_client_id = googleClientId();
         }
-        setHint("Server online · sẵn sàng đăng nhập Google");
+        setHint("");
       }
     } catch (_) {
-      setHint(
-        "Server đang tắt hoặc tunnel lỗi. Trên PC chạy BAT_TUNGDEVAI_ONLINE.bat rồi tải lại."
-      );
+      setHint("");
     }
     removeApiBaseFixer();
   }
@@ -632,7 +683,10 @@ const TungAuth = (() => {
     // Ve Google ngay (khong doi API)
     if (!resumingGoogle) renderGoogleButton();
 
-    if (!resumingGoogle && (await alreadyLoggedIn())) return;
+    // Auto-redirect disabled so user can always log in or switch accounts
+    // if (!resumingGoogle && (await alreadyLoggedIn())) return;
+
+
 
     if (mode === "login") {
       const form = $("formLogin");
