@@ -1242,6 +1242,158 @@
       box-shadow: 0 0 8px #ec4899;
     }
 
+
+    /* =========================================================================
+       TASTE-SKILL & STITCH-SKILL AESTHETIC ENGINE (AWWWARDS / LIQUID GLASS LUXE)
+       ========================================================================= */
+    :root {
+      --taste-glass-bg: rgba(9, 14, 28, 0.76);
+      --taste-glass-border: rgba(56, 189, 248, 0.18);
+      --taste-glass-border-hover: rgba(56, 189, 248, 0.45);
+      --taste-glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      --taste-card-shadow: 0 24px 50px -18px rgba(0, 0, 0, 0.75), 0 0 25px rgba(14, 165, 233, 0.08);
+      --taste-spring-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Tactile Liquid Glass Card Enhancement */
+    .tilt-card-8d, .model-card-giant, .bento-item, .pricing-card {
+      background: var(--taste-glass-bg) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border: 1px solid var(--taste-glass-border) !important;
+      box-shadow: var(--taste-card-shadow), var(--taste-glass-specular) !important;
+      border-radius: 24px !important;
+      transition: transform 0.35s var(--taste-spring-ease), border-color 0.35s ease, box-shadow 0.35s ease !important;
+    }
+    .tilt-card-8d:hover, .model-card-giant:hover, .bento-item:hover, .pricing-card:hover {
+      border-color: var(--taste-glass-border-hover) !important;
+      box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.22), var(--taste-glass-specular) !important;
+    }
+    .tilt-card-8d:active, .model-card-giant:active, .bento-item:active, .pricing-card:active {
+      transform: scale(0.985) translateY(1px) !important;
+    }
+
+    /* Spring Tactile CTA Buttons */
+    .btn-hero-primary, .btn-hero-secondary, .btn-plan, .btn-cta-giant, .btn-login-nav, .btn-studio-nav {
+      transition: all 0.25s var(--taste-spring-ease) !important;
+    }
+    .btn-hero-primary:active, .btn-hero-secondary:active, .btn-plan:active, .btn-cta-giant:active, .btn-studio-nav:active {
+      transform: scale(0.97) translateY(1px) !important;
+    }
+
+    /* Hero Trust & Telemetry Strip (Taste Standard) */
+    .hero-trust-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 2.2rem;
+      padding: 0.75rem 1.75rem;
+      background: rgba(10, 15, 30, 0.65);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 999px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      flex-wrap: wrap;
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .trust-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      color: #94a3b8;
+    }
+    .trust-stat-item strong {
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    .trust-stat-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse-dot 1.5s infinite alternate;
+    }
+    .trust-stat-divider {
+      width: 1px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Asymmetric Bento Architecture */
+    .taste-bento-asymmetric {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    .taste-col-8 { grid-column: span 8; }
+    .taste-col-4 { grid-column: span 4; }
+    .taste-col-6 { grid-column: span 6; }
+    .taste-col-12 { grid-column: span 12; }
+
+    @media (max-width: 992px) {
+      .taste-col-8, .taste-col-4, .taste-col-6 { grid-column: span 12; }
+      .hero-trust-strip { gap: 0.85rem; border-radius: 20px; padding: 0.85rem 1rem; }
+      .trust-stat-divider { display: none; }
+    }
+
+    /* Hero Model 3.8 High Special Showcase Card */
+    .model-card-featured {
+      border: 1px solid rgba(56, 189, 248, 0.45) !important;
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12) 0%, rgba(9, 14, 28, 0.85) 60%) !important;
+      box-shadow: 0 25px 50px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.2), inset 0 1px 0 rgba(56, 189, 248, 0.4) !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .model-card-featured::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 160px;
+      height: 160px;
+      background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.25), transparent 70%);
+      pointer-events: none;
+    }
+    .simulated-reasoning-box {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(6, 10, 22, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: #7dd3fc;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .reasoning-step-line {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .reasoning-step-check {
+      color: #34d399;
+      font-weight: 800;
+    }
+    .reasoning-speed-meter {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.35rem;
+      padding-top: 0.35rem;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+      font-size: 0.68rem;
+    }
+    
   </style>
 </head>
 <body>
@@ -1410,53 +1562,80 @@
       </div>
     </section>
 
-    <!-- Model Cluster Section -->
-    <section id="models" style="padding-top: 2rem;">
+    <!-- Model Cluster Section (Taste-Skill Asymmetric Bento Architecture) -->
+    <section id="models" style="padding-top: 3.5rem;">
       <div class="section-header">
-        <span class="section-badge">CỤM MÔ HÌNH AI ĐỘC QUYỀN</span>
-        <h2 class="section-title">Hệ Thống 4 Cỗ Máy Siêu Trí Tuệ</h2>
+        <span class="section-badge">QUANTUM ENGINE SUITE 2026</span>
+        <h2 class="section-title">Hệ Thống Siêu Mô Hình Độc Quyền</h2>
         <p class="section-sub">Được tối ưu hóa chuyên biệt cho từng tác vụ từ lập trình chuyên sâu, giải thuật logic, đàm thoại siêu tốc đến tạo ảnh 8K.</p>
       </div>
 
-      <div class="models-grid">
-        <!-- Model 1 -->
-        <div class="model-card-giant tilt-card-8d hud-box-8d">
-          <div>
-            <div class="model-icon-box" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #818cf8;">👑</div>
-            <h3 class="model-card-title">TungDevAI Coder v1.0</h3>
-            <p class="model-card-desc">Mô hình Lập Trình độc quyền do TungDevAI phát triển. Sinh code sạch, không lỗi, áp dụng Clean Architecture chuẩn Production.</p>
+      <div class="taste-bento-asymmetric">
+        <!-- Model 1: Featured 3.8 High (Hero 8-Col Bento Tile) -->
+        <div class="taste-col-8">
+          <div class="model-card-giant model-card-featured tilt-card-8d hud-box-8d" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="model-icon-box" style="background: rgba(14, 165, 233, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">🧠</div>
+                <span class="model-card-tag" style="background: linear-gradient(135deg, #0284c7, #38bdf8); color: #fff; font-weight: 800; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);">FLAGSHIP REASONING ⭐</span>
+              </div>
+              <h3 class="model-card-title" style="font-size: 1.55rem; margin-top: 0.75rem;">TungDevAI 3.8 High (Deep Reasoning)</h3>
+              <p class="model-card-desc" style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;">
+                Trang bị động cơ <strong>Google Gemini 3.8 High</strong> thế hệ mới nhất với chuỗi tư duy đa tầng (Deep Reasoning). Tự động phân tích cây cú pháp Abstract Syntax Tree (AST), tối ưu độ phức tạp thuật toán vi mô $O(1)$ và kiến trúc hệ thống cấp Enterprise.
+              </p>
+            </div>
+
+            <!-- Simulated Real-time Reasoning Telemetry -->
+            <div class="simulated-reasoning-box">
+              <div class="reasoning-step-line"><span class="reasoning-step-check">✓</span> <span>[THOUGHT MATRIX] Khởi tạo AST parser & đối chiếu 12 patterns</span></div>
+              <div class="reasoning-step-line"><span class="reasoning-step-check">✓</span> <span>[DEEP REASONING] Phân tích concurrency lock & memory leak: 0 issues</span></div>
+              <div class="reasoning-speed-meter">
+                <span>Google Generative Engine 3.8</span>
+                <span style="color: #38bdf8; font-weight: 700;">842 tokens/sec · Latency: 42ms</span>
+              </div>
+            </div>
           </div>
-          <span class="model-card-tag" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">Flagship ⭐</span>
         </div>
 
-        <!-- Model 2 -->
-        <div class="model-card-giant tilt-card-8d hud-box-8d">
-          <div>
-            <div class="model-icon-box" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa;">💻</div>
+        <!-- Model 2: Coder v1.0 (4-Col Bento Tile) -->
+        <div class="taste-col-4">
+          <div class="model-card-giant tilt-card-8d hud-box-8d" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="model-icon-box" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #818cf8;">👑</div>
+                <span class="model-card-tag" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">Clean Code ⚡</span>
+              </div>
+              <h3 class="model-card-title">TungDevAI Coder v1.0</h3>
+              <p class="model-card-desc">Mô hình Lập trình chuẩn Production độc quyền. Sinh code sạch, kiểm thử đơn vị tự động và áp dụng Clean Architecture hoàn hảo.</p>
+            </div>
+            <div style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.72rem; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.25);">
+              STATUS // READY · PROD BUILD
+            </div>
+          </div>
+        </div>
+
+        <!-- Model 3: NVIDIA Coder Pro (6-Col Bento Tile) -->
+        <div class="taste-col-6">
+          <div class="model-card-giant tilt-card-8d hud-box-8d">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div class="model-icon-box" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa;">💻</div>
+              <span class="model-card-tag" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">NVIDIA NIM ⚡</span>
+            </div>
             <h3 class="model-card-title">TungDevAI Coder Pro</h3>
-            <p class="model-card-desc">Cụm NVIDIA NIM DeepCoder. Chuyên sâu giải thuật phức tạp, tối ưu hiệu năng $O(1)$, refactor mã nguồn và kiểm thử vi mô.</p>
+            <p class="model-card-desc">Cụm NVIDIA NIM DeepCoder. Chuyên sâu giải thuật phức tạp, tối ưu hiệu năng $O(1)$, refactor mã nguồn và kiểm thử vi mô đa luồng.</p>
           </div>
-          <span class="model-card-tag" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Chuyên Code ⚡</span>
         </div>
 
-        <!-- Model 3: Gemini 3.8 High Reasoning -->
-        <div class="model-card-giant tilt-card-8d hud-box-8d">
-          <div>
-            <div class="model-icon-box" style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.35); color: #38bdf8;">🧠</div>
-            <h3 class="model-card-title">TungDevAI 3.8 High</h3>
-            <p class="model-card-desc">Động cơ Google Gemini 3.8 High (Deep Reasoning 2026). Siêu tư duy logic đa tầng, phân tích thuật toán chuyên sâu và kiến trúc Enterprise đỉnh cao.</p>
-          </div>
-          <span class="model-card-tag" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">Reasoning High 🧠</span>
-        </div>
-
-        <!-- Model 4 -->
-        <div class="model-card-giant tilt-card-8d hud-box-8d">
-          <div>
-            <div class="model-icon-box" style="background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.35); color: #f472b6;">🎨</div>
+        <!-- Model 4: Vision 1.5 (6-Col Bento Tile) -->
+        <div class="taste-col-6">
+          <div class="model-card-giant tilt-card-8d hud-box-8d">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div class="model-icon-box" style="background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.35); color: #f472b6;">🎨</div>
+              <span class="model-card-tag" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">Image Studio 🖼️</span>
+            </div>
             <h3 class="model-card-title">TungDevAI Vision 1.5</h3>
-            <p class="model-card-desc">Động cơ FLUX / SDXL Turbo AI Studio. Tạo tác phẩm nghệ thuật Photorealistic 8K, Anime, 3D Render và hình nền siêu thực.</p>
+            <p class="model-card-desc">Động cơ FLUX / SDXL Turbo AI Studio. Tạo tác phẩm nghệ thuật Photorealistic 8K, Anime, 3D Render và hình nền siêu thực theo yêu cầu.</p>
           </div>
-          <span class="model-card-tag" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">Image Studio 🖼️</span>
         </div>
       </div>
     </section>
@@ -1503,29 +1682,109 @@
       </div>
     </section>
 
-    <!-- Breakthrough Features Section -->
-    <section id="features" style="padding-top: 2rem;">
+    <!-- Breakthrough Features Section (Taste-Skill Asymmetric Bento) -->
+    <section id="features" style="padding-top: 3.5rem;">
       <div class="section-header">
-        <span class="section-badge">TÍNH NĂNG ĐỘT PHÁ</span>
-        <h2 class="section-title">Trang Bị Siêu Năng Lực Toàn Diện</h2>
-        <p class="section-sub">Tích hợp những công nghệ AI tiên phong nhất để nâng cao hiệu suất làm việc của bạn.</p>
+        <span class="section-badge">SIÊU NĂNG LỰC CÔNG NGHỆ 2026</span>
+        <h2 class="section-title">Trang Bị Toàn Diện Cho Developer & Creator</h2>
+        <p class="section-sub">Tích hợp những đột phá AI tiên phong nhất để tối ưu hóa 100% năng suất sáng tạo của bạn.</p>
       </div>
 
-      <div class="bento-grid">
-        <div class="bento-item tilt-card-8d hud-box-8d">
-          <div class="bento-icon">🌐</div>
-          <h3 class="bento-title">Tìm Kiếm Web Thời Gian Thực</h3>
-          <p class="bento-desc">Truy cập dữ liệu Internet năm 2026 trực tiếp. Tự động đọc và tóm tắt nội dung của bất kỳ đường link URL nào.</p>
+      <div class="taste-bento-asymmetric">
+        <!-- Feature 1: Live Web Search (8-Col Bento Tile) -->
+        <div class="taste-col-8">
+          <div class="bento-item tilt-card-8d hud-box-8d" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="bento-icon" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.35);">🌐</div>
+                <span class="model-card-tag" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee;">Realtime Web Index</span>
+              </div>
+              <h3 class="bento-title" style="font-size: 1.45rem; margin-top: 0.85rem;">Tìm Kiếm Web & Trích Xuất Dữ Liệu Thời Gian Thực</h3>
+              <p class="bento-desc" style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;">
+                Truy cập dữ liệu Internet trực tiếp năm 2026. Tự động đọc sâu, bóc tách và tóm tắt nội dung của mọi bài báo, tài liệu nghiên cứu hay đường link URL bất kỳ.
+              </p>
+            </div>
+
+            <!-- Interactive Web Search Simulation -->
+            <div style="margin-top: 1.2rem; background: rgba(5, 10, 24, 0.85); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 0.85rem 1.15rem; font-family: var(--font-mono); font-size: 0.76rem;">
+              <div style="display: flex; align-items: center; gap: 0.6rem; color: #38bdf8;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                <span>SEARCH // "Bản đồ công nghệ AI Agent & Microservices 2026"</span>
+              </div>
+              <div style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.7rem; border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 0.4rem; display: flex; justify-content: space-between;">
+                <span style="color: #34d399;">✓ Đã tổng hợp 14 nguồn tin tức công nghệ</span>
+                <span>Latency: 0.32s</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="bento-item tilt-card-8d hud-box-8d">
-          <div class="bento-icon">📁</div>
-          <h3 class="bento-title">Phân Tích Tài Liệu PDF & Code</h3>
-          <p class="bento-desc">Kéo thả tệp PDF, Word (.docx), CSV, JSON hoặc file code dự án để AI đọc hiểu, rà soát lỗi và trích xuất dữ liệu.</p>
+
+        <!-- Feature 2: Document Parser (4-Col Bento Tile) -->
+        <div class="taste-col-4">
+          <div class="bento-item tilt-card-8d hud-box-8d" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="bento-icon" style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.35);">📁</div>
+                <span class="model-card-tag" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">Multi-Doc AI</span>
+              </div>
+              <h3 class="bento-title" style="font-size: 1.3rem; margin-top: 0.85rem;">Phân Tích File & Codebase</h3>
+              <p class="bento-desc" style="font-size: 0.88rem; color: #cbd5e1;">
+                Kéo thả tệp tài liệu PDF, Word (.docx), CSV, JSON hoặc thư mục code để AI quét lỗi, tóm tắt và sinh giải pháp.
+              </p>
+            </div>
+            
+            <div style="margin-top: 1rem; display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.68rem;">PDF</span>
+              <span style="background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.3); padding: 2px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.68rem;">DOCX</span>
+              <span style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); padding: 2px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.68rem;">PYTHON</span>
+              <span style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); padding: 2px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.68rem;">JSON</span>
+            </div>
+          </div>
         </div>
-        <div class="bento-item tilt-card-8d hud-box-8d">
-          <div class="bento-icon">⚡</div>
-          <h3 class="bento-title">Chạy Code & Sandbox Trực Tiếp</h3>
-          <p class="bento-desc">Biên dịch và chạy trực tiếp code Python, HTML/JS ngay trong khung chat mà không cần cài đặt môi trường.</p>
+
+        <!-- Feature 3: Sandbox Direct Execution (4-Col Bento Tile) -->
+        <div class="taste-col-4">
+          <div class="bento-item tilt-card-8d hud-box-8d" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="bento-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);">⚡</div>
+                <span class="model-card-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">Live Sandbox</span>
+              </div>
+              <h3 class="bento-title" style="font-size: 1.3rem; margin-top: 0.85rem;">Sandbox Thực Thi Trực Tiếp</h3>
+              <p class="bento-desc" style="font-size: 0.88rem; color: #cbd5e1;">
+                Chạy thử và biên dịch code Python, JavaScript/HTML trực tiếp trên trình duyệt mà không cần cài đặt môi trường.
+              </p>
+            </div>
+            <div style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.72rem; color: #34d399; background: rgba(16, 185, 129, 0.1); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);">
+              EXEC // STATUS: 0 (SUCCESS)
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4: Terminal CMD & Ecosystem (8-Col Bento Tile) -->
+        <div class="taste-col-8">
+          <div class="bento-item tilt-card-8d hud-box-8d" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="bento-icon" style="background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.35);">💻</div>
+                <span class="model-card-tag" style="background: rgba(129, 140, 248, 0.2); color: #818cf8;">Terminal & Cloud 24/7</span>
+              </div>
+              <h3 class="bento-title" style="font-size: 1.45rem; margin-top: 0.85rem;">Hệ Sinh Thái Đa Nền Tảng: Web, CMD & Telegram</h3>
+              <p class="bento-desc" style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;">
+                Làm việc liền mạch trên Web Studio, trợ lý Telegram Bot tự động hóa 24/7, và công cụ dòng lệnh <strong>TungDevAI CMD</strong> chạy trực tiếp trong PowerShell/Terminal Windows.
+              </p>
+            </div>
+
+            <!-- Terminal 1-line command bar -->
+            <div style="margin-top: 1.2rem; background: rgba(5, 10, 24, 0.88); border: 1px solid rgba(129, 140, 248, 0.3); border-radius: 12px; padding: 0.75rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.78rem; color: #a5b4fc;">
+                irm https://tungai.fun/install-cmd.ps1 | iex
+              </span>
+              <span style="font-size: 0.72rem; color: #34d399; font-weight: 700; background: rgba(16, 185, 129, 0.15); padding: 3px 8px; border-radius: 6px;">
+                ⚡ 1-Click Install
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
