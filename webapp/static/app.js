@@ -107,13 +107,82 @@
     els.input.disabled = v;
   }
 
+  
+  /* Dynamic thinking animation logic */
+  let currentThinkingTimer = null;
+  let activeThinkingBodyEl = null;
+
+  const THINKING_PHRASES = [
+    { icon: "🧠", text: "TungDevAI đang tiếp nhận và suy nghĩ..." },
+    { icon: "⚡", text: "Đang làm rồi, đang kết nối siêu cụm AI..." },
+    { icon: "🛠️", text: "Đang phân tích dữ liệu và viết code..." },
+    { icon: "✨", text: "Sắp xong rồi, đang trau chuốt câu trả lời..." },
+    { icon: "🚀", text: "Gần xong rồi, đang đưa ra kết quả tốt nhất..." }
+  ];
+
+  function startThinkingAnimation(bodyEl) {
+    stopThinkingAnimation();
+    if (!bodyEl) return;
+    activeThinkingBodyEl = bodyEl;
+    let step = 0;
+
+    bodyEl.innerHTML = `
+      <div class="tg-thinking-box">
+        <div class="tg-thinking-orb-wrap">
+          <span class="tg-thinking-pulse"></span>
+          <span class="tg-thinking-spinner"></span>
+          <span class="tg-thinking-icon">${THINKING_PHRASES[0].icon}</span>
+        </div>
+        <div class="tg-thinking-text-wrap">
+          <span class="tg-thinking-msg">${THINKING_PHRASES[0].text}</span>
+          <span class="tg-thinking-dots"><span></span><span></span><span></span></span>
+        </div>
+      </div>
+    `;
+
+    const iconEl = bodyEl.querySelector(".tg-thinking-icon");
+    const msgEl = bodyEl.querySelector(".tg-thinking-msg");
+
+    currentThinkingTimer = setInterval(() => {
+      step++;
+      const p = THINKING_PHRASES[step % THINKING_PHRASES.length];
+      if (msgEl && iconEl) {
+        msgEl.classList.add("anim-out");
+        setTimeout(() => {
+          if (iconEl) iconEl.textContent = p.icon;
+          if (msgEl) {
+            msgEl.textContent = p.text;
+            msgEl.classList.remove("anim-out");
+            msgEl.classList.add("anim-in");
+            setTimeout(() => msgEl.classList.remove("anim-in"), 200);
+          }
+        }, 180);
+      }
+      if (els.messages) els.messages.scrollTop = els.messages.scrollHeight;
+    }, 2100);
+  }
+
+  function stopThinkingAnimation(bodyEl) {
+    if (currentThinkingTimer) {
+      clearInterval(currentThinkingTimer);
+      currentThinkingTimer = null;
+    }
+    const target = bodyEl || activeThinkingBodyEl;
+    if (target) {
+      const box = target.querySelector(".tg-thinking-box");
+      if (box) box.remove();
+    }
+    activeThinkingBodyEl = null;
+  }
+
+
   async function sendMessage(text) {
     if (!text.trim() || busy) return;
     setBusy(true);
     addMessage("user", text.trim());
     const bodyEl = addMessage("assistant", "");
     bodyEl.parentElement.classList.add("typing");
-    bodyEl.textContent = "";
+    startThinkingAnimation(bodyEl);
 
     try {
       const res = await fetch("/api/chat", {
@@ -155,6 +224,10 @@
             sessionId = data.session_id;
             localStorage.setItem("jarvis_session_id", sessionId);
           } else if (data.type === "delta") {
+            if (!full) {
+              stopThinkingAnimation(bodyEl);
+              bodyEl.innerHTML = "";
+            }
             full += data.text || "";
             bodyEl.innerHTML = formatMarkdown(full);
             els.messages.scrollTop = els.messages.scrollHeight;
@@ -163,9 +236,11 @@
           }
         }
       }
+      stopThinkingAnimation(bodyEl);
       bodyEl.parentElement.classList.remove("typing");
       if (!full) bodyEl.textContent = "(không có phản hồi)";
     } catch (e) {
+      stopThinkingAnimation(bodyEl);
       bodyEl.parentElement.classList.remove("typing");
       bodyEl.innerHTML = `<span style="color:var(--danger)">Lỗi: ${escapeHtml(
         e.message

@@ -1664,6 +1664,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
   }
 
   function newChat() {
+    stopThinkingAnimation();
     const c = {
       id: uid(),
       title: "Chat mới",
@@ -1685,6 +1686,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
   }
 
   function selectChat(id) {
+    stopThinkingAnimation();
     activeId = id;
     const ac = activeChat();
     sessionId = (ac && ac.sessionId) ? ac.sessionId : id;
@@ -1737,7 +1739,92 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     if (!v) setStreamStatus("");
   }
 
+  
+  /* ============================================================
+     TUNGDEVAI DYNAMIC THINKING & GENERATING MOTION LOGIC
+     ============================================================ */
+  let currentThinkingTimer = null;
+  let activeThinkingContentEl = null;
+
+  function getThinkingPhrases() {
+    let modelName = "Google Gemini 3.8 High";
+    try {
+      const activeItem = document.querySelector(".model-opt-item.active");
+      if (activeItem) {
+        const titleEl = activeItem.querySelector(".model-opt-title");
+        if (titleEl) modelName = titleEl.textContent.trim();
+      }
+    } catch (_) {}
+
+    return [
+      { icon: "🧠", text: "TungDevAI đang tiếp nhận và suy nghĩ..." },
+      { icon: "⚡", text: "Đang làm rồi, đang kết nối " + modelName + "..." },
+      { icon: "🛠️", text: "Đang phân tích dữ liệu và viết code..." },
+      { icon: "✨", text: "Sắp xong rồi, đang trau chuốt câu trả lời..." },
+      { icon: "🚀", text: "Gần xong rồi, đang đưa ra kết quả tốt nhất..." }
+    ];
+  }
+
+  function startThinkingAnimation(contentEl) {
+    stopThinkingAnimation();
+    if (!contentEl) return;
+    activeThinkingContentEl = contentEl;
+    let step = 0;
+    const phrases = getThinkingPhrases();
+
+    contentEl.innerHTML = `
+      <div class="tg-thinking-box">
+        <div class="tg-thinking-orb-wrap">
+          <span class="tg-thinking-pulse"></span>
+          <span class="tg-thinking-spinner"></span>
+          <span class="tg-thinking-icon">${phrases[0].icon}</span>
+        </div>
+        <div class="tg-thinking-text-wrap">
+          <span class="tg-thinking-msg">${phrases[0].text}</span>
+          <span class="tg-thinking-dots"><span></span><span></span><span></span></span>
+        </div>
+      </div>
+    `;
+
+    const iconEl = contentEl.querySelector(".tg-thinking-icon");
+    const msgEl = contentEl.querySelector(".tg-thinking-msg");
+
+    currentThinkingTimer = setInterval(() => {
+      step++;
+      const currentPhrases = getThinkingPhrases();
+      const p = currentPhrases[step % currentPhrases.length];
+      if (msgEl && iconEl) {
+        msgEl.classList.add("anim-out");
+        setTimeout(() => {
+          if (iconEl) iconEl.textContent = p.icon;
+          if (msgEl) {
+            msgEl.textContent = p.text;
+            msgEl.classList.remove("anim-out");
+            msgEl.classList.add("anim-in");
+            setTimeout(() => msgEl.classList.remove("anim-in"), 200);
+          }
+        }, 180);
+      }
+      scrollBottom();
+    }, 2100);
+  }
+
+  function stopThinkingAnimation(contentEl) {
+    if (currentThinkingTimer) {
+      clearInterval(currentThinkingTimer);
+      currentThinkingTimer = null;
+    }
+    const target = contentEl || activeThinkingContentEl;
+    if (target) {
+      const box = target.querySelector(".tg-thinking-box");
+      if (box) box.remove();
+    }
+    activeThinkingContentEl = null;
+  }
+
+
   function stopGeneration() {
+    stopThinkingAnimation();
     if (currentAbortController) {
       try { currentAbortController.abort(); } catch(_) {}
       currentAbortController = null;
@@ -1936,6 +2023,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       appendMsg("user", text);
       const contentEl = appendMsg("assistant", "", [], true);
       contentEl.parentElement.parentElement.classList.add("typing");
+      startThinkingAnimation(contentEl);
       setBusy(true);
       try {
         const data = await activateCode(act[1]);
@@ -1951,12 +2039,16 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
                 : data.user.remaining_today + "/" + data.user.daily_limit) +
               " tin hôm nay."
             : "");
+        stopThinkingAnimation(contentEl);
+        contentEl.innerHTML = "";
         contentEl.parentElement.parentElement.classList.remove("typing");
         setAssistantHtml(contentEl, msg);
         chat.messages.push({ role: "assistant", content: msg });
         chat.updated = Date.now();
         persistChats();
       } catch (err) {
+        stopThinkingAnimation(contentEl);
+        contentEl.innerHTML = "";
         contentEl.parentElement.parentElement.classList.remove("typing");
         const msg =
           "**Không kích hoạt được**\n\n" +
@@ -2008,7 +2100,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     appendMsg("user", text, images);
     const contentEl = appendMsg("assistant", "", [], true);
     contentEl.parentElement.parentElement.classList.add("typing");
-    contentEl.textContent = "";
+    startThinkingAnimation(contentEl);
     setBusy(true);
     setStreamStatus("Đang kết nối AI…");
 
@@ -2133,6 +2225,8 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
               if (j.type === "delta" && j.text) {
                 if (!gotDelta) {
                   gotDelta = true;
+                  stopThinkingAnimation(contentEl);
+                  contentEl.innerHTML = "";
                   contentEl.parentElement.parentElement.classList.remove("typing");
                   setStreamStatus("");
                 }
@@ -2152,6 +2246,8 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       } else {
         const j = await res.json();
         full = j.reply || "";
+        stopThinkingAnimation(contentEl);
+        contentEl.innerHTML = "";
         if (j.session_id) {
           sessionId = j.session_id;
           localStorage.setItem(LS_SID, sessionId);
@@ -2175,6 +2271,8 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
         refreshPlanFromServer().catch(function () {});
       }
     } catch (err) {
+      stopThinkingAnimation(contentEl);
+      contentEl.innerHTML = "";
       contentEl.parentElement.parentElement.classList.remove("typing");
       setStreamStatus("");
       const em = String(err.message || err);
