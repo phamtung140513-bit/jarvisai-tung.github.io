@@ -2229,10 +2229,30 @@ def create_app() -> FastAPI:
 
         mem: SessionMemory = request.app.state.memory
         client: GrokClient = request.app.state.grok
-        # Route specifically if user requested Gemini 3.8 High
+        # Map frontend model selectors to real backend models
         target_model = getattr(body, "model", None)
-        if target_model in ("gemini-3.8-high", "3.8-high", "3.8"):
+        target_label = None
+
+        MODEL_SPECS = {
+            "gemini-3.8-high": ("gemini-3.8-flash", "🧠 TungDevAI 3.8 High (Deep Reasoning)"),
+            "3.8-high": ("gemini-3.8-flash", "🧠 TungDevAI 3.8 High (Deep Reasoning)"),
+            "3.8": ("gemini-3.8-flash", "🧠 TungDevAI 3.8 High (Deep Reasoning)"),
+            "coder-v1": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
+            "coder": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
+            "deepseek": ("gemini-3.8-flash", "💻 TungDevAI Coder Pro (Chuyên Code ⚡)"),
+            "coder-pro": ("gemini-3.8-flash", "💻 TungDevAI Coder Pro (Chuyên Code ⚡)"),
+            "fast": ("gemini-3.8-flash", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
+            "ultra-fast": ("gemini-3.8-flash", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
+            "default": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
+        }
+
+        if target_model in MODEL_SPECS:
+            actual_model, target_label = MODEL_SPECS[target_model]
+            target_model = actual_model
+        elif target_model and not target_model.startswith("gemini-"):
             target_model = "gemini-3.8-flash"
+            target_label = "🧠 TungDevAI 3.8 High (Deep Reasoning)"
+
         route = client.route_for_plan(plan_id, plan_expired=plan_expired)
         planner = PlannerAgent(client)
         coder = CoderAgent(client)
@@ -2478,8 +2498,8 @@ def create_app() -> FastAPI:
             "agent": cmd if is_agent else "chat",
             "ai_tier": route.tier,
             "ai_provider": route.provider,
-            "ai_model": route.model,
-            "ai_label": route.label,
+            "ai_model": target_model or route.model,
+            "ai_label": target_label or route.label,
         }
 
         async def _run_agent() -> str:

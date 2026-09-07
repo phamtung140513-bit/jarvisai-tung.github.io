@@ -237,9 +237,13 @@ class GrokClient:
                 # Owner may /setmodel — keep override on default client
                 return self._client, self.active_model, route
             client = self._client_for_route(route)
-            mid = model or route.model
+            mid = (model or route.model or "").strip()
             if self._model_override and plan_id == "owner":
                 mid = self.active_model
+            # Safeguard: If provider is Gemini, ensure model starts with gemini-
+            if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
+                if not mid or not mid.startswith("gemini-"):
+                    mid = "gemini-3.8-flash"
             return client, mid, route
         return self._client, model or self.active_model, None
 
@@ -354,6 +358,8 @@ class GrokClient:
         # Build candidate models list for fallback
         candidate_models = [model_id]
         if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
+            if not model_id.startswith("gemini-"):
+                candidate_models = ["gemini-3.8-flash"]
             for fb in GEMINI_FALLBACKS:
                 if fb not in candidate_models:
                     candidate_models.append(fb)
@@ -379,7 +385,7 @@ class GrokClient:
             try:
                 success = False
                 async with client.stream("POST", "/chat/completions", json=payload) as resp:
-                    if resp.status_code in (503, 502, 504, 500, 429):
+                    if resp.status_code in (404, 429, 500, 502, 503, 504):
                         body = (await resp.aread()).decode(errors="replace")[:300]
                         logger.warning("LLM %s returned %s: %s -> trying fallback model...", current_model, resp.status_code, body)
                         last_error = GrokError(f"API {resp.status_code}: {body}")
