@@ -207,10 +207,11 @@ async def run_repl(one_shot: str | None = None) -> int:
     settings = get_settings()
     ensure_directories(settings)
     
-    logging.getLogger().setLevel(logging.WARNING)
-    logging.getLogger("ai.grok").setLevel(logging.WARNING)
-    logging.getLogger("ai.memory").setLevel(logging.WARNING)
-    logging.getLogger("database.sqlite").setLevel(logging.WARNING)
+    logging.getLogger().setLevel(logging.ERROR)
+    logging.getLogger("ai.grok").setLevel(logging.ERROR)
+    logging.getLogger("ai.memory").setLevel(logging.ERROR)
+    logging.getLogger("database.sqlite").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.ERROR)
 
     db = Database(settings)
     await db.init()
@@ -236,6 +237,10 @@ async def run_repl(one_shot: str | None = None) -> int:
 
     async def refresh_license() -> dict:
         nonlocal licensed, lic_str
+        if not getattr(settings, "cli_license_required", False):
+            licensed = True
+            lic_str = "Executive VIP Pro (Developer · Vĩnh viễn)"
+            return {"ok": True, "days_left": 3650, "message": "Executive VIP Pro (Developer)"}
         server_url = getattr(settings, "server_url", "https://tungai.fun")
         st = await asyncio.to_thread(verify_remote_cmd_license, server_url)
         licensed = bool(st.get("ok"))

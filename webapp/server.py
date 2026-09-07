@@ -2058,7 +2058,10 @@ def create_app() -> FastAPI:
             # Check expiration
             now = datetime.now(timezone.utc)
             if row.last_activated_at:
-                exp = row.last_activated_at + timedelta(days=int(row.days or 30))
+                last_act = row.last_activated_at
+                if last_act.tzinfo is None:
+                    last_act = last_act.replace(tzinfo=timezone.utc)
+                exp = last_act + timedelta(days=int(row.days or 30))
                 if exp < now:
                     return {
                         "ok": False,

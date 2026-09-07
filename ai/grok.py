@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 
 GEMINI_FALLBACKS = [
     "gemini-3.8-flash",
+    "gemini-3.7-flash",
     "gemini-3.1-flash-lite",
     "gemini-flash-lite-latest",
-    "gemini-flash-latest",
-    "gemini-3.7-flash",
     "gemini-3.5-flash",
+    "gemini-flash-latest",
 ]
 
 
@@ -338,7 +338,7 @@ class GrokClient:
                 )
                 if resp.status_code in (404, 429, 500, 502, 503, 504):
                     body = resp.text[:300]
-                    logger.warning("LLM %s returned %s: %s -> trying fallback model...", current_model, resp.status_code, body)
+                    logger.info("LLM %s returned %s -> trying fallback model...", current_model, resp.status_code)
                     last_error = GrokError(f"API {resp.status_code}: {body}")
                     continue
                 if resp.status_code >= 400:
@@ -426,11 +426,10 @@ class GrokClient:
                 ) as resp:
                     if resp.status_code in (404, 429, 500, 502, 503, 504):
                         body = (await resp.aread()).decode(errors="replace")[:300]
-                        logger.warning(
-                            "LLM %s returned %s: %s -> trying fallback model...",
+                        logger.info(
+                            "LLM %s returned %s -> trying fallback model...",
                             current_model,
                             resp.status_code,
-                            body,
                         )
                         last_error = GrokError(f"API {resp.status_code}: {body}")
                         continue

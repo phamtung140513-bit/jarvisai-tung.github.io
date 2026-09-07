@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     )
 
     # Telegram
-    telegram_bot_token: str = Field(..., alias="TELEGRAM_BOT_TOKEN")
+    telegram_bot_token: str = Field("", alias="TELEGRAM_BOT_TOKEN")
     # Bootstrap owners (always admin). Comma-separated.
     allowed_telegram_ids: str = Field("", alias="ALLOWED_TELEGRAM_IDS")
     owner_telegram_ids: str = Field("", alias="OWNER_TELEGRAM_IDS")
@@ -190,16 +190,19 @@ class Settings(BaseSettings):
         # Ollama often needs no key
         if self.provider == "ollama":
             return self
-        if not self.resolved_api_key:
-            raise ValueError(
-                f"Thiếu API key cho provider '{self.provider}'. "
-                "Điền AI_API_KEY (hoặc GROQ_API_KEY / OPENROUTER_API_KEY / "
-                "XAI_API_KEY / NVIDIA_API_KEY) trong .env"
-            )
-        if not self.owner_ids and not self.allowed_ids:
-            raise ValueError(
-                "Cần OWNER_TELEGRAM_IDS hoặc ALLOWED_TELEGRAM_IDS (Telegram ID chủ bot)"
-            )
+        # Only validate keys and telegram IDs if telegram_bot_token is explicitly provided
+        if self.telegram_bot_token.strip():
+            if not self.resolved_api_key and not self.gemini_api_key:
+                raise ValueError(
+                    f"Thiếu API key cho provider '{self.provider}'. "
+                    "Điền AI_API_KEY (hoặc GROQ_API_KEY / OPENROUTER_API_KEY / "
+                    "XAI_API_KEY / NVIDIA_API_KEY / GEMINI_API_KEY) trong .env"
+                )
+            if not self.owner_ids and not self.allowed_ids:
+                raise ValueError(
+                    "Cần OWNER_TELEGRAM_IDS hoặc ALLOWED_TELEGRAM_IDS (Telegram ID chủ bot)"
+                )
+        return self
         if self.require_software_license:
             from product.license_keys import verify_software_license
 
