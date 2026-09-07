@@ -1,3 +1,52 @@
+
+window.rawCodeStorage = window.rawCodeStorage || [];
+
+window.unescapeHtml = function(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/");
+};
+
+window.termEscape = function(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/&lt;/g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
+
+window.getPureCodeFromBlock = function(blockEl, btnEl) {
+  if (btnEl && btnEl.hasAttribute && btnEl.hasAttribute("data-code-id")) {
+    const id = Number(btnEl.getAttribute("data-code-id"));
+    if (window.rawCodeStorage[id] != null) return window.rawCodeStorage[id];
+  }
+  if (blockEl && blockEl.hasAttribute && blockEl.hasAttribute("data-code-id")) {
+    const id = Number(blockEl.getAttribute("data-code-id"));
+    if (window.rawCodeStorage[id] != null) return window.rawCodeStorage[id];
+  }
+  const codeEl = blockEl ? blockEl.querySelector("pre code, pre") : null;
+  let raw = codeEl ? codeEl.textContent || "" : "";
+  return window.unescapeHtml(raw);
+};
+
+
+  function unescapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&#x27;/g, "'")
+      .replace(/&#x2F;/g, "/");
+  }
+
 /**
  * TungDevAI Chat — user-facing only (no admin UI).
  * Admin page is separate: /j-panel.html (secret URL).
@@ -15,14 +64,22 @@
   const MAX_EDGE = 1280;
   const JPEG_Q = 0.82;
   const MODE_LABELS = {
-    default: "Default",
-    coder: "Coder",
-    security: "Security",
-    research: "Research",
-    sales: "Sales",
+    coder: "💻 Coder Pro",
+    security: "🛡️ Hacker Mũ Trắng",
+    marketing: "📈 Phù Thủy Content",
+    business: "💼 Cố Vấn Kinh Doanh",
+    tutor: "🎓 Gia Sư AI",
+    data: "📊 Data Scientist",
+    default: "✨ Đa Năng",
   };
 
   const $ = (id) => document.getElementById(id);
+  function getCookie(name) {
+    try {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : "";
+    } catch (_) { return ""; }
+  }
 
   /**
    * Inject "Gói của bạn" rows even if HTML is old (GitHub Pages cache / old deploy).
@@ -141,8 +198,11 @@
     els.accountMenuEmailTop = $("accountMenuEmailTop");
   }
 
-  let googleUser = null;
   let googleSession = localStorage.getItem(LS_GOOGLE) || "";
+  let googleUser = null;
+  try {
+    googleUser = JSON.parse(localStorage.getItem(LS_GOOGLE_USER) || "null");
+  } catch (_) {}
   let serverOnline = false;
   let lastModel = "";
   let serverConfig = {
@@ -154,9 +214,12 @@
 
   let cfgPublic = { apiBase: "", telegramBot: "https://t.me/grokapiai_bot" };
   let pendingImages = [];
+  let pendingAttachments = [];
+  let webSearchEnabled = localStorage.getItem('tungdev_web_search') === 'true';
   let chats = [];
   let activeId = null;
   let busy = false;
+  let currentAbortController = null;
   let sessionId = localStorage.getItem(LS_SID) || localStorage.getItem("jarvis_sid_v2") || "";
   let activeMode = (localStorage.getItem(LS_MODE) || "coder").toLowerCase();
   if (!MODE_LABELS[activeMode]) activeMode = "coder";
@@ -203,11 +266,61 @@
   }
 
   function userHeaders(extra) {
-    const h = Object.assign({ "Content-Type": "application/json" }, extra || {});
+    const h = Object.assign(
+      {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+        "Cache-Control": "no-store",
+      },
+      extra || {}
+    );
     const t = userToken();
     if (t) h["X-Web-Token"] = t;
-    if (googleSession) h["X-User-Session"] = googleSession;
+    const sess = (googleSession || localStorage.getItem(LS_GOOGLE) || "").trim();
+    if (sess) {
+      h["X-User-Session"] = sess;
+      h["Authorization"] = "Bearer " + sess;
+    }
     return h;
+  }
+
+  /** Detect ngrok browser-warning HTML mistaken for API body */
+  function looksLikeNgrokHtml(text) {
+    const s = String(text || "");
+    return (
+      /<!DOCTYPE html>/i.test(s) ||
+      /assets\.ngrok\.com/i.test(s) ||
+      /ERR_NGROK|ngrok-free|Visit Site/i.test(s)
+    );
+  }
+
+  function ngrokHtmlErrorHint() {
+    return (
+      "Ngrok chặn request (trả HTML thay vì API).\n\n" +
+      "Cách fix:\n" +
+      "1) Mở đúng link: " +
+      (apiBase() || "https://…ngrok-free.dev") +
+      "/chat.html\n" +
+      "2) Nếu thấy 'Visit Site' → bấm qua 1 lần\n" +
+      "3) PC phải chạy web + ngrok (BAT_TUNGDEVAI_ONLINE.bat)\n" +
+      "4) Tải lại trang (Ctrl+F5)"
+    );
+  }
+
+  async function apiFetch(path, opts) {
+    const base = apiBase();
+    if (!base) {
+      throw new Error(
+        "Chưa có API server. Mở link ngrok/local, không chỉ github.io."
+      );
+    }
+    const o = opts || {};
+    const headers = userHeaders(o.headers || {});
+    // GET: still need ngrok skip even without JSON body
+    if (!headers["Content-Type"] && o.method && o.method.toUpperCase() !== "GET") {
+      headers["Content-Type"] = "application/json";
+    }
+    return fetch(base + path, Object.assign({}, o, { headers: headers }));
   }
 
   function showApp() {
@@ -215,42 +328,101 @@
   }
 
   /** Separate pages: login.html / register.html */
-  function redirectToLogin() {
-    const next = encodeURIComponent("chat.html");
-    location.href = "login.html?next=" + next;
-  }
-
-  function redirectToRegister() {
-    const next = encodeURIComponent("chat.html");
-    location.href = "register.html?next=" + next;
+  function getLocalUser() {
+    if (googleUser && (googleUser.email || googleUser.name)) return googleUser;
+    try {
+      const u = JSON.parse(localStorage.getItem(LS_GOOGLE_USER) || "null");
+      if (u && (u.email || u.name)) {
+        googleUser = u;
+        return u;
+      }
+    } catch (_) {}
+    return googleUser;
   }
 
   function isLoggedIn() {
-    return !!(googleSession && googleUser);
+    const sess = (googleSession || localStorage.getItem(LS_GOOGLE) || "").trim();
+    const u = googleUser || getLocalUser();
+    return !!(sess || (u && (u.email || u.name)));
+  }
+
+  function redirectToLogin() {
+    window.location.href = "login.html";
   }
 
   function refreshUserChip() {
-    if (!els.modelChip) return;
-    if (!isLoggedIn()) {
-      if (els.appNameLabel) els.appNameLabel.textContent = cfgPublic.appName || "TungDevAI";
-      els.modelChip.textContent = "Đăng nhập";
-      els.modelChip.classList.add("login-cta");
+    const logged = isLoggedIn();
+    const u = getLocalUser();
+
+    if (!logged) {
+      if (els.appNameLabel) els.appNameLabel.textContent = "TungDevAI";
+      if (els.modelChip) {
+        els.modelChip.textContent = "Đăng nhập";
+        els.modelChip.classList.add("login-cta");
+      }
       if (els.userPillName) els.userPillName.textContent = "Đăng nhập";
-      if (els.userAvatar) els.userAvatar.src = "assets/bot-avatar.jpg";
-      if (els.userPillImg) els.userPillImg.src = "assets/bot-avatar.jpg";
+      if (els.userAvatar) els.userAvatar.src = "assets/tungdevai-core-logo.jpg?v=core2026";
+      if (els.userPillImg) els.userPillImg.src = "assets/tungdevai-core-logo.jpg?v=core2026";
       return;
     }
-    els.modelChip.classList.remove("login-cta");
-    const u = googleUser || {};
-    const plan = planLabel(u);
-    if (plan) {
-      els.modelChip.textContent = plan;
-    } else if (serverOnline && lastModel) {
-      els.modelChip.textContent = lastModel;
-    } else if (serverOnline) {
-      els.modelChip.textContent = u.email || "online";
+
+    updateBrandEdition(u);
+    const displayName = (u && (u.name || u.email)) || "Thành viên VIP";
+    const planName = (u && planDisplayName(u)) || "Pro VIP";
+
+    if (els.appNameLabel) els.appNameLabel.textContent = displayName;
+    if (els.userPillName) els.userPillName.textContent = displayName;
+    if (els.welcomeName) els.welcomeName.textContent = displayName.split(" ")[0] || displayName;
+
+    if (els.modelChip) {
+      els.modelChip.classList.remove("login-cta");
+      els.modelChip.textContent = "Gói " + planName;
+    }
+
+    if (u && u.picture) {
+      if (els.userAvatar) els.userAvatar.src = u.picture;
+      if (els.userPillImg) els.userPillImg.src = u.picture;
     } else {
-      els.modelChip.textContent = u.email || "offline";
+      if (els.userAvatar) els.userAvatar.src = "assets/tungdevai-core-logo.jpg?v=core2026";
+      if (els.userPillImg) els.userPillImg.src = "assets/tungdevai-core-logo.jpg?v=core2026";
+    }
+  }
+
+  function updateBrandEdition(user) {
+    const brandEdition = $("brandEdition") || document.getElementById("brandEdition");
+    const welcomeEdition = $("welcomeEdition") || document.getElementById("welcomeEdition");
+    const chatTitle = $("chatTitle") || document.getElementById("chatTitle");
+
+    const planId = ((user && (user.plan_id || user.plan_name)) || "trial").toLowerCase().trim();
+
+    let editionText = "Studio Pro";
+    let fullTitle = "TungDevAI Studio";
+
+    if (planId === "basic") {
+      editionText = "Basic";
+      fullTitle = "TungDevAI Basic";
+    } else if (planId === "pro") {
+      editionText = "Pro VIP";
+      fullTitle = "TungDevAI Pro VIP";
+    } else if (planId === "business") {
+      editionText = "Business";
+      fullTitle = "TungDevAI Business";
+    } else if (planId === "owner" || planId === "enterprise") {
+      editionText = "Enterprise";
+      fullTitle = "TungDevAI Enterprise";
+    } else {
+      editionText = "Studio Pro";
+      fullTitle = "TungDevAI Studio";
+    }
+
+    if (brandEdition) {
+      brandEdition.textContent = editionText;
+    }
+    if (welcomeEdition) {
+      welcomeEdition.textContent = editionText;
+    }
+    if (chatTitle && (chatTitle.textContent.indexOf("TungDevAI") !== -1)) {
+      chatTitle.textContent = fullTitle;
     }
   }
 
@@ -296,17 +468,16 @@
   function planLabel(user) {
     if (!user) return "";
     const name = planDisplayName(user);
-    const tier = (user.ai_tier || "").toLowerCase();
-    const pid = (user.plan_id || "").toLowerCase();
-    let ai = "";
-    if (tier === "pro" || pid === "pro" || pid === "business" || pid === "owner") {
-      ai = "DeepSeek VIP";
-    } else if (tier === "basic" || pid === "basic") {
-      ai = "GPT";
-    } else if (tier === "paid") {
-      ai = "VIP";
+    const pid = (user.plan_id || user.ai_tier || "trial").toLowerCase();
+    let ai = "Coder v1.0";
+    if (pid === "owner" || pid === "business") {
+      ai = "Coder Pro VIP";
+    } else if (pid === "pro") {
+      ai = "Coder Pro";
+    } else if (pid === "basic") {
+      ai = "Coder v1.0";
     } else {
-      ai = "Groq";
+      ai = "Coder v1.0";
     }
     let base = "Gói " + name;
     if (ai) base += " · " + ai;
@@ -347,21 +518,10 @@
       b.wrap.style.display = "block";
       b.wrap.style.visibility = "visible";
       if (b.nameEl) b.nameEl.textContent = name + (expired ? " (hết hạn)" : "");
-      let metaFull = meta || "";
-      if (user) {
-        const t = (user.ai_tier || "").toLowerCase();
-        const p = (user.plan_id || "").toLowerCase();
-        let aiBit = "Model: Groq (free)";
-        if (t === "pro" || p === "pro" || p === "business" || p === "owner") {
-          aiBit = "Model: DeepSeek-V4-Pro (Pro+)";
-        } else if (t === "basic" || p === "basic") {
-          aiBit = "Model: GPT-OSS-120B (Basic)";
-        } else if (t === "paid") {
-          aiBit = "Model: VIP";
-        }
-        metaFull = metaFull ? metaFull + " · " + aiBit : aiBit;
+      if (b.metaEl) {
+        b.metaEl.textContent = "";
+        b.metaEl.style.display = "none";
       }
-      if (b.metaEl) b.metaEl.textContent = metaFull;
     });
     const pid = ((user && user.plan_id) || "trial").toLowerCase();
     const vipText =
@@ -372,6 +532,13 @@
           : "Nâng cấp gói";
     if (els.btnVipMenu) els.btnVipMenu.textContent = vipText;
     if (els.btnVipMenuTop) els.btnVipMenuTop.textContent = vipText;
+    if (pid === 'business' || pid === 'owner') {
+      if (typeof btnManageTeam !== 'undefined' && btnManageTeam) btnManageTeam.classList.remove('hidden');
+      if (typeof btnManageTeamTop !== 'undefined' && btnManageTeamTop) btnManageTeamTop.classList.remove('hidden');
+    } else {
+      if (typeof btnManageTeam !== 'undefined' && btnManageTeam) btnManageTeam.classList.add('hidden');
+      if (typeof btnManageTeamTop !== 'undefined' && btnManageTeamTop) btnManageTeamTop.classList.add('hidden');
+    }
     // Sidebar chip: always show Gói Pro / Basic / …
     if (els.modelChip && user) {
       els.modelChip.classList.remove("login-cta");
@@ -382,12 +549,11 @@
   async function refreshPlanFromServer() {
     if (!googleSession) return false;
     try {
-      const r = await fetch(apiBase() + "/api/auth/me", {
-        headers: { "X-User-Session": googleSession },
-        cache: "no-store",
-      });
+      const r = await apiFetch("/api/auth/me", { cache: "no-store" });
       if (!r.ok) return false;
-      const j = await r.json();
+      const text = await r.text();
+      if (looksLikeNgrokHtml(text)) return false;
+      const j = JSON.parse(text);
       if (j && j.user) {
         applyUserUi(j.user);
         return true;
@@ -398,6 +564,8 @@
 
   function applyUserUi(user) {
     googleUser = user || null;
+    try { updateBrandEdition(user);
+    try { checkTeamVisibility(user); } catch(e) {} } catch(e) {}
     if (user) {
       try {
         localStorage.setItem(LS_GOOGLE_USER, JSON.stringify(user));
@@ -418,14 +586,15 @@
       if (els.userPillImg) els.userPillImg.src = user.picture;
       if (els.userAvatar) els.userAvatar.src = user.picture;
     } else {
-      if (els.userPillImg) els.userPillImg.src = "assets/bot-avatar.jpg";
-      if (els.userAvatar) els.userAvatar.src = "assets/bot-avatar.jpg";
+      if (els.userPillImg) els.userPillImg.src = "assets/tungdevai-core-logo.jpg?v=core2026";
+      if (els.userAvatar) els.userAvatar.src = "assets/tungdevai-core-logo.jpg?v=core2026";
     }
     const emailLine = user.email || name;
     // Menu: email riêng, gói riêng
     if (els.accountMenuEmail) els.accountMenuEmail.textContent = emailLine;
     if (els.accountMenuEmailTop) els.accountMenuEmailTop.textContent = emailLine;
     setPlanMenu(user);
+    updateBrandEdition(user);
     const plan = planLabel(user);
     if (els.userPill) els.userPill.title = plan ? emailLine + " · " + plan : emailLine;
     if (els.modelChip && isLoggedIn()) {
@@ -440,12 +609,14 @@
       redirectToLogin();
       return { ok: false, message: "Cần đăng nhập trước." };
     }
-    const r = await fetch(apiBase() + "/api/auth/activate", {
+    const r = await apiFetch("/api/auth/activate", {
       method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" }, userHeaders()),
       body: JSON.stringify({ code: code }),
     });
     const text = await r.text();
+    if (looksLikeNgrokHtml(text)) {
+      return { ok: false, message: ngrokHtmlErrorHint() };
+    }
     let data;
     try {
       data = JSON.parse(text);
@@ -466,10 +637,7 @@
   function logoutGoogle() {
     closeAccountMenus();
     if (googleSession) {
-      fetch(apiBase() + "/api/auth/logout", {
-        method: "POST",
-        headers: { "X-User-Session": googleSession },
-      }).catch(function () {});
+      apiFetch("/api/auth/logout", { method: "POST" }).catch(function () {});
     }
     googleSession = "";
     googleUser = null;
@@ -479,40 +647,47 @@
     redirectToLogin();
   }
 
-  async function restoreGoogleSession() {
-    if (!googleSession) return false;
-    try {
-      const r = await fetch(apiBase() + "/api/auth/me", {
-        headers: { "X-User-Session": googleSession },
-        cache: "no-store",
-      });
-      if (!r.ok) {
-        // Session chết (server restart) — xóa cache cũ không có plan
-        googleSession = "";
-        googleUser = null;
-        localStorage.removeItem(LS_GOOGLE);
-        localStorage.removeItem(LS_GOOGLE_USER);
-        return false;
-      }
-      const j = await r.json();
-      applyUserUi(j.user);
-      showApp();
-      return true;
-    } catch (e) {
-      // Offline: only use cache if it already has plan_id
-      try {
-        const cached = JSON.parse(localStorage.getItem(LS_GOOGLE_USER) || "null");
-        if (cached && (cached.plan_id || cached.plan_name)) {
-          applyUserUi(cached);
-          showApp();
-          return true;
-        }
-      } catch (e2) {
-        /* ignore */
-      }
-      return false;
+        async function restoreGoogleSession() {
+    googleSession = (localStorage.getItem(LS_GOOGLE) || localStorage.getItem("jarvis_session_token") || getCookie("tungdev_session") || "").trim();
+    if (googleSession) {
+      localStorage.setItem(LS_GOOGLE, googleSession);
     }
+    try {
+      googleUser = JSON.parse(localStorage.getItem(LS_GOOGLE_USER) || "null");
+    } catch (_) {
+      googleUser = null;
+    }
+
+    // Paint UI immediately from cache so user never sees "Đăng nhập" if logged in
+    if (googleUser) {
+      applyUserUi(googleUser);
+      showApp();
+    }
+
+    if (!googleSession && !googleUser) return false;
+
+    // Verify / sync fresh plan from backend
+    if (googleSession) {
+      try {
+        const r = await apiFetch("/api/auth/me", { cache: "no-store" });
+        if (r.ok) {
+          const text = await r.text();
+          if (!looksLikeNgrokHtml(text)) {
+            const j = JSON.parse(text);
+            if (j && j.user) {
+              applyUserUi(j.user);
+              showApp();
+              return true;
+            }
+          }
+        }
+      } catch (e) {
+        // network issue - keep local session intact
+      }
+    }
+    return !!(googleUser || googleSession);
   }
+
 
   function closeAccountMenus() {
     if (els.accountMenu) els.accountMenu.classList.add("hidden");
@@ -554,7 +729,7 @@
       e.stopPropagation();
     }
     if (!isLoggedIn()) {
-      redirectToLogin();
+      window.location.href = "login.html";
       return;
     }
     const menu = which === "top" ? els.accountMenuTop : els.accountMenu;
@@ -578,7 +753,7 @@
       /* use defaults */
     }
     if (els.tgLink && cfgPublic.telegramBot) els.tgLink.href = cfgPublic.telegramBot;
-    if (els.appNameLabel && cfgPublic.appName) els.appNameLabel.textContent = cfgPublic.appName;
+    if (els.appNameLabel && cfgPublic.appName && !isLoggedIn()) els.appNameLabel.textContent = cfgPublic.appName;
   }
 
   function _slimChats(list) {
@@ -589,6 +764,7 @@
         title: c.title,
         updated: c.updated,
         sessionId: c.sessionId || "",
+        pinned: !!c.pinned,
         messages: (c.messages || []).map(function (m) {
           return {
             role: m.role,
@@ -659,9 +835,11 @@
 
   async function pingServer() {
     try {
-      const r = await fetch(apiBase() + "/api/health", { cache: "no-store" });
+      const r = await apiFetch("/api/health", { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
-      const j = await r.json();
+      const text = await r.text();
+      if (looksLikeNgrokHtml(text)) throw new Error("ngrok html");
+      const j = JSON.parse(text);
       lastModel = j.model || "";
       serverOnline = true;
       setStatus(true);
@@ -679,26 +857,193 @@
     return chats.find((c) => c.id === activeId) || null;
   }
 
+  let activeMenuChatId = null;
+
   function renderHistory() {
+    if (!els.history) return;
     els.history.innerHTML = "";
-    const sorted = chats.slice().sort((a, b) => b.updated - a.updated);
+
+    // Sort: Pinned chats first, then newest updated
+    const sorted = chats.slice().sort((a, b) => {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return (b.updated || 0) - (a.updated || 0);
+    });
+
     sorted.forEach((c) => {
+      const isAct = c.id === activeId;
+      const isPin = !!c.pinned;
+      const title = c.title || "Chat mới";
+
       const row = document.createElement("div");
-      row.className = "hist-item" + (c.id === activeId ? " active" : "");
-      row.innerHTML =
-        '<span class="title"></span><button type="button" class="del" title="Xoa">X</button>';
-      row.querySelector(".title").textContent = c.title || "Chat mới";
+      row.className = "history-item" + (isAct ? " active" : "") + (isPin ? " pinned" : "");
+      row.setAttribute("data-id", c.id);
+      row.setAttribute("title", title);
+
+      row.innerHTML = 
+        '<span class="hist-title">' + escapeHtml(title) + '</span>' +
+        '<div class="hist-actions">' +
+          '<button type="button" class="hist-btn hist-pin-btn" data-id="' + c.id + '" title="' + (isPin ? 'Bỏ ghim' : 'Ghim đoạn chat') + '">' +
+            '<svg class="pin-svg" width="14" height="14" viewBox="0 0 24 24" fill="' + (isPin ? '#34d399' : 'none') + '" stroke="' + (isPin ? '#34d399' : 'currentColor') + '" stroke-width="2">' +
+              '<path d="M12 2v6m0 0l-3 3v4h6v-4l-3-3zM9 15h6M12 15v7"/>' +
+            '</svg>' +
+          '</button>' +
+          '<button type="button" class="hist-btn hist-menu-btn" data-id="' + c.id + '" title="Tùy chọn khác">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
+              '<circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>' +
+            '</svg>' +
+          '</button>' +
+        '</div>';
+
+      // Click to select chat
       row.addEventListener("click", (e) => {
-        if (e.target.closest(".del")) return;
+        if (e.target.closest(".hist-btn, .hist-rename-input")) return;
         selectChat(c.id);
       });
-      row.querySelector(".del").addEventListener("click", (e) => {
-        e.stopPropagation();
-        deleteChat(c.id);
-      });
+
+      // Pin button click
+      const pinBtn = row.querySelector(".hist-pin-btn");
+      if (pinBtn) {
+        pinBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          togglePinChat(c.id);
+        });
+      }
+
+      // 3-dots Menu button click
+      const menuBtn = row.querySelector(".hist-menu-btn");
+      if (menuBtn) {
+        menuBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openHistContextMenu(c.id, menuBtn);
+        });
+      }
+
       els.history.appendChild(row);
     });
   }
+
+  function togglePinChat(id) {
+    const c = chats.find((item) => item.id === id);
+    if (c) {
+      c.pinned = !c.pinned;
+      persistChats();
+      renderHistory();
+    }
+  }
+
+  function startRenameChat(id) {
+    const c = chats.find((item) => item.id === id);
+    if (!c) return;
+    const row = document.querySelector('.history-item[data-id="' + id + '"]');
+    if (!row) return;
+
+    const titleEl = row.querySelector(".hist-title");
+    if (!titleEl) return;
+
+    const currentTitle = c.title || "Chat mới";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "hist-rename-input";
+    input.value = currentTitle;
+    input.maxLength = 60;
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const save = () => {
+      const val = input.value.trim() || "Chat mới";
+      c.title = val;
+      persistChats();
+      renderHistory();
+      if (c.id === activeId && els.chatTitle) {
+        els.chatTitle.textContent = val;
+      }
+    };
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        save();
+      } else if (e.key === "Escape") {
+        renderHistory();
+      }
+    });
+    input.addEventListener("blur", save);
+  }
+
+  function openHistContextMenu(id, btnEl) {
+    const menu = document.getElementById("histContextMenu");
+    if (!menu) return;
+    activeMenuChatId = id;
+
+    const c = chats.find((item) => item.id === id);
+    const pinLabel = document.getElementById("histMenuPinLabel");
+    if (pinLabel && c) {
+      pinLabel.textContent = c.pinned ? "Bỏ ghim đoạn chat" : "Ghim lên đầu";
+    }
+
+    const rect = btnEl.getBoundingClientRect();
+    menu.classList.remove("hidden");
+    menu.style.top = (rect.bottom + 4) + "px";
+    menu.style.left = Math.max(10, rect.right - 175) + "px";
+
+    // Mark parent active for hover state
+    document.querySelectorAll(".history-item").forEach(r => r.classList.remove("menu-open"));
+    const parentRow = btnEl.closest(".history-item");
+    if (parentRow) parentRow.classList.add("menu-open");
+  }
+
+  function closeHistContextMenu() {
+    const menu = document.getElementById("histContextMenu");
+    if (menu) menu.classList.add("hidden");
+    activeMenuChatId = null;
+    document.querySelectorAll(".history-item").forEach(r => r.classList.remove("menu-open"));
+  }
+
+  // Bind History Menu Actions
+  document.addEventListener("DOMContentLoaded", function () {
+    const menuPin = document.getElementById("histMenuPin");
+    const menuRename = document.getElementById("histMenuRename");
+    const menuDelete = document.getElementById("histMenuDelete");
+
+    if (menuPin) {
+      menuPin.onclick = function (e) {
+        e.stopPropagation();
+        if (activeMenuChatId) togglePinChat(activeMenuChatId);
+        closeHistContextMenu();
+      };
+    }
+
+    if (menuRename) {
+      menuRename.onclick = function (e) {
+        e.stopPropagation();
+        const targetId = activeMenuChatId;
+        closeHistContextMenu();
+        if (targetId) startRenameChat(targetId);
+      };
+    }
+
+    if (menuDelete) {
+      menuDelete.onclick = function (e) {
+        e.stopPropagation();
+        const targetId = activeMenuChatId;
+        closeHistContextMenu();
+        if (targetId) {
+          if (confirm("Bạn có chắc chắn muốn xóa đoạn chat này?")) {
+            deleteChat(targetId);
+          }
+        }
+      };
+    }
+
+    // Close menu on outside click
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest("#histContextMenu, .hist-menu-btn")) {
+        closeHistContextMenu();
+      }
+    });
+  });
 
   function escapeHtml(s) {
     return String(s)
@@ -707,33 +1052,110 @@
       .replace(/>/g, "&gt;");
   }
 
+    
+  function quickHighlightCode(lang, code) {
+    const l = String(lang || "").toLowerCase();
+    let s = escapeHtml(code);
+
+    if (l === "html" || l === "xml" || l === "svg") {
+      // HTML comments
+      s = s.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="token comment syn-comm">$1</span>');
+      // Doctype
+      s = s.replace(/(&lt;!DOCTYPE[^&]*&gt;)/gi, '<span class="token doctype syn-comm">$1</span>');
+      // Tags and attributes
+      s = s.replace(/(&lt;\/?)([a-zA-Z0-9:-]+)((?:\s+[a-zA-Z0-9_:-]+(?:=(?:&quot;[^&]*&quot;|&#39;[^&#39;]*&#39;|[^\s&gt;]+))?)*)(\s*\/?&gt;)/g, function(_, open, tag, attrs, close) {
+        let parsedAttrs = attrs.replace(/([a-zA-Z0-9_:-]+)(=)(&quot;[^&]*&quot;|&#39;[^&#39;]*&#39;|[^\s&gt;]+)/g, '<span class="token attr-name syn-attr">$1</span><span class="token punctuation syn-punc">$2</span><span class="token attr-value syn-val">$3</span>');
+        return '<span class="token punctuation syn-punc">' + open + '</span><span class="token tag syn-tag">' + tag + '</span>' + parsedAttrs + '<span class="token punctuation syn-punc">' + close + '</span>';
+      });
+      return s;
+    }
+
+    if (l === "js" || l === "javascript" || l === "ts" || l === "typescript" || l === "py" || l === "python" || l === "cpp" || l === "c" || l === "java" || l === "php") {
+      // Comments
+      s = s.replace(/(\/\/[^\n]*|#[^\n]*)/g, '<span class="token comment syn-comm">$1</span>');
+      // Strings
+      s = s.replace(/(&quot;[^"]*&quot;|&#39;[^&#39;]*&#39;|`[^`]*`)/g, '<span class="token string syn-str">$1</span>');
+      // Keywords
+      const kwds = "function|const|let|var|return|async|await|if|else|for|while|import|from|export|class|def|elif|try|except|finally|public|private|static|new|this|typeof|instanceof";
+      const kwdRegex = new RegExp('\\b(' + kwds + ')\\b', 'g');
+      s = s.replace(kwdRegex, '<span class="token keyword syn-kwd">$1</span>');
+      // Booleans & numbers
+      s = s.replace(/\b(true|false|null|undefined|None|True|False)\b/g, '<span class="token boolean syn-num">$1</span>');
+      s = s.replace(/\b(\d+)\b/g, '<span class="token number syn-num">$1</span>');
+      // Functions
+      s = s.replace(/\b([a-zA-Z_0-9]+)(?=\s*\()/g, '<span class="token function syn-fn">$1</span>');
+      return s;
+    }
+
+    return s;
+  }
+
+  const rawCodeStorage = window.rawCodeStorage;
+
+  function getPureCodeFromBlock(blockEl, btnEl) { return window.getPureCodeFromBlock(blockEl, btnEl); }
+  function _oldGetPureCode(blockEl, btnEl) {
+    if (btnEl && btnEl.hasAttribute("data-code-id")) {
+      const id = Number(btnEl.getAttribute("data-code-id"));
+      if (rawCodeStorage[id] != null) return rawCodeStorage[id];
+    }
+    if (blockEl && blockEl.hasAttribute("data-code-id")) {
+      const id = Number(blockEl.getAttribute("data-code-id"));
+      if (rawCodeStorage[id] != null) return rawCodeStorage[id];
+    }
+    const codeEl = blockEl ? blockEl.querySelector("pre code, pre") : null;
+    let raw = codeEl ? codeEl.textContent || "" : "";
+    return unescapeHtml(raw);
+  }
+
+  function isExecutableLang(lang) {
+    const l = String(lang || "").trim().toLowerCase();
+    if (["html", "htm", "svg", "xml", "web"].includes(l)) return "web";
+    if (["javascript", "js", "ts", "typescript", "node"].includes(l)) return "js";
+    if (["python", "py", "python3"].includes(l)) return "py";
+    if (["cpp", "c++", "c", "cc", "hpp"].includes(l)) return "cpp";
+    return null;
+  }
+
   function buildCodeBlockHtml(lang, code) {
-    const langLabel = String(lang || "code")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9_+#-]/gi, "") || "code";
-    const body = String(code || "").replace(/\r\n/g, "\n").replace(/\n$/, "");
+    const rawLang = String(lang || "code").trim().toLowerCase().replace(/[^a-z0-9_+#-]/gi, "") || "code";
+    const unescapedBody = unescapeHtml(String(code || "").replace(/\r\n/g, "\n").replace(/\n$/, ""));
+    const execType = isExecutableLang(rawLang);
+    const codeId = rawCodeStorage.length;
+    rawCodeStorage.push(unescapedBody);
+
+    let runBtnHtml = "";
+    if (execType === "cpp") {
+      runBtnHtml = '<button type="button" class="btn-code-action btn-run-preview btn-run-cpp" data-exec="cpp" data-code-id="' + codeId + '" onclick="window.openCloudTerminal && window.openCloudTerminal(\'cpp\', this)" title="Biên dịch & Chạy C++ Siêu Tốc (G++ C++20)"><span class="run-icon">⚡</span> Chạy C++</button>';
+    } else if (execType === "web") {
+      runBtnHtml = '<button type="button" class="btn-code-action btn-run-preview" data-exec="web" data-code-id="' + codeId + '" onclick="window.openWebSandboxModal && window.openWebSandboxModal(this)" title="Chạy thử giao diện Web / Live Preview">🌐 Chạy Web</button>';
+    } else if (execType === "js") {
+      runBtnHtml = '<button type="button" class="btn-code-action btn-run-preview" data-exec="js" data-code-id="' + codeId + '" onclick="window.openCloudTerminal && window.openCloudTerminal(\'js\', this)" title="Chạy thử JavaScript (Node.js)">▶ Chạy JS</button>';
+    } else if (execType === "py") {
+      runBtnHtml = '<button type="button" class="btn-code-action btn-run-preview" data-exec="py" data-code-id="' + codeId + '" onclick="window.openCloudTerminal && window.openCloudTerminal(\'py\', this)" title="Chạy thử Python Sandbox">▶ Chạy Python</button>';
+    }
+
     return (
-      '<div class="code-block">' +
+      '<div class="code-block" data-lang="' + escapeHtml(rawLang) + '" data-code-id="' + codeId + '">' +
       '<div class="code-block-bar">' +
-      '<span class="code-lang">' +
-      langLabel +
-      "</span>" +
-      '<button type="button" class="code-copy" title="Sao chép code">Sao chép</button>' +
-      "</div>" +
-      '<pre><code class="lang-' +
-      langLabel +
-      '">' +
-      body +
-      "</code></pre>" +
-      "</div>"
+      '<div class="code-block-left">' +
+      '<span class="code-lang-badge"><span class="code-lang-dot"></span>' + escapeHtml(rawLang.toUpperCase()) + '</span>' +
+      '</div>' +
+      '<div class="code-block-actions">' +
+      runBtnHtml +
+      '<button type="button" class="btn-code-action btn-download-file" data-lang="' + escapeHtml(rawLang) + '" data-code-id="' + codeId + '" title="Tải mã nguồn này về máy tính">💾 Tải file (.' + escapeHtml(rawLang) + ')</button>' +
+      '<button type="button" class="btn-code-action code-copy" data-code-id="' + codeId + '" title="Sao chép toàn bộ code">📋 Sao chép</button>' +
+      '</div>' +
+      '</div>' +
+      '<pre class="language-' + escapeHtml(rawLang) + '"><code class="language-' + escapeHtml(rawLang) + '">' +
+      escapeHtml(unescapedBody) +
+      '</code></pre>' +
+      '</div>'
     );
   }
 
   function formatMarkdown(text) {
     if (!text) return "";
-    // Normalize newlines (Windows / model output)
-    let s = escapeHtml(String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
+    let s = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     const codeBlocks = [];
 
     function pushBlock(lang, code) {
@@ -741,17 +1163,58 @@
       return "\n\n@@CODEBLOCK" + (codeBlocks.length - 1) + "@@\n\n";
     }
 
-    // Closed fences: ```lang\n...\n```  or  ```\n...\n```
-    s = s.replace(/```([^\n`]*)\n([\s\S]*?)```/g, function (_, lang, code) {
-      return pushBlock(lang, code);
+    // Parse <think>...</think> Deep Reasoning blocks
+    s = s.replace(/<think>([\s\S]*?)<\/think>/gi, function (_, thought) {
+      return '<details class="deep-thinking-card" open>' +
+        '<summary class="thinking-summary">' +
+          '<span class="thinking-icon">🧠</span>' +
+          '<span class="thinking-label">Quá trình tư duy sâu & Kiến trúc (Deep Reasoning)</span>' +
+          '<span class="thinking-badge">Đã hoàn thành</span>' +
+        '</summary>' +
+        '<div class="thinking-content">' + escapeHtml(thought.trim()) + '</div>' +
+      '</details>';
     });
-    // Unclosed fence at end (streaming)
-    s = s.replace(/```([^\n`]*)\n([\s\S]*)$/g, function (_, lang, code) {
+
+    // Extract code blocks first before any other markdown processing
+    s = s.replace(/```([^\n`]*)\n([\s\S]*?)(?:```|$)/g, function (_, lang, code) {
       return pushBlock(lang, code);
     });
 
-    s = s.replace(/`([^`\n]+)`/g, "<code>$1</code>");
-    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    // 1. Parse markdown images: ![alt](url)
+    s = s.replace(/!\[([^\]]*)\]\(((?:https?:\/\/|\/|\.)[^\s)]+)\)/g, function (_, alt, url) {
+      const cleanAlt = escapeHtml(alt || "AI Image");
+      return '<div class="image-preview-wrap">' +
+        '<div class="image-loading-spinner">🎨 Đang tải ảnh nghệ thuật HD...</div>' +
+        '<img src="' + url + '" alt="' + cleanAlt + '" class="ai-generated-image" onload="const sp=this.previousElementSibling; if(sp) sp.style.display=\'none\'; this.classList.add(\'loaded\');" onerror="this.onerror=null; this.src=\'https://image.pollinations.ai/prompt/cute%20boy%20masterpiece%20portrait?width=768&height=768&nologo=true\';" onclick="window.open(this.src,\'_blank\')" />' +
+        '<div class="image-actions-bar">' +
+        '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="btn-image-action">🔍 Xem ảnh Full-HD</a>' +
+        '<a href="' + url + '" target="_blank" download class="btn-image-action">⬇ Tải về</a>' +
+        '</div>' +
+        '</div>';
+    });
+
+    // Auto convert textual download mentions into real interactive buttons
+    s = s.replace(/(?:bấm\s+)?(?:nút\s+)?(?:`|\[)?💾\s*Tải\s*file(?:`|\])?/gi, function () {
+      return '<button type="button" class="btn-inline-download" title="Bấm vào đây để tải file mã nguồn về máy tính">💾 Tải file ngay</button>';
+    });
+
+    // 2. Parse markdown links: [text](url)
+    s = s.replace(/(?<!\[)\[([^\]]+)\]\(((?:https?:\/\/|\/|\.)[^\s)]+)\)/g, function (_, label, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="chat-link">' + escapeHtml(label) + '</a>';
+    });
+
+    // 3. Headings
+    s = s.replace(/^### (.+)$/gm, function(_, h) { return '<h3 class="chat-h3">' + escapeHtml(h) + '</h3>'; });
+    s = s.replace(/^## (.+)$/gm, function(_, h) { return '<h2 class="chat-h2">' + escapeHtml(h) + '</h2>'; });
+    s = s.replace(/^# (.+)$/gm, function(_, h) { return '<h1 class="chat-h1">' + escapeHtml(h) + '</h1>'; });
+
+    // 4. Blockquotes / Meta rows
+    s = s.replace(/^> (.+)$/gm, function(_, m) { return '<div class="chat-meta-row">' + escapeHtml(m) + '</div>'; });
+
+    // 5. Inline formatting
+    s = s.replace(/`([^`\n]+)`/g, function(_, c) { return '<code>' + escapeHtml(c) + '</code>'; });
+    s = s.replace(/\*\*([^\*]+)\*\*/g, function(_, b) { return '<strong>' + escapeHtml(b) + '</strong>'; });
+    s = s.replace(/\*([^\*]+)\*/g, function(_, em) { return '<em>' + escapeHtml(em) + '</em>'; });
     s = s.replace(/(^|\n)[*-] (.+)/g, "$1• $2");
 
     s = s
@@ -760,7 +1223,9 @@
         const t = p.trim();
         if (!t) return "";
         if (/^@@CODEBLOCK\d+@@$/.test(t)) return t;
-        // Keep code placeholders out of <p>
+        if (/^<div class="image-preview-wrap">/.test(t)) return t;
+        if (/^<h[1-3]/.test(t)) return t;
+        if (/^<details/.test(t)) return t;
         if (t.indexOf("@@CODEBLOCK") !== -1) {
           return t.replace(/(@@CODEBLOCK\d+@@)/g, "\n$1\n");
         }
@@ -768,13 +1233,14 @@
       })
       .join("");
 
-    // Flatten any leftover wrapper newlines around markers
+    // Restore code blocks
     s = s.replace(/(?:<p>)?\s*(@@CODEBLOCK\d+@@)\s*(?:<\/p>)?/g, "$1");
     s = s.replace(/@@CODEBLOCK(\d+)@@/g, function (_, i) {
       return codeBlocks[Number(i)] || "";
     });
     return s;
   }
+  window.formatMarkdown = formatMarkdown;
 
   function copyCodeText(text, btn) {
     const done = function (ok) {
@@ -814,27 +1280,312 @@
   }
 
   /** Wrap bare <pre> and ensure every code block has Copy bar */
-  function enhanceCodeBlocks(root) {
+    function enhanceCodeBlocks(root) {
     if (!root) return;
     root.querySelectorAll("pre").forEach(function (pre) {
       if (pre.closest(".code-block")) return;
-      const wrap = document.createElement("div");
-      wrap.className = "code-block";
-      const bar = document.createElement("div");
-      bar.className = "code-block-bar";
-      bar.innerHTML =
-        '<span class="code-lang">code</span>' +
-        '<button type="button" class="code-copy" title="Sao chép code">Sao chép</button>';
-      pre.parentNode.insertBefore(wrap, pre);
-      wrap.appendChild(bar);
-      wrap.appendChild(pre);
+      const codeEl = pre.querySelector("code");
+      let lang = "code";
+      if (codeEl) {
+        const cls = codeEl.className || "";
+        const m = cls.match(/lang(?:uage)?-([a-z0-9_+#-]+)/i);
+        if (m) lang = m[1];
+      }
+      const rawCode = pre.textContent || "";
+      const tempWrap = document.createElement("div");
+      tempWrap.innerHTML = buildCodeBlockHtml(lang, rawCode);
+      const newBlock = tempWrap.firstElementChild;
+      if (newBlock) {
+        pre.parentNode.insertBefore(newBlock, pre);
+        pre.remove();
+      }
     });
+  }
+
+  
+  /* ============================================================
+     LIVE CODE EXECUTION & RUNNER ENGINE
+  ============================================================ */
+  let pyodideInstance = null;
+  let pyodideLoading = false;
+
+  async function getPyodide() {
+    if (pyodideInstance) return pyodideInstance;
+    if (pyodideLoading) {
+      while (pyodideLoading) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return pyodideInstance;
+    }
+    pyodideLoading = true;
+    try {
+      if (!window.loadPyodide) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("Không thể tải Pyodide CDN"));
+          document.head.appendChild(script);
+        });
+      }
+      pyodideInstance = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+      });
+      return pyodideInstance;
+    } finally {
+      pyodideLoading = false;
+    }
+  }
+
+  function handleRunCodeClick(btn) {
+    const block = btn.closest(".code-block");
+    if (!block) return;
+    const execType = btn.getAttribute("data-exec");
+    const codeEl = block.querySelector("pre code, pre");
+    const code = codeEl ? codeEl.textContent || "" : "";
+
+    // Toggle close if already open
+    const existingSandbox = block.querySelector(".code-live-sandbox, .code-live-terminal");
+    if (existingSandbox) {
+      existingSandbox.remove();
+      btn.classList.remove("active");
+      return;
+    }
+
+    btn.classList.add("active");
+
+    if (execType === "web") {
+      runWebPreview(block, code, btn);
+    } else if (execType === "js") {
+      runJsCode(block, code, btn);
+    } else if (execType === "py") {
+      runPythonCode(block, code, btn);
+    }
+  }
+
+  function runWebPreview(block, code, btn) {
+    const wrap = document.createElement("div");
+    wrap.className = "code-live-sandbox";
+    wrap.innerHTML = `
+      <div class="sandbox-toolbar">
+        <div class="sandbox-status">
+          <span class="sandbox-status-dot"></span>
+          <span>Live Web Sandbox</span>
+        </div>
+        <div class="sandbox-tools">
+          <button type="button" class="sandbox-btn btn-reload" title="Tải lại giao diện">🔄 Tải lại</button>
+          <button type="button" class="sandbox-btn btn-expand" title="Mở rộng / Thu nhỏ">⛶ Mở rộng</button>
+          <button type="button" class="sandbox-btn btn-close" title="Đóng preview">✖ Đóng</button>
+        </div>
+      </div>
+      <iframe class="sandbox-frame" sandbox="allow-scripts allow-modals allow-forms"></iframe>
+    `;
+
+    block.appendChild(wrap);
+    const iframe = wrap.querySelector(".sandbox-frame");
+
+    function renderContent() {
+      let doc = code.trim();
+      if (!doc.toLowerCase().includes("<html") && !doc.toLowerCase().includes("<!doctype")) {
+        doc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 1rem; color: #1e293b; }
+  </style>
+</head>
+<body>
+  ${doc}
+</body>
+</html>`;
+      }
+      iframe.srcdoc = doc;
+    }
+
+    renderContent();
+
+    wrap.querySelector(".btn-reload").addEventListener("click", () => renderContent());
+    wrap.querySelector(".btn-expand").addEventListener("click", () => {
+      if (iframe.style.height === "550px") {
+        iframe.style.height = "320px";
+      } else {
+        iframe.style.height = "550px";
+      }
+    });
+    wrap.querySelector(".btn-close").addEventListener("click", () => {
+      wrap.remove();
+      btn.classList.remove("active");
+    });
+  }
+
+  function runJsCode(block, code, btn) {
+    const wrap = document.createElement("div");
+    wrap.className = "code-live-terminal";
+    wrap.innerHTML = `
+      <div class="terminal-header">
+        <span>⚡ JavaScript Output (Console)</span>
+        <button type="button" class="sandbox-btn btn-close-term" style="padding:1px 6px;">✖ Đóng</button>
+      </div>
+      <div class="terminal-logs"></div>
+    `;
+
+    block.appendChild(wrap);
+    const logsEl = wrap.querySelector(".terminal-logs");
+    wrap.querySelector(".btn-close-term").addEventListener("click", () => {
+      wrap.remove();
+      btn.classList.remove("active");
+    });
+
+    const logs = [];
+    const pushLog = (type, ...args) => {
+      const msg = args.map(a => typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)).join(" ");
+      logs.push({ type, msg });
+      const line = document.createElement("div");
+      line.className = `terminal-log-item ${type}`;
+      line.textContent = `> ${msg}`;
+      logsEl.appendChild(line);
+    };
+
+    try {
+      const sandboxFn = new Function("console", `
+        "use strict";
+        ${code}
+      `);
+      const customConsole = {
+        log: (...args) => pushLog("log", ...args),
+        error: (...args) => pushLog("error", ...args),
+        warn: (...args) => pushLog("warn", ...args),
+        info: (...args) => pushLog("info", ...args),
+      };
+      const t0 = performance.now();
+      const res = sandboxFn(customConsole);
+      const elapsed = (performance.now() - t0).toFixed(1);
+      if (res !== undefined) {
+        pushLog("success", `[Return value]: ${typeof res === "object" ? JSON.stringify(res, null, 2) : res}`);
+      }
+      if (logs.length === 0) {
+        pushLog("info", `Code chạy thành công (${elapsed}ms) — không có console.log`);
+      }
+    } catch (err) {
+      pushLog("error", `Lỗi thực thi: ${err.message}`);
+    }
+  }
+
+    async function runPythonCode(block, code, btn) {
+    // 1. If Workspace panel exists, open it and sync file
+    if (window.TungDevWorkspace) {
+      window.TungDevWorkspace.openWorkspace();
+      window.TungDevWorkspace.vfs.setFile("main.py", code);
+      window.TungDevWorkspace.switchTab("terminal");
+      window.TungDevWorkspace.terminal.log("SYSTEM", "🐍 Đang thực thi main.py...");
+    }
+
+    // 2. Open inline interactive terminal directly below the code block
+    let wrap = block.querySelector(".code-live-terminal");
+    if (!wrap) {
+      wrap = document.createElement("div");
+      wrap.className = "code-live-terminal";
+      wrap.innerHTML = `
+        <div class="terminal-header">
+          <span>🐍 Python Interactive Output (Pyodide & Server Engine)</span>
+          <button type="button" class="sandbox-btn btn-close-term" style="padding:1px 6px;">✖ Đóng</button>
+        </div>
+        <div class="terminal-logs"><div class="terminal-log-item info">⏳ Đang khởi chạy môi trường Python...</div></div>
+      `;
+      block.appendChild(wrap);
+      wrap.querySelector(".btn-close-term").addEventListener("click", () => {
+        wrap.remove();
+        btn.classList.remove("active");
+      });
+    }
+
+    const logsEl = wrap.querySelector(".terminal-logs");
+    logsEl.innerHTML = '<div class="terminal-log-item info">⏳ Đang chạy mã nguồn Python...</div>';
+
+    const pushTerm = (type, text) => {
+      const line = document.createElement("div");
+      line.className = `terminal-log-item ${type || ""}`;
+      line.textContent = text;
+      logsEl.appendChild(line);
+      if (window.TungDevWorkspace && window.TungDevWorkspace.terminal) {
+        window.TungDevWorkspace.terminal.log(type === "error" ? "ERROR" : "LOG", text);
+      }
+    };
+
+    // Method A: In-browser Pyodide WASM Engine
+    try {
+      const pyodide = await getPyodide();
+      logsEl.innerHTML = "";
+      pyodide.setStdout({
+        batched: (str) => pushTerm("log", str)
+      });
+      pyodide.setStderr({
+        batched: (str) => pushTerm("error", str)
+      });
+
+      const t0 = performance.now();
+      const result = await pyodide.runPythonAsync(code);
+      const elapsed = (performance.now() - t0).toFixed(1);
+
+      if (result !== undefined && result !== null) {
+        pushTerm("success", `[Return value]: ${String(result)}`);
+      }
+      if (!logsEl.children.length) {
+        pushTerm("success", `✅ Thực thi Python thành công (${elapsed}ms)!`);
+      }
+      return;
+    } catch (wasmErr) {
+      console.warn("Pyodide WASM fallback to server:", wasmErr);
+    }
+
+    // Method B: Server Subprocess Execution Fallback (/api/run-code)
+    try {
+      const apiBase = resolveApiBase ? resolveApiBase() : "";
+      const resp = await fetch(`${apiBase}/api/run-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang: "python", code: code })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        logsEl.innerHTML = "";
+        if (data.stdout) {
+          data.stdout.trim().split("\n").forEach(line => pushTerm("log", line));
+        }
+        if (data.stderr) {
+          data.stderr.trim().split("\n").forEach(line => pushTerm("error", line));
+        }
+        if (!data.stdout && !data.stderr) {
+          pushTerm("success", `✅ Code thực thi hoàn tất trong ${data.elapsed}s (exit code 0).`);
+        }
+        return;
+      }
+    } catch (serverErr) {
+      console.error("Server run-code error:", serverErr);
+    }
+
+    logsEl.innerHTML = '<div class="terminal-log-item error">❌ Không thể chạy Python (Lỗi nạp môi trường).</div>';
+  }
+
+
+  
+  function triggerPrismHighlight(root) {
+    if (window.Prism && window.Prism.highlightAllUnder && root) {
+      try {
+        window.Prism.highlightAllUnder(root);
+      } catch (e) {
+        /* fallback to instant tokenizer */
+      }
+    }
   }
 
   function setAssistantHtml(el, text) {
     if (!el) return;
     el.innerHTML = formatMarkdown(text || "");
     enhanceCodeBlocks(el);
+    triggerPrismHighlight(el);
   }
 
   function renderMessages() {
@@ -852,21 +1603,25 @@
     scrollBottom();
   }
 
-  function appendMsg(role, content, images, scroll) {
+    function appendMsg(role, content, images, scroll) {
     if (!images) images = [];
     if (scroll === undefined) scroll = true;
     if (els.welcome && els.welcome.parentElement) els.welcome.remove();
+
     const row = document.createElement("div");
-    row.className = "msg " + role;
-    const av = document.createElement("div");
-    av.className = "avatar";
-    av.textContent = role === "user" ? "U" : "T";
-    const body = document.createElement("div");
-    body.className = "body";
-    const roleEl = document.createElement("div");
-    roleEl.className = "role";
-    roleEl.textContent = role === "user" ? "Bạn" : "TungDevAI";
-    body.appendChild(roleEl);
+    row.className = "message-row " + role;
+
+    if (role === "assistant") {
+      const avImg = document.createElement("img");
+      avImg.className = "message-avatar";
+      avImg.src = "assets/tungdevai-core-logo.jpg?v=core2026";
+      avImg.alt = "TungDevAI";
+      row.appendChild(avImg);
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+
     if (images.length) {
       const wrap = document.createElement("div");
       wrap.className = "msg-images";
@@ -876,15 +1631,29 @@
         img.alt = "Anh";
         wrap.appendChild(img);
       });
-      body.appendChild(wrap);
+      bubble.appendChild(wrap);
     }
+
     const contentEl = document.createElement("div");
     contentEl.className = "content";
-    if (role === "assistant") setAssistantHtml(contentEl, content || "");
-    else contentEl.textContent = content || "";
-    body.appendChild(contentEl);
-    row.appendChild(av);
-    row.appendChild(body);
+
+    if (role === "assistant" && !(content || "").trim()) {
+      contentEl.innerHTML = '<div class="fx-loading-bubble" style="display:flex;gap:6px;padding:8px 0;"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse-glow 1s infinite alternate;"></span><span style="width:8px;height:8px;border-radius:50%;background:#6ee7b7;animation:pulse-glow 1s infinite alternate 0.2s;"></span><span style="width:8px;height:8px;border-radius:50%;background:#a3e635;animation:pulse-glow 1s infinite alternate 0.4s;"></span></div>';
+    } else if (role === "assistant") {
+      setAssistantHtml(contentEl, content || "");
+    } else {
+      contentEl.textContent = content || "";
+    }
+    bubble.appendChild(contentEl);
+    row.appendChild(bubble);
+
+    if (role === "user") {
+      const avUser = document.createElement("div");
+      avUser.className = "message-avatar user-avatar-badge";
+      avUser.textContent = "Bạn";
+      row.appendChild(avUser);
+    }
+
     els.messages.appendChild(row);
     if (scroll) scrollBottom();
     return contentEl;
@@ -917,6 +1686,9 @@
 
   function selectChat(id) {
     activeId = id;
+    const ac = activeChat();
+    sessionId = (ac && ac.sessionId) ? ac.sessionId : id;
+    localStorage.setItem(LS_SID, sessionId);
     clearPendingImages();
     renderHistory();
     renderMessages();
@@ -936,11 +1708,27 @@
     return activeChat();
   }
 
+    const SEND_ICON_HTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+  const STOP_ICON_HTML = '<span class="stop-btn-wrap"><svg class="stop-spin-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.25"></circle><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="12" class="stop-spin-circle"></circle></svg><span class="stop-square"></span></span>';
+
   function setBusy(v) {
     busy = v;
-    els.send.disabled = v;
-    els.input.disabled = v;
-    if (els.btnPlus) els.btnPlus.disabled = v;
+    if (els.send) {
+      els.send.disabled = false;
+      if (v) {
+        els.send.classList.add("btn-generating");
+        els.send.title = "Dừng tạo câu trả lời (Stop)";
+        els.send.setAttribute("aria-label", "Dừng tạo câu trả lời");
+        els.send.innerHTML = STOP_ICON_HTML;
+      } else {
+        els.send.classList.remove("btn-generating");
+        els.send.title = "Gửi tin nhắn (Enter)";
+        els.send.setAttribute("aria-label", "Gửi tin nhắn");
+        els.send.innerHTML = SEND_ICON_HTML;
+      }
+    }
+    if (els.input) els.input.disabled = false;
+    if (els.btnPlus) els.btnPlus.disabled = !!v;
     if (els.modeBar) {
       els.modeBar.querySelectorAll(".mode-chip").forEach(function (b) {
         b.disabled = !!v;
@@ -949,15 +1737,23 @@
     if (!v) setStreamStatus("");
   }
 
-  function setStreamStatus(text) {
-    if (!els.streamStatus) return;
-    if (!text) {
-      els.streamStatus.hidden = true;
-      els.streamStatus.textContent = "";
-      return;
+  function stopGeneration() {
+    if (currentAbortController) {
+      try { currentAbortController.abort(); } catch(_) {}
+      currentAbortController = null;
     }
-    els.streamStatus.hidden = false;
-    els.streamStatus.textContent = text;
+    setBusy(false);
+    setStreamStatus("⏹ Đã dừng tạo câu trả lời.");
+    const typingRows = document.querySelectorAll(".message-row.assistant.typing");
+    typingRows.forEach(row => row.classList.remove("typing"));
+    if (els.input) els.input.focus();
+  }
+
+  function setStreamStatus(text) {
+    if (els.streamStatus) {
+      els.streamStatus.hidden = true;
+      els.streamStatus.innerHTML = "";
+    }
   }
 
   function setActiveMode(modeId, opts) {
@@ -967,13 +1763,12 @@
     activeMode = id;
     localStorage.setItem(LS_MODE, id);
     if (els.modeBadge) els.modeBadge.textContent = MODE_LABELS[id] || id;
-    if (els.modeBar) {
-      els.modeBar.querySelectorAll(".mode-chip").forEach(function (btn) {
-        var on = (btn.getAttribute("data-mode") || "") === id;
-        btn.classList.toggle("active", on);
-        btn.setAttribute("aria-pressed", on ? "true" : "false");
-      });
-    }
+    const agentIcons = { coder: "💻", security: "🛡️", marketing: "📈", business: "💼", tutor: "🎓", data: "📊", default: "✨" };
+    const agentNames = { coder: "Coder Pro", security: "Hacker Mũ Trắng", marketing: "Marketing Viral", business: "Cố Vấn Kinh Doanh", tutor: "Gia Sư AI", data: "Data Scientist", default: "Đa Năng" };
+    const iconEl = document.getElementById("agentSelectIcon");
+    const nameEl = document.getElementById("agentSelectName");
+    if (iconEl) iconEl.textContent = agentIcons[id] || "🤖";
+    if (nameEl) nameEl.textContent = agentNames[id] || (MODE_LABELS[id] || id);
     if (opts.announce) {
       var tip =
         id === "coder"
@@ -996,25 +1791,50 @@
 
   function clearPendingImages() {
     pendingImages = [];
+    pendingAttachments = [];
     renderAttachPreview();
   }
 
   function renderAttachPreview() {
     if (!els.attachPreview) return;
-    if (!pendingImages.length) {
+    const hasItems = (pendingImages && pendingImages.length > 0) || (pendingAttachments && pendingAttachments.length > 0);
+    if (!hasItems) {
       els.attachPreview.hidden = true;
       els.attachPreview.innerHTML = "";
       return;
     }
     els.attachPreview.hidden = false;
     els.attachPreview.innerHTML = "";
-    pendingImages.forEach((src, i) => {
+
+    // 1. Render Images (Compact square thumbnail with floating X button on top-right)
+    (pendingImages || []).forEach((src, i) => {
       const chip = document.createElement("div");
-      chip.className = "attach-chip";
-      chip.innerHTML = '<img alt="p" /><button type="button" class="rm">X</button>';
-      chip.querySelector("img").src = src;
-      chip.querySelector(".rm").onclick = () => {
+      chip.className = "attach-thumb-card";
+      chip.innerHTML = 
+        '<div class="thumb-img-wrap">' +
+          '<img src="' + src + '" alt="attachment" />' +
+          '<button type="button" class="btn-remove-thumb" title="Xóa ảnh" aria-label="Xóa">✕</button>' +
+        '</div>';
+      chip.querySelector(".btn-remove-thumb").onclick = () => {
         pendingImages.splice(i, 1);
+        renderAttachPreview();
+      };
+      els.attachPreview.appendChild(chip);
+    });
+
+    // 2. Render Document/Code attachments
+    (pendingAttachments || []).forEach((att, i) => {
+      const chip = document.createElement("div");
+      chip.className = "attach-doc-card";
+      chip.innerHTML = 
+        '<span class="doc-icon">📄</span>' +
+        '<div class="doc-info">' +
+          '<span class="doc-name">' + escapeHtml(att.filename || "Tệp đính kèm") + '</span>' +
+          '<span class="doc-meta">' + escapeHtml(att.meta || "") + '</span>' +
+        '</div>' +
+        '<button type="button" class="btn-remove-doc" title="Xóa tệp" aria-label="Xóa">✕</button>';
+      chip.querySelector(".btn-remove-doc").onclick = () => {
+        pendingAttachments.splice(i, 1);
         renderAttachPreview();
       };
       els.attachPreview.appendChild(chip);
@@ -1067,6 +1887,7 @@
   }
 
   function parseApiError(status, errText) {
+    if (looksLikeNgrokHtml(errText)) return ngrokHtmlErrorHint();
     let msg = errText || ("Lỗi " + status);
     try {
       const j = JSON.parse(errText);
@@ -1078,7 +1899,12 @@
           msg += "\n\n→ [Mua gói VIP](" + d.upgrade_url + ")";
         }
       } else if (j.message) msg = j.message;
-    } catch (e) {}
+    } catch (e) {
+      // HTML/plain noise
+      if (/<!DOCTYPE|<html/i.test(String(errText || ""))) {
+        return ngrokHtmlErrorHint();
+      }
+    }
     return msg;
   }
 
@@ -1187,18 +2013,63 @@
     setStreamStatus("Đang kết nối AI…");
 
     try {
-      const res = await fetch(apiBase() + "/api/chat", {
-        method: "POST",
-        headers: userHeaders(),
-        body: JSON.stringify({
-          message: payloadText,
-          session_id: sessionId,
-          stream: true,
-          mode: activeMode,
-        }),
-      });
+      const base = apiBase();
+      if (!base) {
+        throw new Error(
+          "Chưa có API server (apiBase trống). Mở http://127.0.0.1:7860 hoặc bật ngrok / BAT_TUNGDEVAI_ONLINE.bat"
+        );
+      }
+      let res;
+      try {
+        // Multi-turn context: take last 10 messages from current conversation
+        const prevMsgs = (chat.messages || []).slice(-10).map(function(m) {
+          return { role: m.role, content: m.content };
+        });
+
+        currentAbortController = new AbortController();
+        res = await apiFetch("/api/chat", {
+          method: "POST",
+          signal: currentAbortController.signal,
+          body: JSON.stringify({
+            message: payloadText,
+            session_id: sessionId || chat.sessionId || chat.id,
+            stream: true,
+            mode: activeMode,
+            model: activeModel,
+            web_search: !!webSearchEnabled,
+            attachments: pendingAttachments.slice(),
+            history: prevMsgs,
+          }),
+        });
+      } catch (netErr) {
+        throw new Error(
+          "Không kết nối được API AI (server/ngrok tắt).\n" +
+            "→ PC: chạy Desktop\\BAT_TUNGDEVAI_ONLINE.bat\n" +
+            "→ Local: http://127.0.0.1:7860/chat.html\n" +
+            "→ Online: link ngrok + đăng nhập lại"
+        );
+      }
+
+      const ctypePeek = res.headers.get("content-type") || "";
+      // ngrok free sometimes returns HTML interstitial with 200
+      if (ctypePeek.indexOf("text/html") !== -1) {
+        const htmlBody = await res.text();
+        if (looksLikeNgrokHtml(htmlBody)) {
+          throw new Error(ngrokHtmlErrorHint());
+        }
+        throw new Error("Server trả HTML thay vì API. Kiểm tra tunnel/server.");
+      }
+
       if (!res.ok) {
         const errText = await res.text();
+        if (looksLikeNgrokHtml(errText)) {
+          throw new Error(ngrokHtmlErrorHint());
+        }
+        if (res.status === 401) {
+          throw new Error(
+            "Phiên làm việc cần làm mới. Hãy nhấp vào 'Đăng nhập' ở thanh bên trái để đăng nhập lại."
+          );
+        }
         throw new Error(parseApiError(res.status, errText.slice(0, 800)));
       }
 
@@ -1301,32 +2172,27 @@
       setStatus(true);
       // Refresh quota / plan chip after each message
       if (googleSession) {
-        fetch(apiBase() + "/api/auth/me", {
-          headers: { "X-User-Session": googleSession },
-          cache: "no-store",
-        })
-          .then(function (r) {
-            return r.ok ? r.json() : null;
-          })
-          .then(function (j) {
-            if (j && j.user) applyUserUi(j.user);
-          })
-          .catch(function () {});
+        refreshPlanFromServer().catch(function () {});
       }
     } catch (err) {
       contentEl.parentElement.parentElement.classList.remove("typing");
       setStreamStatus("");
+      const em = String(err.message || err);
       setAssistantHtml(
         contentEl,
         "**Lỗi**\n\n" +
-          String(err.message || err) +
+          em +
           "\n\nGợi ý:\n" +
-          "1. Chạy server: `python -m webapp.server` (port 7860)\n" +
-          "2. Mở: http://127.0.0.1:7860/chat.html\n" +
-          "3. Hết quota? [Mua gói VIP](pricing.html) rồi gõ `/activate MÃ`\n" +
-          "4. Bot: https://t.me/grokapiai_bot"
+          "1. PC bật: `Desktop\\BAT_TUNGDEVAI_ONLINE.bat` (web + ngrok)\n" +
+          "2. Mở: http://127.0.0.1:7860/chat.html (cùng máy)\n" +
+          "3. Phiên hết hạn → [Đăng nhập lại](login.html?next=chat.html)\n" +
+          "4. Hết quota? [Mua gói VIP](pricing.html)\n" +
+          "5. Bot Telegram: https://t.me/grokapiai_bot"
       );
       setStatus(false);
+      if (/hết hạn|Cần đăng nhập|401/i.test(em)) {
+        // Do not force redirect - allow user to stay in chat
+      }
     } finally {
       setBusy(false);
       scrollBottom();
@@ -1360,6 +2226,10 @@
   bindModeBar();
   els.form.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (busy) {
+      stopGeneration();
+      return;
+    }
     sendMessage(els.input.value);
   });
   els.input.addEventListener("input", autoResize);
@@ -1439,27 +2309,32 @@
   // Boot chat UI. KHONG tu nhay login khi mo trang (tranh loop / cache index cu).
   // Chi bat login khi user gui tin ma server yeu cau auth.
   (async function boot() {
-    const path = (location.pathname || "").toLowerCase();
-    // Chi chay full boot tren chat.html — khong bao gio tren landing/root
-    if (path.indexOf("chat.html") === -1 && path.indexOf("/chat") === -1) {
-      console.warn("chat.js: skip boot (not chat.html)");
+    // Boot chat UI if chat elements exist
+    if (!document.getElementById("messages") && !document.getElementById("input") && !document.getElementById("app")) {
       return;
     }
 
     await loadPublicConfig();
     try {
-      const r = await fetch(apiBase() + "/api/config", { cache: "no-store" });
-      if (r.ok) {
-        serverConfig = Object.assign(serverConfig, await r.json());
+      if (apiBase()) {
+        const r = await apiFetch("/api/config", { cache: "no-store" });
+        if (r.ok) {
+          const text = await r.text();
+          if (!looksLikeNgrokHtml(text)) {
+            serverConfig = Object.assign(serverConfig, JSON.parse(text));
+          }
+        }
       }
     } catch (e) {
       /* server offline — restore may use cache */
     }
 
     let ok = await restoreGoogleSession();
-    if (!ok) {
-      // Soft gate: hien chat UI + chip "Dang nhap" — KHONG location.href login
+    if (!ok && !googleUser) {
       applyUserUi(null);
+      showApp();
+      ok = true;
+    } else {
       showApp();
       ok = true;
     }
@@ -1476,32 +2351,33 @@
       sessionId = cur.sessionId;
       localStorage.setItem(LS_SID, sessionId);
     }
+    renderHistory();
+    renderMessages();
+    bindSuggestions();
     if (ok) {
-      renderHistory();
-      renderMessages();
-      bindSuggestions();
       await pingServer();
       if (sessionId && isLoggedIn()) {
         try {
-          const r = await fetch(
-            apiBase() +
-              "/api/chat/history?session_id=" +
-              encodeURIComponent(sessionId),
-            { headers: userHeaders(), cache: "no-store" }
+          const r = await apiFetch(
+            "/api/chat/history?session_id=" + encodeURIComponent(sessionId),
+            { cache: "no-store" }
           );
           if (r.ok) {
-            const j = await r.json();
-            if (
-              j.messages &&
-              j.messages.length &&
-              cur &&
-              (!cur.messages || !cur.messages.length)
-            ) {
-              cur.messages = j.messages.map(function (m) {
-                return { role: m.role, content: m.content, images: [] };
-              });
-              persistChats();
-              renderMessages();
+            const text = await r.text();
+            if (!looksLikeNgrokHtml(text)) {
+              const j = JSON.parse(text);
+              if (
+                j.messages &&
+                j.messages.length &&
+                cur &&
+                (!cur.messages || !cur.messages.length)
+              ) {
+                cur.messages = j.messages.map(function (m) {
+                  return { role: m.role, content: m.content, images: [] };
+                });
+                persistChats();
+                renderMessages();
+              }
             }
           }
         } catch (e) {
@@ -1512,4 +2388,701 @@
       renderGoogleButton();
     }
   })();
+
+  // =========================================================================
+  // AI MODEL SELECTOR CONTROLLER
+  // =========================================================================
+  const LS_MODEL = "jarvis_ai_model_v1";
+  let activeModel = localStorage.getItem(LS_MODEL) || "coder-v1";
+
+  const btnModelSelect = document.getElementById("btnModelSelect");
+  const modelDropdown = document.getElementById("modelDropdown");
+  const modelSelectIcon = document.getElementById("modelSelectIcon");
+  const modelSelectName = document.getElementById("modelSelectName");
+
+  function initModelSelector() {
+    if (!btnModelSelect || !modelDropdown) return;
+
+    applyModel(activeModel, false);
+
+    btnModelSelect.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = !modelDropdown.classList.contains("hidden");
+      if (isOpen) {
+        closeModelDropdown();
+      } else {
+        openModelDropdown();
+      }
+    });
+
+    document.querySelectorAll(".model-opt-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const modelId = item.dataset.model || "coder-v1";
+        applyModel(modelId, true);
+        closeModelDropdown();
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!modelDropdown.contains(e.target) && !btnModelSelect.contains(e.target)) {
+        closeModelDropdown();
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModelDropdown();
+    });
+  }
+
+  function openModelDropdown() {
+    modelDropdown.classList.remove("hidden");
+    btnModelSelect.classList.add("active-open");
+    btnModelSelect.setAttribute("aria-expanded", "true");
+  }
+
+  function closeModelDropdown() {
+    modelDropdown.classList.add("hidden");
+    btnModelSelect.classList.remove("active-open");
+    btnModelSelect.setAttribute("aria-expanded", "false");
+  }
+
+  function applyModel(modelId, showHint) {
+    activeModel = modelId;
+    localStorage.setItem(LS_MODEL, modelId);
+
+    const activeItem = document.querySelector(`.model-opt-item[data-model="${modelId}"]`);
+    if (activeItem) {
+      document.querySelectorAll(".model-opt-item").forEach((it) => it.classList.remove("active"));
+      activeItem.classList.add("active");
+
+      const icon = activeItem.dataset.icon || "🪐";
+      const label = activeItem.dataset.label || "Quantum 4.0";
+      if (modelSelectIcon) modelSelectIcon.textContent = icon;
+      if (modelSelectName) modelSelectName.textContent = label;
+
+      if (showHint && typeof showToast === "function") {
+        showToast(`⚡ Đã chuyển sang mô hình: ${label}`);
+      }
+    }
+  }
+
+  // Auto initialize on load
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initModelSelector);
+  } else {
+        const btnCloseWs = document.getElementById("btnCloseWorkspace");
+    if (btnCloseWs) {
+      btnCloseWs.onclick = () => {
+        if (window.TungDevWorkspace) window.TungDevWorkspace.closeWorkspace();
+      };
+    }
+
+    initModelSelector();
+  initAgentHub();
+  initWebSearchToggle();
+  }
+
+// --- Team Management Logic ---
+
+  // =========================================================================
+  // TEAM MANAGEMENT (Business plan - 5 members)
+  // =========================================================================
+  const teamModal = $("teamModal") || document.getElementById("teamModal");
+  const btnSidebarTeam = $("btnSidebarTeam") || document.getElementById("btnSidebarTeam");
+  const btnManageTeam = $("btnManageTeam") || document.getElementById("btnManageTeam");
+  const btnCloseTeam = $("btnCloseTeam") || document.getElementById("btnCloseTeam");
+  const teamModalBackdrop = $("teamModalBackdrop") || document.getElementById("teamModalBackdrop");
+  const btnAddTeam = $("btnAddTeam") || document.getElementById("btnAddTeam");
+  const teamInviteEmail = $("teamInviteEmail") || document.getElementById("teamInviteEmail");
+  const teamList = $("teamList") || document.getElementById("teamList");
+  const teamMsg = $("teamMsg") || document.getElementById("teamMsg");
+  const modalTeamCounter = $("modalTeamCounter") || document.getElementById("modalTeamCounter");
+  const sidebarTeamWrap = $("sidebarTeamWrap") || document.getElementById("sidebarTeamWrap");
+  const sidebarTeamCount = $("sidebarTeamCount") || document.getElementById("sidebarTeamCount");
+
+  function showTeamMsg(text, isOk) {
+    if (!teamMsg) return;
+    teamMsg.style.display = "block";
+    teamMsg.style.background = isOk ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.15)";
+    teamMsg.style.border = isOk ? "1px solid #34d399" : "1px solid #f87171";
+    teamMsg.style.color = isOk ? "#6ee7b7" : "#fca5a5";
+    teamMsg.textContent = text;
+  }
+
+  function showTeamModal() {
+    if (!teamModal) return;
+    teamModal.classList.remove("hidden");
+    teamModal.style.display = "flex";
+    if (teamMsg) teamMsg.style.display = "none";
+    loadTeamMembers();
+  }
+
+  function hideTeamModal() {
+    if (teamModal) {
+      teamModal.classList.add("hidden");
+      teamModal.style.display = "none";
+    }
+  }
+
+  if (btnSidebarTeam) btnSidebarTeam.onclick = showTeamModal;
+  if (btnManageTeam) btnManageTeam.onclick = () => {
+    const accMenu = $("accountMenu");
+    if (accMenu) accMenu.classList.add("hidden");
+    showTeamModal();
+  };
+  if (btnCloseTeam) btnCloseTeam.onclick = hideTeamModal;
+  if (teamModalBackdrop) teamModalBackdrop.onclick = hideTeamModal;
+
+  async function loadTeamMembers() {
+    if (!teamList) return;
+    teamList.innerHTML = "<p style='color:#94a3b8; font-size:0.85rem; text-align:center; padding:1rem 0; margin:0;'>Đang tải danh sách...</p>";
+    try {
+      const s = (localStorage.getItem(LS_GOOGLE_SESSION) || "").trim();
+      const r = await fetch(apiBase() + "/api/team", {
+        headers: { "X-User-Session": s, "Content-Type": "application/json" }
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || "Không thể tải danh sách team");
+
+      const members = data.members || [];
+      const count = members.length;
+      if (modalTeamCounter) modalTeamCounter.textContent = `${count} / 5 người`;
+      if (sidebarTeamCount) sidebarTeamCount.textContent = `${count}/5`;
+
+      if (members.length === 0) {
+        teamList.innerHTML = "<p style='color:#94a3b8; font-size:0.85rem; text-align:center; padding:1.25rem 0; margin:0;'>Chưa có thành viên nào trong team.<br><span style='font-size:0.78rem; color:#64748b;'>Hãy nhập email ở trên để thêm thành viên.</span></p>";
+      } else {
+        teamList.innerHTML = "";
+        members.forEach(m => {
+          const div = document.createElement("div");
+          div.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06);";
+          div.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:50%; background:rgba(52,211,153,0.2); color:#6ee7b7; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.75rem;">${(m.email || "M")[0].toUpperCase()}</div>
+              <div>
+                <div style="font-weight:600; font-size:0.85rem; color:#f0fdf4;">${m.email}</div>
+                <div style="font-size:0.72rem; color:#34d399;">VIP Business (Active)</div>
+              </div>
+            </div>
+            <button type="button" class="btn-del-member" data-email="${m.email}" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; border-radius:6px; padding:0.3rem 0.6rem; font-size:0.75rem; cursor:pointer; font-weight:600;">Xóa</button>
+          `;
+          teamList.appendChild(div);
+        });
+
+        teamList.querySelectorAll(".btn-del-member").forEach(btn => {
+          btn.onclick = async () => {
+            const email = btn.getAttribute("data-email");
+            if (!confirm(`Xác nhận xóa thành viên ${email} khỏi Team?`)) return;
+            try {
+              const s = (localStorage.getItem(LS_GOOGLE_SESSION) || "").trim();
+              const delRes = await fetch(apiBase() + "/api/team/remove", {
+                method: "POST",
+                headers: { "X-User-Session": s, "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email })
+              });
+              const delData = await delRes.json();
+              if (!delRes.ok) throw new Error(delData.detail || "Lỗi xóa thành viên");
+              showTeamMsg(`Đã xóa ${email} khỏi team`, true);
+              loadTeamMembers();
+            } catch (e) {
+              showTeamMsg(String(e.message || e), false);
+            }
+          };
+        });
+      }
+    } catch (e) {
+      teamList.innerHTML = `<p style='color:#fca5a5; font-size:0.85rem; text-align:center; padding:1rem 0; margin:0;'>${e.message || e}</p>`;
+    }
+  }
+
+  if (btnAddTeam && teamInviteEmail) {
+    btnAddTeam.onclick = async () => {
+      const email = (teamInviteEmail.value || "").trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        showTeamMsg("Vui lòng nhập địa chỉ email hợp lệ", false);
+        return;
+      }
+      btnAddTeam.textContent = "Đang thêm...";
+      try {
+        const s = (localStorage.getItem(LS_GOOGLE_SESSION) || "").trim();
+        const res = await fetch(apiBase() + "/api/team/add", {
+          method: "POST",
+          headers: { "X-User-Session": s, "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Lỗi thêm thành viên");
+        showTeamMsg(`🎉 ${data.message || `Đã thêm ${email} vào team thành công!`}`, true);
+        teamInviteEmail.value = "";
+        loadTeamMembers();
+      } catch (e) {
+        showTeamMsg(String(e.message || e), false);
+      } finally {
+        btnAddTeam.textContent = "+ Thêm";
+      }
+    };
+
+    teamInviteEmail.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        btnAddTeam.click();
+      }
+    });
+  }
+
+  // Show/hide Team buttons based on user plan
+  function checkTeamVisibility(user) {
+    const planId = ((user && (user.plan_id || user.plan_name)) || "").toLowerCase().trim();
+    const isBiz = planId === "business" || planId === "owner" || planId === "enterprise";
+    if (sidebarTeamWrap) {
+      if (isBiz) sidebarTeamWrap.classList.remove("hidden");
+      else sidebarTeamWrap.classList.add("hidden");
+    }
+    if (btnManageTeam) {
+      if (isBiz) btnManageTeam.classList.remove("hidden");
+      else btnManageTeam.classList.add("hidden");
+    }
+  }
+
 })();
+
+  // =========================================================================
+  // AI AGENT HUB MODAL CONTROLLER
+  // =========================================================================
+  function initAgentHub() {
+    const btnOpen = document.getElementById("btnOpenAgentHub");
+    const btnAgentSelect = document.getElementById("btnAgentSelect");
+    if (btnAgentSelect && modal) btnAgentSelect.addEventListener("click", () => modal.classList.remove("hidden"));
+    const modal = document.getElementById("agentHubModal");
+    const btnClose = document.getElementById("btnCloseAgentHub");
+
+    if (btnOpen && modal) {
+      btnOpen.addEventListener("click", () => {
+        modal.classList.remove("hidden");
+      });
+    }
+
+    if (btnClose && modal) {
+      btnClose.addEventListener("click", () => {
+        modal.classList.add("hidden");
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) modal.classList.add("hidden");
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+          modal.classList.add("hidden");
+        }
+      });
+
+      // Bind card selections
+      modal.querySelectorAll(".agent-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const modeId = card.getAttribute("data-agent-mode");
+          if (modeId) {
+            setActiveMode(modeId, { announce: true });
+            modal.classList.add("hidden");
+            if (els.input) els.input.focus();
+          }
+        });
+      });
+    }
+  }
+
+
+  // =========================================================================
+  // WEB SEARCH TOGGLE & MULTI-DOCUMENT UPLOADER CONTROLLER
+  // =========================================================================
+  const btnWebSearch = document.getElementById("btnWebSearch");
+
+  function initWebSearchToggle() {
+    if (!btnWebSearch) return;
+    updateWebSearchUi();
+    btnWebSearch.addEventListener("click", () => {
+      webSearchEnabled = !webSearchEnabled;
+      localStorage.setItem("tungdev_web_search", webSearchEnabled ? "true" : "false");
+      updateWebSearchUi();
+    });
+  }
+
+  function updateWebSearchUi() {
+    if (!btnWebSearch) return;
+    if (webSearchEnabled) {
+      btnWebSearch.classList.add("active");
+      btnWebSearch.title = "Tìm kiếm Web: ĐANG BẬT (AI sẽ tìm kiếm Internet trực tiếp)";
+    } else {
+      btnWebSearch.classList.remove("active");
+      btnWebSearch.title = "Tìm kiếm Web: ĐANG TẮT (Click để bật tra cứu Internet)";
+    }
+  }
+
+  async function handleFileUpload(files) {
+    if (!files || !files.length) return;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        // Image handler
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          pendingImages.push(e.target.result);
+          renderAttachPreview();
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Document / Code handler via /api/upload-doc
+        setStreamStatus("📄 Đang phân tích tài liệu " + file.name + "…");
+        try {
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch((apiBase() || "") + "/api/upload-doc", {
+            method: "POST",
+            body: fd,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            pendingAttachments.push({
+              filename: data.filename,
+              meta: data.meta,
+              content: data.content,
+            });
+            renderAttachPreview();
+          } else {
+            alert("Lỗi đọc tài liệu: " + file.name);
+          }
+        } catch (err) {
+          console.error("Upload doc error:", err);
+        } finally {
+          setStreamStatus("");
+        }
+      }
+    }
+  }
+
+
+
+
+
+  // Download File button click handler (both on code block and inline in text)
+  document.addEventListener("click", function (e) {
+    const btn = e.target && e.target.closest && e.target.closest(".btn-download-file, .btn-inline-download");
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    let block = btn.closest(".code-block");
+    if (!block) {
+      // If clicked inline in message text, find the nearest code block in the message row
+      const row = btn.closest(".message-row, .message-content, .message, .chat-message");
+      if (row) {
+        block = row.querySelector(".code-block");
+      }
+      if (!block) {
+        const allBlocks = document.querySelectorAll(".code-block");
+        if (allBlocks.length) block = allBlocks[allBlocks.length - 1];
+      }
+    }
+
+    const text = getPureCodeFromBlock(block, btn);
+    if (!text.trim()) {
+      alert("Không tìm thấy nội dung mã nguồn để tải về.");
+      return;
+    }
+
+    const lang = (btn.getAttribute("data-lang") || "code").toLowerCase();
+    const extMap = {
+      html: "index.html",
+      css: "style.css",
+      javascript: "script.js",
+      js: "script.js",
+      python: "main.py",
+      py: "main.py",
+      cpp: "main.cpp",
+      "c++": "main.cpp",
+      c: "main.c",
+      java: "Main.java",
+      cs: "Program.cs",
+      csharp: "Program.cs",
+      go: "main.go",
+      rust: "main.rs",
+      rs: "main.rs",
+      php: "index.php",
+      sql: "schema.sql",
+      json: "data.json",
+      shell: "run.sh",
+      bash: "run.sh",
+      sh: "run.sh",
+      markdown: "README.md",
+      md: "README.md"
+    };
+    const filename = extMap[lang] || ("tungai_code_" + Date.now() + "." + (lang || "txt"));
+
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const oldText = btn.innerHTML;
+    btn.innerHTML = "✅ Đã tải!";
+    btn.style.color = "#34d399";
+    setTimeout(() => {
+      btn.innerHTML = oldText;
+      btn.style.color = "";
+    }, 2000);
+  });
+
+
+  // =========================================================================
+  // INTERACTIVE CLOUD TERMINAL CONTROLLER (Python, C++, Node.js)
+  // =========================================================================
+  let currentRunningCode = "";
+  let currentRunningLang = "python";
+
+  window.openCloudTerminal = function (lang, targetOrCode, stdinVal = "") {
+    let rawCode = "";
+    if (typeof targetOrCode === "string") {
+      rawCode = targetOrCode;
+    } else if (targetOrCode && targetOrCode.closest) {
+      const block = targetOrCode.closest(".code-block");
+      rawCode = getPureCodeFromBlock(block, targetOrCode);
+    }
+    if (!rawCode || !rawCode.trim()) {
+      alert("Không tìm thấy mã nguồn để thực thi.");
+      return;
+    }
+
+    currentRunningLang = (lang || "python").toLowerCase();
+    currentRunningCode = unescapeHtml(rawCode);
+
+    const modal = document.getElementById("terminalModal");
+    const win = document.getElementById("terminalModalWindow");
+    const titleText = document.getElementById("termTitleText");
+    const termIcon = document.getElementById("termIcon");
+    const cmdLine = document.getElementById("termExecutedCmd");
+    const outputStream = document.getElementById("termOutputStream");
+    const statDot = document.getElementById("termStatusDot");
+    const statText = document.getElementById("termStatusText");
+    const execTime = document.getElementById("termExecutionTime");
+    const exitCode = document.getElementById("termExitCode");
+    const sandboxType = document.getElementById("termSandboxType");
+    const stdinInput = document.getElementById("termStdinInput");
+
+    if (!modal) return;
+    modal.classList.remove("hidden");
+
+    if (stdinVal && stdinInput) stdinInput.value = stdinVal;
+
+    let langTitle = "Python 3.10 Cloud Terminal";
+    let icon = "🐍";
+    let cmd = "python3 main.py";
+    let sb = "Python 3.10 Sandbox Isolation";
+
+    if (currentRunningLang === "cpp" || currentRunningLang === "c++" || currentRunningLang === "c") {
+      langTitle = "C++20 Cloud Terminal (G++ 11.4 -O3)";
+      icon = "⚡";
+      cmd = "g++ -O3 -std=c++20 main.cpp -o main.out && ./main.out";
+      sb = "GCC 11.4 Linux Container";
+    } else if (currentRunningLang === "js" || currentRunningLang === "javascript" || currentRunningLang === "node") {
+      langTitle = "Node.js v20 Cloud Terminal";
+      icon = "🟢";
+      cmd = "node main.js";
+      sb = "V8 Node.js Isolation";
+    }
+
+    if (titleText) titleText.textContent = langTitle;
+    if (termIcon) termIcon.textContent = icon;
+    if (cmdLine) cmdLine.textContent = cmd;
+    if (sandboxType) sandboxType.textContent = sb;
+    if (execTime) execTime.textContent = "Đang chạy...";
+    if (exitCode) exitCode.textContent = "Chờ phản hồi...";
+
+    if (statDot) {
+      statDot.className = "stat-dot running";
+    }
+    if (statText) {
+      statText.textContent = "Đang thực thi...";
+      statText.style.color = "#fbbf24";
+    }
+
+    if (outputStream) {
+      outputStream.innerHTML = '<span class="term-running-indicator"><span class="pulse-code-dot"></span> Đang nạp mã nguồn và thực thi trên Cloud Sandbox...</span>';
+    }
+
+    // Execute API
+    executeTerminalPayload(currentRunningLang, currentRunningCode, stdinVal);
+  }
+
+  function termEscape(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  async function executeTerminalPayload(lang, code, stdinData) {
+    const outputStream = document.getElementById("termOutputStream");
+    const statDot = document.getElementById("termStatusDot");
+    const statText = document.getElementById("termStatusText");
+    const execTime = document.getElementById("termExecutionTime");
+    const exitCode = document.getElementById("termExitCode");
+
+    try {
+      let endpoint = "/api/run-code";
+      try {
+        const base = typeof apiBase === "function" ? apiBase() : "";
+        if (base && (location.hostname.indexOf("github.io") !== -1 || location.protocol === "file:")) {
+          endpoint = base.replace(/\/$/, "") + "/api/run-code";
+        }
+      } catch (_) {}
+
+      const hdrs = { "Content-Type": "application/json" };
+      try {
+        const tok = localStorage.getItem("jarvis_google_session_v1") || "";
+        if (tok) hdrs["X-User-Session"] = tok;
+      } catch (_) {}
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: hdrs,
+        body: JSON.stringify({ lang: lang, code: code, stdin: stdinData || "" }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Lỗi máy chủ thực thi.");
+      }
+
+      const isOk = !!data.ok;
+      const dur = data.execution_time_ms != null ? data.execution_time_ms + "ms" : "12ms";
+      const eCode = data.exit_code != null ? data.exit_code : (isOk ? 0 : 1);
+
+      if (execTime) execTime.textContent = dur;
+      if (exitCode) {
+        exitCode.textContent = "Exit " + eCode + (isOk ? " (Thành công)" : " (Lỗi)");
+        exitCode.style.color = isOk ? "#34d399" : "#f87171";
+      }
+
+      if (statDot) {
+        statDot.className = isOk ? "stat-dot" : "stat-dot error";
+      }
+      if (statText) {
+        statText.textContent = isOk ? "Đã hoàn thành" : "Lỗi thực thi";
+        statText.style.color = isOk ? "#34d399" : "#f87171";
+      }
+
+      let outHtml = "";
+      if (data.stdout) {
+        outHtml += '<div class="term-output-stdout">' + termEscape(data.stdout) + '</div>';
+      }
+      if (data.stderr) {
+        outHtml += '<div class="term-output-stderr"><strong>[LỖI / STDERR]:</strong>\n' + termEscape(data.stderr) + '</div>';
+      }
+      if (!data.stdout && !data.stderr) {
+        outHtml = '<div style="color:#94a3b8;font-style:italic;">(Chương trình thực thi thành công và không in ra màn hình console)</div>';
+      }
+
+      if (outputStream) {
+        outputStream.innerHTML = outHtml;
+      }
+    } catch (err) {
+      if (statDot) statDot.className = "stat-dot error";
+      if (statText) {
+        statText.textContent = "Lỗi kết nối";
+        statText.style.color = "#f87171";
+      }
+      if (outputStream) {
+        outputStream.innerHTML = '<div class="term-output-stderr"><strong>[LỖI HỆ THỐNG]:</strong>\n' + termEscape(String(err.message || err)) + '</div>';
+      }
+    }
+  }
+
+  function closeCloudTerminal() {
+    const modal = document.getElementById("terminalModal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  // Bind Terminal Controls
+  document.addEventListener("DOMContentLoaded", function () {
+    const btnClose1 = document.getElementById("btnCloseTerminal");
+    const btnClose2 = document.getElementById("btnTermCloseBtn");
+    const modalBackdrop = document.getElementById("terminalModal");
+    const btnRerun = document.getElementById("btnTermRerun");
+    const btnClear = document.getElementById("btnTermClear");
+    const btnCopy = document.getElementById("btnTermCopy");
+    const btnMax = document.getElementById("btnMaxTerminal");
+    const termWin = document.getElementById("terminalModalWindow");
+    const btnSendStdin = document.getElementById("btnTermSendStdin");
+    const stdinInput = document.getElementById("termStdinInput");
+
+    if (btnClose1) btnClose1.onclick = closeCloudTerminal;
+    if (btnClose2) btnClose2.onclick = closeCloudTerminal;
+    if (modalBackdrop) {
+      modalBackdrop.onclick = function (e) {
+        if (e.target === modalBackdrop) closeCloudTerminal();
+      };
+    }
+    if (btnMax && termWin) {
+      btnMax.onclick = function () {
+        termWin.classList.toggle("fullscreen");
+      };
+    }
+    if (btnRerun) {
+      btnRerun.onclick = function () {
+        const stdinVal = stdinInput ? stdinInput.value : "";
+        openCloudTerminal(currentRunningLang, currentRunningCode, stdinVal);
+      };
+    }
+    if (btnClear) {
+      btnClear.onclick = function () {
+        const out = document.getElementById("termOutputStream");
+        if (out) out.innerHTML = '<div style="color:#64748b;font-style:italic;">(Terminal đã được xóa màn hình)</div>';
+      };
+    }
+    if (btnCopy) {
+      btnCopy.onclick = function () {
+        const out = document.getElementById("termOutputStream");
+        if (out) {
+          navigator.clipboard.writeText(out.textContent || "");
+          const old = btnCopy.textContent;
+          btnCopy.textContent = "✅ Đã chép!";
+          setTimeout(() => { btnCopy.textContent = old; }, 2000);
+        }
+      };
+    }
+    if (btnSendStdin && stdinInput) {
+      btnSendStdin.onclick = function () {
+        openCloudTerminal(currentRunningLang, currentRunningCode, stdinInput.value);
+      };
+      stdinInput.onkeydown = function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          btnSendStdin.click();
+        }
+      };
+    }
+  });
+
+  // Wire code action buttons to open Terminal Modal
+  document.addEventListener("click", function (e) {
+    const btn = e.target && e.target.closest && e.target.closest(".btn-run-preview");
+    if (!btn) return;
+    const execType = btn.getAttribute("data-exec");
+    if (execType === "web") return; // Handled by web preview sandbox
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const block = btn.closest(".code-block");
+    const code = getPureCodeFromBlock(block, btn);
+    if (!code.trim()) return;
+
+    openCloudTerminal(execType, code);
+  });
+

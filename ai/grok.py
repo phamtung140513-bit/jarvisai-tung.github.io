@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 
 GEMINI_FALLBACKS = [
     "gemini-3.8-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
     "gemini-flash-latest",
     "gemini-3.7-flash",
     "gemini-3.5-flash",
-    "gemini-3.1-flash-lite",
 ]
 
 
@@ -240,9 +241,11 @@ class GrokClient:
             mid = (model or route.model or "").strip()
             if self._model_override and plan_id == "owner":
                 mid = self.active_model
-            # Safeguard: If provider is Gemini, ensure model starts with gemini-
+            # Safeguard: If provider is Gemini, ensure model is valid Gemini ID
             if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
-                if not mid or not mid.startswith("gemini-"):
+                if mid in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8"):
+                    mid = "gemini-3.8-flash"
+                elif not mid or not mid.startswith("gemini-"):
                     mid = "gemini-3.8-flash"
             return client, mid, route
         return self._client, model or self.active_model, None
@@ -286,13 +289,11 @@ class GrokClient:
         client, model_id, route = self._resolve_call(
             plan_id=plan_id, plan_expired=plan_expired, model=model
         )
-        # If plan_id not passed and not forced CLI route, use default stacks
         if self._forced_route is None:
             if plan_id is None and not getattr(self.settings, "plan_route_enabled", True):
                 client, model_id = self._client, model or self.active_model
                 route = None
             elif plan_id is None:
-                # No plan → free tier
                 route = self.route_for_plan("trial")
                 client = self._client_for_route(route)
                 model_id = model or route.model
@@ -301,35 +302,68 @@ class GrokClient:
             (route and route.tier in ("basic", "pro", "paid"))
             or self._forced_route is not None
         )
-        payload = self._build_payload(
-            messages,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            model=model_id,
-            paid=is_paid,
-        )
-        logger.info(
-            "LLM request tier=%s provider=%s model=%s msgs=%d temp=%s",
-            route.tier if route else "default",
-            route.provider if route else self.settings.provider,
-            payload["model"],
-            len(payload["messages"]),
-            payload.get("temperature"),
-        )
-        try:
-            resp = await client.post("/chat/completions", json=payload)
-        except httpx.HTTPError as exc:
-            logger.exception("LLM network error")
-            raise GrokError(f"Network error: {exc}") from exc
 
-        if resp.status_code >= 400:
-            body = resp.text[:500]
-            logger.error("LLM API %s: %s", resp.status_code, body)
-            raise GrokError(f"API {resp.status_code}: {body}")
+        candidate_models = [model_id]
+        if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
+            if model_id in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8") or not model_id.startswith("gemini-"):
+                candidate_models = ["gemini-3.8-flash"]
+            for fb in GEMINI_FALLBACKS:
+                if fb not in candidate_models:
+                    candidate_models.append(fb)
 
-        return self._extract_content(resp.json())
+        last_error = None
+        for current_model in candidate_models:
+            payload = self._build_payload(
+                messages,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                model=current_model,
+                paid=is_paid,
+            )
+            logger.info(
+                "LLM request tier=%s provider=%s model=%s msgs=%d temp=%s",
+                route.tier if route else "default",
+                route.provider if route else self.settings.provider,
+                payload["model"],
+                len(payload["messages"]),
+                payload.get("temperature"),
+            )
+            try:
+                resp = await client.post(
+                    "/chat/completions",
+                    json=payload,
+                    timeout=httpx.Timeout(45.0, connect=5.0, read=7.0),
+                )
+                if resp.status_code in (404, 429, 500, 502, 503, 504):
+                    body = resp.text[:300]
+                    logger.warning("LLM %s returned %s: %s -> trying fallback model...", current_model, resp.status_code, body)
+                    last_error = GrokError(f"API {resp.status_code}: {body}")
+                    continue
+                if resp.status_code >= 400:
+                    body = resp.text[:500]
+                    raise GrokError(f"API {resp.status_code}: {body}")
+
+                content = self._extract_content(resp.json())
+                if content:
+                    return content
+                else:
+                    logger.warning("LLM %s produced empty content -> trying fallback model...", current_model)
+                    last_error = GrokError(f"Model {current_model} returned empty content")
+                    continue
+            except httpx.HTTPError as exc:
+                logger.warning("LLM network error on %s: %s -> trying fallback...", current_model, exc)
+                last_error = GrokError(f"Network error: {exc}")
+                continue
+            except GrokError as exc:
+                logger.warning("LLM error on %s: %s -> trying fallback...", current_model, exc)
+                last_error = exc
+                continue
+
+        if last_error:
+            raise last_error
+        raise GrokError("All LLM models failed")
 
     async def chat_stream(
         self,
@@ -358,7 +392,7 @@ class GrokClient:
         # Build candidate models list for fallback
         candidate_models = [model_id]
         if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
-            if not model_id.startswith("gemini-"):
+            if model_id in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8") or not model_id.startswith("gemini-"):
                 candidate_models = ["gemini-3.8-flash"]
             for fb in GEMINI_FALLBACKS:
                 if fb not in candidate_models:
@@ -382,19 +416,28 @@ class GrokClient:
                 payload["model"],
                 payload.get("temperature"),
             )
+            has_yielded = False
             try:
-                success = False
-                async with client.stream("POST", "/chat/completions", json=payload) as resp:
+                async with client.stream(
+                    "POST",
+                    "/chat/completions",
+                    json=payload,
+                    timeout=httpx.Timeout(45.0, connect=5.0, read=7.0),
+                ) as resp:
                     if resp.status_code in (404, 429, 500, 502, 503, 504):
                         body = (await resp.aread()).decode(errors="replace")[:300]
-                        logger.warning("LLM %s returned %s: %s -> trying fallback model...", current_model, resp.status_code, body)
+                        logger.warning(
+                            "LLM %s returned %s: %s -> trying fallback model...",
+                            current_model,
+                            resp.status_code,
+                            body,
+                        )
                         last_error = GrokError(f"API {resp.status_code}: {body}")
                         continue
                     if resp.status_code >= 400:
                         body = (await resp.aread()).decode(errors="replace")[:500]
                         raise GrokError(f"API {resp.status_code}: {body}")
 
-                    success = True
                     async for line in resp.aiter_lines():
                         if not line or not line.startswith("data: "):
                             continue
@@ -406,11 +449,17 @@ class GrokClient:
                             delta_obj = chunk["choices"][0].get("delta", {}) or {}
                             delta = delta_obj.get("content")
                             if delta:
+                                has_yielded = True
                                 yield delta
                         except (json.JSONDecodeError, KeyError, IndexError, TypeError):
                             continue
-                if success:
+
+                if has_yielded:
                     return
+                else:
+                    logger.warning("LLM %s yielded 0 content tokens -> trying fallback model...", current_model)
+                    last_error = GrokError(f"Model {current_model} returned empty content")
+                    continue
             except httpx.HTTPError as exc:
                 logger.warning("LLM network error on %s: %s -> trying fallback...", current_model, exc)
                 last_error = GrokError(f"Network error: {exc}")

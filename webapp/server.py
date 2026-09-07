@@ -2241,8 +2241,10 @@ def create_app() -> FastAPI:
             "coder": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
             "deepseek": ("gemini-3.8-flash", "💻 TungDevAI Coder Pro (Chuyên Code ⚡)"),
             "coder-pro": ("gemini-3.8-flash", "💻 TungDevAI Coder Pro (Chuyên Code ⚡)"),
-            "fast": ("gemini-3.8-flash", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
-            "ultra-fast": ("gemini-3.8-flash", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
+            "fast": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
+            "ultra-fast": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
+            "flash-lite": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
+            "gemini-3.1-flash-lite": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
             "default": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
         }
 
