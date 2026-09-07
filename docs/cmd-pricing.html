@@ -244,21 +244,21 @@
       background: rgba(99, 102, 241, 0.08);
     }
 
-    /* Interactive Hologram Terminal Mockup */
+        /* Interactive Hologram Terminal Mockup (100% Match with Image 1) */
     .c-terminal-wrap {
-      max-width: 820px;
+      max-width: 880px;
       margin: 2.5rem auto 4rem auto;
-      background: #020604;
-      border: 1px solid rgba(99, 102, 241, 0.35);
+      background: #020504;
+      border: 1px solid rgba(16, 185, 129, 0.35);
       border-radius: 16px;
-      box-shadow: 0 0 50px rgba(99, 102, 241, 0.2), 0 25px 45px rgba(0, 0, 0, 0.9);
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.18), 0 25px 45px rgba(0, 0, 0, 0.95);
       overflow: hidden;
       text-align: left;
     }
     .c-term-header {
-      background: rgba(6, 21, 14, 0.95);
-      padding: 0.65rem 1rem;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      background: #06120b;
+      padding: 0.65rem 1.25rem;
+      border-bottom: 1px solid rgba(16, 185, 129, 0.2);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -280,38 +280,249 @@
       color: #94a3b8;
     }
     .c-term-body {
-      padding: 1.25rem 1.5rem;
-      font-family: var(--mono);
-      font-size: 0.88rem;
-      line-height: 1.7;
+      padding: 1.4rem 1.4rem 1.15rem 1.4rem;
+      background: #020504;
+      font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
       color: #f1f5f9;
-      min-height: 180px;
     }
-    .term-prompt { color: var(--primary); font-weight: 700; }
-    .term-cmd { color: #fff; font-weight: 600; }
-    .term-badge {
-      display: inline-block;
-      margin: 0.5rem 0;
-      color: var(--accent-amber);
-      font-size: 0.8rem;
+    
+    /* Main Spring-Green Rounded Panel */
+    .term-main-box {
+      border: 1.5px solid #00e676;
+      border-radius: 12px;
+      padding: 1.25rem 1.25rem 0 1.25rem;
+      background: rgba(0, 230, 118, 0.015);
+      box-shadow: 0 0 30px rgba(0, 230, 118, 0.08);
+      margin-bottom: 1.15rem;
+      position: relative;
+    }
+    .term-ascii-wrap {
+      overflow-x: auto;
+      margin: 0 -0.5rem;
+      padding: 0 0.5rem;
+    }
+    .term-ascii-banner {
+      margin: 0;
+      padding: 0;
+      line-height: 1.15;
+      font-size: clamp(0.52rem, 1.1vw, 0.78rem);
+      letter-spacing: 0.02em;
+      white-space: pre;
+      font-family: 'Consolas', monospace;
+      font-weight: 900;
+      text-align: center;
+    }
+    .ascii-line-1 { color: #7dd3fc; }
+    .ascii-line-2 { color: #38bdf8; }
+    .ascii-line-3 { color: #34d399; }
+    .ascii-line-4 { color: #10b981; }
+    .ascii-line-5 { color: #059669; }
+    .ascii-line-6 { color: #047857; }
+
+    .term-subtitle {
+      text-align: center;
+      margin: 0.75rem 0 1.15rem 0;
+      color: #cbd5e1;
+      font-size: clamp(0.72rem, 1.1vw, 0.84rem);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(167, 139, 250, 0.4);
+    }
+    
+    .term-meta-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 1.15rem;
+      padding-left: 0.25rem;
+    }
+    .term-meta-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .meta-label { color: #f59e0b; font-weight: 700; min-width: 115px; }
+    .meta-val-model { color: #f43f5e; font-weight: 700; }
+    .meta-val-tag { color: #38bdf8; font-weight: 600; }
+    .meta-val-mode { color: #38bdf8; font-weight: 600; }
+    .meta-sep { color: #64748b; margin: 0 4px; }
+    .meta-label-sub { color: #cbd5e1; font-weight: 600; }
+    .meta-val-lic { color: #00e676; font-weight: 700; }
+    .meta-val-ws { color: #fef08a; font-style: italic; }
+
+    /* Bottom border divider with command chips */
+    .term-box-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1.1rem -1.25rem 0 -1.25rem;
+      padding: 0 0.5rem;
+      position: relative;
+      bottom: -1px;
+    }
+    .divider-line {
+      flex: 1;
+      height: 1.5px;
+      background: #00e676;
+    }
+    .divider-text {
+      padding: 0 0.5rem;
+      font-size: 0.78rem;
+      white-space: nowrap;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .cmd-chip {
+      color: #38bdf8;
       font-weight: 700;
     }
-    .term-out { color: #cbd5e1; }
-    .term-stats { color: #64748b; font-size: 0.8rem; margin-top: 0.5rem; }
-    .cursor-blink {
+
+    /* Red Warning Box */
+    .term-warn-box {
+      border: 1.5px solid #ef4444;
+      border-radius: 8px;
+      padding: 0 1.25rem 1rem 1.25rem;
+      background: rgba(239, 68, 68, 0.04);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .term-warn-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: -9px;
+      margin-bottom: 0.65rem;
+    }
+    .warn-line {
+      flex: 1;
+      height: 1.5px;
+      background: #ef4444;
+    }
+    .warn-title-text {
+      background: #020504;
+      padding: 0 0.75rem;
+      color: #ef4444;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .warn-head {
+      color: #f43f5e;
+      font-weight: 800;
+      font-size: 0.88rem;
+      margin-bottom: 0.55rem;
+    }
+    .warn-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: clamp(0.74rem, 0.9vw, 0.81rem);
+      color: #cbd5e1;
+    }
+    .bullet-dot { color: #fff; font-weight: 900; margin-right: 2px; }
+    .warn-icon { margin-right: 4px; }
+    .warn-link {
+      color: #38bdf8;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .warn-link:hover {
+      color: #7dd3fc;
+    }
+    .warn-code {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    /* Terminal Command Prompt Box */
+    .term-prompt-box {
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      background: rgba(4, 9, 7, 0.85);
+      display: flex;
+      align-items: center;
+    }
+    .term-prompt-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .term-prompt-sym {
+      color: #f8fafc;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .term-prompt-cursor {
       display: inline-block;
-      width: 8px; height: 1.1em;
-      background: var(--primary);
+      width: 9px;
+      height: 1.15em;
+      background: #38bdf8;
       vertical-align: middle;
       animation: blink 1s infinite;
-      margin-left: 4px;
+      box-shadow: 0 0 8px #38bdf8;
     }
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
 
-    
+    /* Sleek Floating Copy Toast HUD (Below Navbar) */
+    .copy-toast-hud {
+      position: fixed;
+      top: 92px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(7, 18, 13, 0.96);
+      border: 1.5px solid #10b981;
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.4), 0 10px 25px rgba(0,0,0,0.8);
+      backdrop-filter: blur(12px);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      color: #ecfdf5;
+      font-family: var(--font-sans);
+      font-size: 0.86rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .copy-toast-hud.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .copy-toast-hud .toast-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #10b981;
+      color: #022c22;
+      font-weight: 900;
+      font-size: 0.78rem;
+    }
+
     /* 1-Click Installer Box */
     .c-installer-box {
       max-width: 820px;
@@ -763,6 +974,141 @@
       color: var(--primary);
       text-decoration: none;
     }
+  
+    /* --- HUD TOAST NOTIFICATION ('NHẢY RA ĐÃ SAO CHÉP') --- */
+    .copy-toast-hud {
+      position: fixed;
+      top: 92px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-35px) scale(0.92);
+      background: rgba(7, 13, 31, 0.96);
+      border: 1.5px solid #10b981;
+      border-radius: 9999px;
+      padding: 10px 24px;
+      color: #f8fafc;
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(16, 185, 129, 0.35), inset 0 0 15px rgba(16, 185, 129, 0.15);
+      backdrop-filter: blur(20px);
+      z-index: 9999999;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .copy-toast-hud.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .copy-toast-hud .toast-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      font-size: 0.88rem;
+      font-weight: 900;
+    }
+    .copy-toast-hud .toast-text {
+      letter-spacing: 0.02em;
+    }
+
+    /* Copied Button States */
+    .btn-copy-install.copied {
+      background: linear-gradient(135deg, #059669, #10b981) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.6) !important;
+      border-color: #34d399 !important;
+      transform: scale(1.03);
+    }
+    .btn-copy-key.copied {
+      background: linear-gradient(135deg, #059669, #10b981) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.6) !important;
+    }
+    .btn-copy-sm.copied {
+      background: #10b981 !important;
+      color: #000 !important;
+      border-color: #34d399 !important;
+    }
+
+    /* Enhanced 1-Click Installer Box */
+    .c-installer-box {
+      margin: 0 auto 3.5rem;
+      max-width: 820px;
+      background: rgba(6, 11, 26, 0.94);
+      border: 1.5px solid rgba(99, 102, 241, 0.45);
+      border-radius: 20px;
+      padding: 1.85rem 2.2rem;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+    .c-cmd-bar {
+      background: #030712;
+      border: 1.5px solid rgba(56, 189, 248, 0.4);
+      border-radius: 14px;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8) inset, 0 0 20px rgba(56, 189, 248, 0.12);
+      flex-wrap: wrap;
+    }
+    .c-cmd-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: left;
+      flex: 1;
+      min-width: 260px;
+    }
+    .c-cmd-prompt {
+      color: #34d399;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 1rem;
+      user-select: none;
+    }
+    .c-cmd-text {
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #38bdf8;
+      user-select: all;
+      word-break: break-all;
+    }
+    .btn-copy-install {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 0.65rem 1.35rem;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 18px rgba(14, 165, 233, 0.35);
+    }
+    .btn-copy-install:hover {
+      background: linear-gradient(135deg, #0ea5e9, #7dd3fc);
+      color: #020617;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+      transform: translateY(-1px);
+    }
+
   </style>
 </head>
 <body>
@@ -807,7 +1153,7 @@
       </a>
     </section>
 
-    <!-- Terminal Hologram Preview -->
+        <!-- Terminal Hologram Preview (100% Match with Image 1) -->
     <div class="c-terminal-wrap">
       <div class="c-term-header">
         <div class="c-term-dots">
@@ -816,26 +1162,102 @@
           <span class="c-term-dot dot-green"></span>
         </div>
         <span class="c-term-title">cmd.exe — TungDevAI 3.8 High (Deep Reasoning 2026)</span>
-        <span style="font-size:0.7rem;color:#10b981;font-weight:700;">LIVE TERMINAL</span>
+        <span style="font-size:0.7rem;color:#10b981;font-weight:700;letter-spacing:0.05em;">LIVE TERMINAL</span>
       </div>
       <div class="c-term-body">
-        <div><span class="term-prompt">TungDevAI [3.8-high] &gt;</span> <span class="term-cmd">/plan Xây dựng hệ thống Microservices thanh toán VietQR tự động</span></div>
-        <div class="term-badge">🧠 Google Gemini 3.8 High (Deep Reasoning ⚡) · always-approve</div>
-        <div class="term-out">⚡ Bắt đầu lập kế hoạch kiến trúc: 1. Webhook Gateway ➔ 2. Message Queue Kafka ➔ 3. Key Generator Worker ➔ 4. SQLite/PostgreSQL Session Store...</div>
-        <div class="term-stats">[Hoàn tất trong 1.42s · gemini-3.8-flash · Executive VIP Pro]</div>
-        <div style="margin-top: 0.75rem;"><span class="term-prompt">TungDevAI [3.8-high] &gt;</span> <span class="cursor-blink"></span></div>
+        
+        <!-- Main Spring-Green Rounded Panel (from cli/main.py Image 1) -->
+        <div class="term-main-box">
+          <!-- ASCII Banner with Vertical Gradient -->
+          <div class="term-ascii-wrap">
+            <pre class="term-ascii-banner"><span class="ascii-line-1">  ████████╗██╗   ██╗███╗   ██╗ ██████╗ ██████╗ ███████╗██╗   ██╗ █████╗ ██╗</span>
+<span class="ascii-line-2">  ╚══██╔══╝██║   ██║████╗  ██║██╔════╝ ██╔══██╗██╔════╝██║   ██║██╔══██╗██║</span>
+<span class="ascii-line-3">     ██║   ██║   ██║██╔██╗ ██║██║  ███╗██║  ██║█████╗  ██║   ██║███████║██║</span>
+<span class="ascii-line-4">     ██║   ██║   ██║██║╚██╗██║██║   ██║██║  ██║██╔══╝  ╚██╗ ██╔╝██╔══██║██║</span>
+<span class="ascii-line-5">     ██║   ╚██████╔╝██║ ╚████║╚██████╔╝██████╔╝███████╗ ╚████╔╝ ██║  ██║██║</span>
+<span class="ascii-line-6">     ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝  ╚═╝  ╚═╝╚═╝</span></pre>
+          </div>
+
+          <!-- Subtitle -->
+          <div class="term-subtitle">✦ TUNGDEVAI STUDIO · QUANTUM ARCHITECT TERMINAL ✦</div>
+
+          <!-- Metadata Rows -->
+          <div class="term-meta-grid">
+            <div class="term-meta-row">
+              <span class="meta-label">⚡ Siêu Cụm AI:</span>
+              <span class="meta-val-model">🧠 Google Gemini 3.8 High (Deep Reasoning ⚡)</span>
+              <span class="meta-val-tag">(gemini-3.8-flash)</span>
+            </div>
+            <div class="term-meta-row">
+              <span class="meta-label">🛠️ Chế Độ:</span>
+              <span class="meta-val-mode">Coder Pro (coder)</span>
+              <span class="meta-sep">·</span>
+              <span class="meta-label-sub">Bản Quyền:</span>
+              <span class="meta-val-lic">Cần kích hoạt key</span>
+            </div>
+            <div class="term-meta-row">
+              <span class="meta-label">📁 Workspace:</span>
+              <span class="meta-val-ws">C:\Users\Admin\Jarvis-AI\workspace</span>
+            </div>
+          </div>
+
+          <!-- Embedded Subtitle / Divider at bottom border of panel -->
+          <div class="term-box-divider">
+            <span class="divider-line"></span>
+            <span class="divider-text">
+              <span style="color:#00e676; font-weight:700;">Gõ câu hỏi trực tiếp hoặc:</span>
+              <span class="cmd-chip">/model</span> · 
+              <span class="cmd-chip">/plan</span> · 
+              <span class="cmd-chip">/code</span> · 
+              <span class="cmd-chip">/review</span> · 
+              <span class="cmd-chip">/debug</span> · 
+              <span class="cmd-chip">/help</span> · 
+              <span class="cmd-chip">/exit</span>
+            </span>
+            <span class="divider-line"></span>
+          </div>
+        </div>
+
+        <!-- Red Warning Box (Panel Markdown in Image 1) -->
+        <div class="term-warn-box">
+          <div class="term-warn-title">
+            <span class="warn-line"></span>
+            <span class="warn-title-text">YÊU CẦU GIA HẠN BẢN QUYỀN CMD</span>
+            <span class="warn-line"></span>
+          </div>
+          <div class="term-warn-body">
+            <div class="warn-head">⚠️ BẠN CẦN GIA HẠN THÊM KEY BẢN QUYỀN ĐỂ TIẾP TỤC SỬ DỤNG TUNGDEVAI CMD</div>
+            <ul class="warn-list">
+              <li><span class="bullet-dot">•</span> <span class="warn-icon">❌</span> <strong>Trạng thái:</strong> Bạn chưa kích hoạt key bản quyền TungDevAI CMD.</li>
+              <li><span class="bullet-dot">•</span> <span class="warn-icon">👉</span> <strong>Vui lòng truy cập để gia hạn hoặc mua key mới:</strong> <a href="https://tungai.fun/cmd-pricing.html" class="warn-link">https://tungai.fun/cmd-pricing.html</a></li>
+              <li><span class="bullet-dot">•</span> <span class="warn-icon">💡</span> <strong>Sau khi có key, kích hoạt ngay tại đây:</strong> Gõ lệnh: <code class="warn-code">/activate &lt;MÃ_KEY&gt;</code> <span style="color:#94a3b8;">(Ví dụ: /activate CMD-XXXX-YYYY)</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Terminal Prompt Box -->
+        <div class="term-prompt-box">
+          <div class="term-prompt-inner">
+            <span class="term-prompt-sym">&gt;</span>
+            <span class="term-prompt-cursor"></span>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    
     <!-- 1-Click Installer Box -->
     <div class="c-installer-box">
       <div class="c-inst-badge">⚡ CÀI ĐẶT 1 DÒNG LỆNH CHO MỌI MÁY WINDOWS (OLLAMA / UV STYLE)</div>
       <p class="c-inst-desc">Mở <strong>PowerShell</strong> trên bất kỳ máy tính Windows nào và dán lệnh sau để tự động tải & chạy ngay:</p>
       <div class="c-cmd-bar">
-        <span class="c-cmd-text" id="installCmdText">irm https://tungai.fun/install-cmd.ps1 | iex</span>
-        <button type="button" class="btn-copy-install" onclick="copyText('installCmdText')">
-          <span>📋 Sao Chép Lệnh</span>
+        <div class="c-cmd-inner">
+          <span class="c-cmd-prompt">PS &gt;</span>
+          <span class="c-cmd-text" id="installCmdText">irm https://tungai.fun/install-cmd.ps1 | iex</span>
+        </div>
+        <button type="button" class="btn-copy-install" onclick="copyText('installCmdText', this)" title="Nhấp để sao chép lệnh">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span class="copy-btn-lbl">Sao Chép Lệnh</span>
         </button>
       </div>
       <div style="margin-top: 1rem; font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
@@ -1051,24 +1473,85 @@
     let currentPollTimer = null;
     let currentGeneratedKey = null;
 
-    function copyText(elemId) {
-      const el = document.getElementById(elemId);
-      if (!el) return;
-      const text = el.textContent || el.innerText;
-      navigator.clipboard.writeText(text.trim()).then(() => {
-        alert("Đã sao chép: " + text.trim());
-      }).catch(() => {
-        prompt("Sao chép thủ công:", text.trim());
-      });
+    let toastTimer = null;
+    function showCopyToast(msg) {
+      const toast = document.getElementById("copyToastHud");
+      const textEl = document.getElementById("copyToastMsg");
+      if (!toast || !textEl) return;
+      textEl.innerHTML = msg || "Đã sao chép vào bộ nhớ tạm!";
+      toast.classList.add("show");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2400);
     }
 
-    function copySuccessKey() {
+    function copyText(elemId, btn) {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      const text = (el.textContent || el.innerText || "").trim();
+      if (!text) return;
+
+      const targetBtn = btn || (window.event && window.event.currentTarget) || null;
+      if (targetBtn) {
+        const origHtml = targetBtn.innerHTML;
+        targetBtn.classList.add("copied");
+        targetBtn.innerHTML = `<span>✓ Đã sao chép!</span>`;
+        setTimeout(() => {
+          targetBtn.classList.remove("copied");
+          targetBtn.innerHTML = origHtml;
+        }, 2000);
+      }
+
+      const shortPreview = text.length > 40 ? text.slice(0, 40) + "…" : text;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showCopyToast(`Đã sao chép: <strong style="color:#38bdf8;">${shortPreview}</strong>`);
+        }).catch(() => {
+          fallbackCopyText(text, shortPreview);
+        });
+      } else {
+        fallbackCopyText(text, shortPreview);
+      }
+    }
+
+    function fallbackCopyText(text, preview) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showCopyToast(`Đã sao chép: <strong style="color:#38bdf8;">${preview}</strong>`);
+      } catch (e) {
+        showCopyToast("Nhấn Ctrl+C để sao chép!");
+      }
+      document.body.removeChild(ta);
+    }
+
+    function copySuccessKey(btn) {
       if (!currentGeneratedKey) return;
-      navigator.clipboard.writeText(currentGeneratedKey).then(() => {
-        alert("Đã sao chép mã Key: " + currentGeneratedKey);
-      }).catch(() => {
-        prompt("Mã key của bạn:", currentGeneratedKey);
-      });
+      const targetBtn = btn || (window.event && window.event.currentTarget) || null;
+      if (targetBtn) {
+        const origHtml = targetBtn.innerHTML;
+        targetBtn.classList.add("copied");
+        targetBtn.innerHTML = `<span>✓ Đã sao chép Key!</span>`;
+        setTimeout(() => {
+          targetBtn.classList.remove("copied");
+          targetBtn.innerHTML = origHtml;
+        }, 2000);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentGeneratedKey).then(() => {
+          showCopyToast(`Đã sao chép mã Key: <strong style="color:#fbbf24;">${currentGeneratedKey}</strong>`);
+        }).catch(() => {
+          fallbackCopyText(currentGeneratedKey, currentGeneratedKey);
+        });
+      } else {
+        fallbackCopyText(currentGeneratedKey, currentGeneratedKey);
+      }
     }
 
     function closePayModal() {
@@ -1158,5 +1641,10 @@
       document.getElementById("resCmdActivate").textContent = "/activate " + keyCode;
     }
   </script>
+  <!-- Floating Copy Toast HUD -->
+  <div class="copy-toast-hud" id="copyToastHud">
+    <span class="toast-badge">✓</span>
+    <span class="toast-text" id="copyToastMsg">Đã sao chép vào bộ nhớ tạm!</span>
+  </div>
 </body>
 </html>

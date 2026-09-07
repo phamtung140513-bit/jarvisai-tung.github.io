@@ -1797,13 +1797,16 @@
             </div>
 
             <!-- Terminal 1-line command bar -->
-            <div style="margin-top: 1.2rem; background: rgba(5, 10, 24, 0.88); border: 1px solid rgba(129, 140, 248, 0.3); border-radius: 12px; padding: 0.75rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-              <span style="font-family: var(--font-mono); font-size: 0.78rem; color: #a5b4fc;">
-                irm https://tungai.fun/install-cmd.ps1 | iex
-              </span>
-              <span style="font-size: 0.72rem; color: #34d399; font-weight: 700; background: rgba(16, 185, 129, 0.15); padding: 3px 8px; border-radius: 6px;">
-                ⚡ 1-Click Install
-              </span>
+            <div style="margin-top: 1.2rem; background: rgba(4, 8, 20, 0.92); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 0.65rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; box-shadow: 0 0 20px rgba(56, 189, 248, 0.12);">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: #34d399; font-family: var(--font-mono); font-weight: 800; font-size: 0.8rem;">PS &gt;</span>
+                <span style="font-family: var(--font-mono); font-size: 0.78rem; color: #38bdf8; font-weight: 700;" id="landingInstallCmd">
+                  irm https://tungai.fun/install-cmd.ps1 | iex
+                </span>
+              </div>
+              <button type="button" class="btn-copy-landing" onclick="copyLandingCmd(this)" style="background: linear-gradient(135deg, #0284c7, #38bdf8); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 0.75rem; font-weight: 800; padding: 5px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;">
+                <span>📋 Sao Chép</span>
+              </button>
             </div>
           </div>
         </div>
@@ -2296,6 +2299,85 @@ results = await <span class="mockup-code-func">search_internet</span>(<span clas
       if (tabVision) tabVision.onclick = () => setTab(tabVision, "vision");
       if (tabSearch) tabSearch.onclick = () => setTab(tabSearch, "search");
     })();
+
+  
+    /* Copy Toast HUD for Landing */
+    let landingToastTimer = null;
+    function showLandingToast(msgHtml) {
+      let toast = document.getElementById("landingCopyToast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "landingCopyToast";
+        toast.style.cssText = `
+          position: fixed;
+          top: 85px;
+          left: 50%;
+          transform: translateX(-50%) translateY(-20px);
+          z-index: 99999;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(7, 18, 13, 0.96);
+          border: 1.5px solid #10b981;
+          box-shadow: 0 0 35px rgba(16, 185, 129, 0.4), 0 10px 25px rgba(0,0,0,0.8);
+          backdrop-filter: blur(12px);
+          padding: 10px 20px;
+          border-radius: 9999px;
+          color: #ecfdf5;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 0.86rem;
+          font-weight: 600;
+          opacity: 0;
+          pointer-events: none;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        `;
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#10b981;color:#022c22;font-weight:900;font-size:0.78rem;">✓</span> <span>${msgHtml}</span>`;
+      toast.style.opacity = "1";
+      toast.style.transform = "translateX(-50%) translateY(0)";
+      if (landingToastTimer) clearTimeout(landingToastTimer);
+      landingToastTimer = setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(-50%) translateY(-20px)";
+      }, 2500);
+    }
+
+    function copyLandingCmd(btn) {
+      const cmdText = "irm https://tungai.fun/install-cmd.ps1 | iex";
+      if (btn) {
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = "<span>✓ Đã sao chép!</span>";
+        btn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+        setTimeout(() => {
+          btn.innerHTML = origHtml;
+          btn.style.background = "linear-gradient(135deg, #0284c7, #38bdf8)";
+        }, 2200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cmdText).then(() => {
+          showLandingToast(`Đã sao chép: <strong style="color:#38bdf8;">${cmdText}</strong>`);
+        }).catch(() => {
+          fallbackCopy(cmdText);
+        });
+      } else {
+        fallbackCopy(cmdText);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showLandingToast(`Đã sao chép: <strong style="color:#38bdf8;">${text}</strong>`);
+      } catch (e) {}
+      document.body.removeChild(ta);
+    }
 
   </script>
 </body>
