@@ -1,212 +1,483 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bảng giá — TungDevAI</title>
-  <meta name="description" content="Gói TungDevAI: Trial, Basic, Pro, Business. AI chuyên coder — web + Telegram." />
-  <meta name="theme-color" content="#0a0a0c" />
-  <link rel="icon" href="./assets/icon.jpg" type="image/jpeg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Bảng Giá Gói Cước TUNGAI.FUN Studio Pro 💎 Kích Hoạt Tự Động VietQR 24/7</title>
+  <meta name="description" content="Bảng giá dịch vụ TUNGAI.FUN: Gói Trial Miễn Phí, Basic 49k/tháng, Pro VIP 99k/tháng, Business Không giới hạn. Thanh toán quét mã VietQR tự động kích hoạt sau 30 giây." />
+  <meta name="theme-color" content="#050713" />
+
+  <link rel="icon" href="assets/tungdevai-core-logo.jpg?v=core2026" type="image/jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./pricing.css?v=5" />
-  <script src="boot-redirect.js?v=24"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="pricing.css?v=flush1" />
+  <script src="boot-redirect.js?v=25"></script>
+  <style>
+    /* ----- Payment Modal (Obsidian & Mint Glow Theme) ----- */
+    .p-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+    .p-modal.hidden {
+      display: none !important;
+    }
+    .p-modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(1, 4, 2, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 1;
+    }
+    .p-modal-content {
+      position: relative;
+      z-index: 2;
+      background: linear-gradient(145deg, rgba(6, 18, 11, 0.98), rgba(2, 10, 6, 0.99));
+      border: 1.5px solid rgba(52, 211, 153, 0.4);
+      border-radius: 24px;
+      box-shadow: 0 0 60px rgba(52, 211, 153, 0.25), 0 20px 40px rgba(0, 0, 0, 0.85);
+      max-width: 480px;
+      width: 100%;
+      padding: 2rem;
+      box-sizing: border-box;
+      color: #f0fdf4;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      text-align: center;
+      animation: modalGlowFade 0.3s ease-out;
+    }
+    @keyframes modalGlowFade {
+      from { opacity: 0; transform: scale(0.92) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .p-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1.25rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+      font-size: 1.5rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .p-modal-close:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    .p-modal-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .p-modal-header h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: 0 0 0.4rem 0;
+      color: #6ee7b7;
+    }
+    .p-modal-header p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin: 0 0 1.25rem 0;
+    }
+    .p-qr-wrapper {
+      background: #ffffff;
+      padding: 1rem;
+      border-radius: 16px;
+      display: inline-block;
+      box-shadow: 0 0 20px rgba(52, 211, 153, 0.2);
+      margin-bottom: 1.25rem;
+      max-width: 240px;
+      width: 100%;
+    }
+    .p-qr-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+    .p-order-details {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(52, 211, 153, 0.2);
+      border-radius: 14px;
+      padding: 1rem;
+      text-align: left;
+      margin-bottom: 1rem;
+      font-size: 0.88rem;
+    }
+    .p-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+    .p-detail-row:last-child {
+      border-bottom: none;
+    }
+    .p-detail-row .lbl {
+      color: #94a3b8;
+    }
+    .p-detail-row .val {
+      font-weight: 600;
+      color: #f0fdf4;
+    }
+    .p-detail-row .val-amount {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #818cf8;
+    }
+    .p-detail-row .val-code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(52, 211, 153, 0.15);
+      color: #6ee7b7;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+    }
+    .p-modal-hint {
+      font-size: 0.82rem;
+      color: #fbbf24;
+      margin: 0 0 1rem 0;
+      line-height: 1.4;
+    }
+    .p-modal-footer {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+    .p-modal-footer .hidden {
+      display: none !important;
+    }
+
+
+    /* Coupon Box */
+    .p-coupon-box {
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+    .p-coupon-input-wrap {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .p-coupon-input-wrap input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 10px;
+      color: #f0fdf4;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.85rem;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      outline: none;
+    }
+    .p-coupon-input-wrap input:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+    }
+    .p-btn-coupon {
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      color: #6ee7b7;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .p-btn-coupon:hover {
+      background: rgba(52, 211, 153, 0.3);
+      border-color: #818cf8;
+      color: #fff;
+    }
+    .p-coupon-msg {
+      font-size: 0.8rem;
+      margin-top: 0.4rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+    }
+    .p-coupon-msg.ok {
+      background: rgba(52, 211, 153, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+    .p-coupon-msg.err {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+
+    /* Active Plan Indicator */
+    .p-cta-current {
+      background: rgba(52, 211, 153, 0.15) !important;
+      border: 1.5px solid #6366f1 !important;
+      color: #6ee7b7 !important;
+      font-weight: 800 !important;
+      box-shadow: 0 0 20px rgba(52, 211, 153, 0.25) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0.4rem !important;
+    }
+    .p-cta-current:hover {
+      background: rgba(52, 211, 153, 0.25) !important;
+      box-shadow: 0 0 30px rgba(52, 211, 153, 0.4) !important;
+    }
+
+  
+    .pricing-scenery-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(ellipse at 50% 30%, rgba(5, 7, 19, 0.35) 0%, rgba(5, 7, 19, 0.8) 60%, #050713 90%),
+        url('assets/cyber_scenery_bg.jpg') center top / cover no-repeat;
+      opacity: 0.55;
+      filter: saturate(1.2);
+    }
+
+  </style>
 </head>
 <body class="pricing-page">
+  <div class="pricing-scenery-layer"></div>
+  <canvas id="cosmic-canvas"></canvas>
+  <div class="p-glow-bg"></div>
+
+  <!-- Flush Header -->
   <header class="p-nav">
-    <a class="p-brand" href="./">
-      <img src="./assets/bot-avatar.jpg" alt="" width="32" height="32" />
-      <span>TungDevAI</span>
-    </a>
-    <nav>
-      <a href="./">Trang chủ</a>
-      <a href="./pricing.html" class="active">Bảng giá</a>
-      <a href="./login.html">Đăng nhập</a>
-      <a href="./register.html">Đăng ký</a>
-      <a class="p-btn p-btn-sm" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Mở bot</a>
-    </nav>
+    <div class="p-nav-inner">
+      <a class="p-brand" href="./">
+        <img src="assets/tungdevai-core-logo.jpg?v=core2026" alt="TUNGAI.FUN" class="brand-avatar-img" />
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 800; color: #fff;">TUNGAI.FUN</span>
+          <span style="font-size: 0.65rem; font-family: monospace; color: #a3e635; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;">Studio Pro</span>
+        </div>
+      </a>
+      <nav class="p-nav-links">
+        <a href="./">Trang Chủ</a>
+        <a href="./pricing.html" class="active">Bảng Giá VIP</a>
+        <a href="./chat.html">Web Chat</a>
+        <a href="./login.html">Đăng Nhập</a>
+        <a href="./register.html">Đăng Ký</a>
+        <a class="p-btn p-btn-sm" href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Mở Telegram Bot</a>
+      </nav>
+    </div>
   </header>
 
   <main class="p-main">
     <div class="p-hero">
-      <img class="p-logo-mark" src="./assets/bot-avatar.jpg" alt="TungDevAI" width="56" height="56" />
-      <h1>TungDevAI</h1>
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 9999px; background: rgba(8,26,16,0.85); border: 1px solid rgba(110,231,183,0.45); box-shadow: 0 0 25px rgba(52,211,153,0.25); margin-bottom: 1.5rem;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #a3e635; box-shadow: 0 0 10px #a3e635;"></span>
+        <span style="font-family: monospace; font-size: 0.8rem; font-weight: 700; color: #6ee7b7;">BẢNG GIÁ DỊCH VỤ 2026 • KÍCH HOẠT TỰ ĐỘNG</span>
+      </div>
+
+      <h1>Bảng Giá Gói Cước</h1>
       <p class="p-promo">
-        AI chuyên <strong>coder</strong> — web chat + bot Telegram
+        Trợ lý AI chuyên <strong>Coding & Công Nghệ</strong> — Web Chat Studio + Bot Telegram 24/7
       </p>
-      <p class="p-sub">Chọn gói · bấm Mua → chưa login sẽ mở trang đăng nhập.</p>
+      <p class="p-sub">Chọn gói phù hợp và nâng cấp để mở khóa tối đa tiềm năng.</p>
+
+      
+      <div style="margin-top: 1.5rem; margin-bottom: 0.5rem;">
+        <a href="./cmd-pricing.html" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1.4rem; border-radius: 9999px; background: rgba(52, 211, 153, 0.12); border: 1.5px solid rgba(52, 211, 153, 0.45); color: #6ee7b7; text-decoration: none; font-size: 0.92rem; font-weight: 700; box-shadow: 0 0 25px rgba(52, 211, 153, 0.2); transition: all 0.2s ease;">
+          <span>⚡ Bạn đang tìm mua Key Bản Quyền TUNGAI.FUN CMD / Terminal?</span>
+          <span style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">XEM NGAY ➔</span>
+        </a>
+      </div>
 
       <div class="p-tabs" role="tablist">
-        <button type="button" class="p-tab active" data-tab="personal" id="tabPersonal">Cá nhân</button>
-        <button type="button" class="p-tab" data-tab="biz" id="tabBiz">Doanh nghiệp</button>
+        <button type="button" class="p-tab active" data-tab="personal" id="tabPersonal">Cá Nhân</button>
+        <button type="button" class="p-tab" data-tab="biz" id="tabBiz">Doanh Nghiệp</button>
       </div>
     </div>
 
     <!-- Cá nhân -->
-    <section class="p-grid" id="gridPersonal" aria-label="Goi ca nhan">
+    <section class="p-grid" id="gridPersonal" aria-label="Gói cá nhân">
       <article class="p-card">
-        <h2>Trial</h2>
-        <p class="p-price"><span class="num">0</span><span class="unit">đ<span>/ 3 ngày</span></span></p>
-        <p class="p-desc">Dùng thử web chat — không cần thẻ</p>
-        <a class="p-cta p-cta-muted" href="./register.html">Bắt đầu Trial</a>
+        <div>
+          <h2>Trial</h2>
+          <p class="p-price"><span class="num">0</span><span class="unit">đ <span>/ 3 ngày</span></span></p>
+          <p class="p-desc">Dùng thử trải nghiệm Web Chat — không cần thẻ tín dụng.</p>
+          <a class="p-cta p-cta-muted" id="btnFreePlan" href="./register.html">Bắt Đầu Miễn Phí</a>
+        </div>
         <ul class="p-feats">
-          <li><span class="ico">🎁</span> 20 tin nhắn / ngày</li>
-          <li><span class="ico">🆓</span> Model <strong>Groq</strong> (free tier)</li>
-          <li><span class="ico">🔑</span> Đăng nhập email hoặc Google</li>
-          <li><span class="ico">💬</span> Web chat coding</li>
-          <li><span class="ico">➡️</span> Nâng cấp bất cứ lúc nào</li>
+          <li><span class="ico">🎁</span> 20 tin nhắn AI mỗi ngày</li>
+          <li><span class="ico">⚡</span> Model <strong>Groq</strong> (Free tier)</li>
+          <li><span class="ico">🔑</span> Đăng nhập Email & Google</li>
+          <li><span class="ico">💬</span> Web Chat Coding thời gian thực</li>
+          <li><span class="ico">🔄</span> Nâng cấp gói bất kỳ lúc nào</li>
         </ul>
       </article>
 
       <article class="p-card">
-        <h2>Basic</h2>
-        <p class="p-price"><span class="num">49.000</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Cá nhân — code hàng ngày + GPT</p>
-        <button type="button" class="p-cta p-cta-muted js-buy" data-plan="basic">Mua Basic</button>
+        <div>
+          <h2>Basic</h2>
+          <p class="p-price"><span class="num">49.000</span><span class="unit">đ <span>/ tháng</span></span></p>
+          <p class="p-desc">Dành cho cá nhân — lập trình hàng ngày mượt mà.</p>
+          <button type="button" class="p-cta p-cta-muted js-buy" data-plan="basic">Mua Gói Basic</button>
+        </div>
         <ul class="p-feats">
-          <li><span class="ico">💬</span> 100 tin nhắn / ngày</li>
-          <li><span class="ico">🤖</span> Model <strong>GPT</strong> (gpt-oss-120B)</li>
-          <li><span class="ico">🧠</span> AI senior coding assistant</li>
-          <li><span class="ico">🌐</span> Web chat + bot Telegram</li>
-          <li><span class="ico">✨</span> Mọi thứ trong Trial</li>
+          <li><span class="ico">💬</span> <strong>100 tin nhắn</strong> mỗi ngày</li>
+          <li><span class="ico">🤖</span> Model <strong>TUNGAI.FUN Coder v1.0</strong> siêu tốc</li>
+          <li><span class="ico">🧠</span> Senior Coding Assistant</li>
+          <li><span class="ico">🌐</span> Đồng bộ Web Chat + Telegram Bot</li>
+          <li><span class="ico">✨</span> Đầy đủ tính năng gói Trial</li>
         </ul>
       </article>
 
       <article class="p-card p-card-featured">
-        <div class="p-badge">Phổ biến</div>
-        <h2>Pro</h2>
-        <p class="p-price"><span class="num">99.000</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Freelancer — DeepSeek Pro + quota cao + agent</p>
-        <button type="button" class="p-cta p-cta-primary js-buy" data-plan="pro">Mua Pro</button>
+        <div class="p-badge">Khuyên Dùng ⭐</div>
+        <div>
+          <h2>Pro VIP</h2>
+          <p class="p-price"><span class="num">99.000</span><span class="unit">đ <span>/ tháng</span></span></p>
+          <p class="p-desc">Freelancer & Dev — Deep Reasoning, Agent Pipeline, Quota cao.</p>
+          <button type="button" class="p-cta p-cta-primary js-buy" data-plan="pro">Nâng Cấp Gói Pro VIP</button>
+        </div>
         <ul class="p-feats">
-          <li><span class="ico">⚡</span> 500 tin nhắn / ngày</li>
-          <li><span class="ico">🤖</span> Model <strong>DeepSeek-V4-Pro</strong> (mạnh nhất)</li>
-          <li><span class="ico">🔧</span> Agent: plan · code · review · debug</li>
-          <li><span class="ico">📂</span> Project notes &amp; memory dài hơn</li>
-          <li><span class="ico">🖼️</span> Gửi ảnh kèm câu hỏi</li>
-          <li><span class="ico">✨</span> Mọi thứ trong Basic</li>
+          <li><span class="ico">⚡</span> <strong>500 tin nhắn</strong> mỗi ngày</li>
+          <li><span class="ico">🧠</span> Model <strong>Deep Reasoning</strong> thông minh nhất</li>
+          <li><span class="ico">🔧</span> Full Agent Pipeline: /plan, /code, /review, /debug</li>
+          <li><span class="ico">📂</span> Lưu trữ Project Notes & Ngữ cảnh dài hạn</li>
+          <li><span class="ico">🖼️</span> Đính kèm hình ảnh và phân tích tài liệu</li>
+          <li><span class="ico">✨</span> Ưu tiên tốc độ xử lý hàng đầu</li>
         </ul>
       </article>
 
-      <article class="p-card">
-        <h2>Business</h2>
-        <p class="p-price"><span class="num">199.000</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Không giới hạn tin — GPT cho team</p>
-        <button type="button" class="p-cta p-cta-primary js-buy" data-plan="business">Mua Business</button>
-        <ul class="p-feats">
-          <li><span class="ico">∞</span> Không giới hạn tin / ngày</li>
-          <li><span class="ico">🤖</span> Model <strong>VIP</strong> DeepSeek-V4-Pro</li>
-          <li><span class="ico">🏢</span> Mọi thứ trong Pro</li>
-          <li><span class="ico">👥</span> Multi-user / white-label</li>
-          <li><span class="ico">🛡️</span> Contact: @usertungpham</li>
-        </ul>
-      </article>
+      
     </section>
 
-    <!-- Doanh nghiệp -->
-    <section class="p-grid hidden" id="gridBiz" aria-label="Goi doanh nghiep">
-      <article class="p-card p-card-featured p-card-wide">
-        <div class="p-badge">Doanh nghiệp</div>
-        <h2>Business+</h2>
-        <p class="p-price"><span class="num">199.000+</span><span class="unit">đ<span>/tháng</span></span></p>
-        <p class="p-desc">Gói không giới hạn + tư vấn triển khai bot / web cho team</p>
-        <a class="p-cta p-cta-primary" href="https://t.me/usertungpham" target="_blank" rel="noopener">Liên hệ sales</a>
-        <ul class="p-feats p-feats-2col">
-          <li><span class="ico">∞</span> Unlimited messages</li>
-          <li><span class="ico">🤖</span> Bot Telegram multi-user</li>
-          <li><span class="ico">🌐</span> Web chat brand riêng</li>
-          <li><span class="ico">💳</span> QR / VietQR thanh toán</li>
-          <li><span class="ico">📦</span> White-label &amp; license</li>
-          <li><span class="ico">🛠️</span> Hỗ trợ setup VPS / domain</li>
-        </ul>
-      </article>
-      <article class="p-card">
-        <h2>Trial</h2>
-        <p class="p-price"><span class="num">0</span><span class="unit">đ<span>/ 3 ngày</span></span></p>
-        <p class="p-desc">Dùng thử trước khi mua</p>
-        <a class="p-cta p-cta-muted" href="./register.html">Bắt đầu Trial</a>
-        <ul class="p-feats">
-          <li><span class="ico">🎁</span> 20 tin / ngày · 3 ngày</li>
-          <li><span class="ico">🧪</span> Test web + bot</li>
-          <li><span class="ico">➡️</span> Nâng cấp bất cứ lúc nào</li>
-        </ul>
-      </article>
-    </section>
+          <!-- Doanh nghiệp -->
+      <section class="p-grid hidden" id="gridBiz" aria-label="Gói doanh nghiệp" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 2rem; max-width: 1000px; margin: 0 auto; padding: 1rem 0;">
+        <article class="p-card p-card-featured" style="flex: 1 1 340px; max-width: 440px; margin: 0;">
+          <div class="p-badge">Khuyên Dùng Cho Team ⭐</div>
+          <div>
+            <h2>Business</h2>
+            <p class="p-price"><span class="num">199.000</span><span class="unit">đ <span>/ tháng</span></span></p>
+            <p class="p-desc">Không giới hạn tin nhắn — Dành cho team và dự án lớn (Tối đa 5 người).</p>
+            <button type="button" class="p-cta p-cta-primary js-buy" data-plan="business">Mua Gói Business</button>
+          </div>
+          <ul class="p-feats">
+            <li><span class="ico">♾️</span> <strong>Không giới hạn</strong> tin nhắn mỗi ngày</li>
+            <li><span class="ico">🚀</span> Model <strong>VIP Flagship</strong> cao cấp nhất</li>
+            <li><span class="ico">👥</span> Dành cho <strong>Team 5 thành viên</strong> dùng chung</li>
+            <li><span class="ico">🛡️</span> Kênh hỗ trợ kỹ thuật 1-1 riêng</li>
+            <li><span class="ico">✨</span> Toàn quyền truy cập mọi tính năng mới</li>
+          </ul>
+        </article>
 
-    <section class="p-faq">
-      <h2>Câu hỏi nhanh</h2>
-      <div class="p-faq-grid">
-        <div>
-          <h3>Thanh toán thế nào?</h3>
-          <p>Đăng nhập → bấm <strong>Mua gói</strong> → quét QR VietQR (STK shop) → chuyển khoản.<br/>
-          Hoặc bot Telegram: <a href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">@grokapiai_bot</a> · <code>/buy</code>.</p>
-        </div>
-        <div>
-          <h3>Web chat có cần gói không?</h3>
-          <p>Có. Đăng ký nhận <strong>Trial</strong> (Groq). Basic = GPT · Pro = DeepSeek. Hết hạn/quota → mua lại.</p>
-        </div>
-        <div>
-          <h3>Đổi gói / gia hạn?</h3>
-          <p>Nhắn <a href="https://t.me/usertungpham" target="_blank" rel="noopener">@usertungpham</a> hoặc mua lại gói.</p>
-        </div>
-      </div>
-    </section>
+        <article class="p-card" style="flex: 1 1 340px; max-width: 460px; margin: 0;">
+          <div class="p-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">Enterprise & White-label</div>
+          <div>
+            <h2>Custom Enterprise</h2>
+            <p class="p-price"><span class="num">1.500.000</span><span class="unit">đ <span>/ trọn đời</span></span></p>
+            <p class="p-desc">Sở hữu toàn bộ mã nguồn, cài đặt riêng trên VPS thương hiệu riêng của bạn.</p>
+            <a class="p-cta p-cta-primary" href="https://t.me/usertungpham" target="_blank" rel="noopener">Liên Hệ Trực Tiếp Admin</a>
+          </div>
+          <ul class="p-feats">
+            <li><span class="ico">📦</span> Bàn giao toàn bộ Source Code (Web + Bot + Payment)</li>
+            <li><span class="ico">🎨</span> Tùy biến White-label thương hiệu, logo, tên bot riêng</li>
+            <li><span class="ico">⚙️</span> Hỗ trợ cài đặt và triển khai trọn gói lên VPS</li>
+            <li><span class="ico">💳</span> Tích hợp cổng thanh toán VietQR tự động riêng</li>
+          </ul>
+        </article>
+      </section>
+
+    <!-- Hướng dẫn mua -->
+    <div class="p-steps">
+      <div class="p-steps-title">💳 Hướng Dẫn Thanh Toán & Kích Hoạt Tự Động</div>
+      <ol class="p-steps-list">
+        <li>Bấm <strong>Mua Gói</strong> trên bảng giá để tạo mã QR ngân hàng tự động.</li>
+        <li>Quét mã VietQR bằng ứng dụng Ngân hàng (nội dung chuyển khoản tự điền).</li>
+        <li>Sau khi chuyển khoản thành công, hệ thống tự động kích hoạt tài khoản ngay lập tức!</li>
+      </ol>
+      <p class="p-steps-note">Hoặc liên hệ hỗ trợ nhanh qua Telegram: <a href="https://t.me/usertungpham" target="_blank">@usertungpham</a></p>
+    </div>
   </main>
 
-  <footer class="p-foot">
-    <div>
-      <img src="./assets/bot-avatar.jpg" alt="" width="24" height="24" />
-      <span>TungDevAI</span>
-    </div>
-    <p>
-      <a href="./">Trang chủ</a> ·
-      <a href="./login.html">Đăng nhập</a> ·
-      <a href="./register.html">Đăng ký</a> ·
-      <a href="./chat.html">Chat</a> ·
-      <a href="https://t.me/grokapiai_bot" target="_blank" rel="noopener">Bot</a>
-    </p>
-    <p class="fine">Support: @usertungpham · <a href="./huong-dan-stk.html">Hướng dẫn VietQR + STK</a></p>
-  </footer>
+  <script src="effects.js?v=flush1"></script>
+  <script src="pricing-billing.js?v=32"></script>
 
-  <!-- Modal QR autobank -->
-  <div class="pay-modal hidden" id="payModal" role="dialog" aria-modal="true">
-    <div class="pay-modal-card">
-      <button type="button" class="pay-close" id="payClose" aria-label="Đóng">×</button>
-      <h2 id="payTitle">Thanh toán</h2>
-      <p class="pay-sub" id="paySub">Quét QR · chuyển khoản đúng nội dung</p>
-      <div class="pay-qr-wrap">
-        <img id="payQr" alt="VietQR" width="240" height="240" />
-      </div>
-      <div class="pay-meta">
-        <div><span>Số tiền</span><strong id="payAmount">—</strong></div>
-        <div><span>Nội dung CK</span><strong id="payContent">—</strong></div>
-        <div><span>Mã đơn</span><code id="payOrderId">—</code></div>
-        <div><span>Trạng thái</span><strong id="payStatus">Đang chờ…</strong></div>
-      </div>
-      <p class="pay-hint" id="payHint">Giữ trang này mở. Autobank nhận CK → auto kích hoạt gói.</p>
-      <a class="p-cta p-cta-muted" id="payOpenPage" href="#" target="_blank" rel="noopener">Mở trang thanh toán</a>
-      <a class="p-cta p-cta-primary hidden" id="payGoChat" href="./chat.html">Vào chat ngay</a>
-    </div>
-  </div>
+    <!-- Modal Thanh Toán VietQR (Auto Bank) -->
+    <div id="payModal" class="p-modal hidden">
+      <div class="p-modal-backdrop"></div>
+      <div class="p-modal-content">
+        <button id="payClose" class="p-modal-close" type="button" aria-label="Đóng">&times;</button>
+        
+        <div class="p-modal-header">
+          <div class="p-modal-icon">💳</div>
+          <h3 id="payTitle">Đang tạo mã QR...</h3>
+          <p id="paySub">Quét QR để chuyển khoản đúng nội dung</p>
+        </div>
 
-  <script>
-    (function () {
-      var personal = document.getElementById("gridPersonal");
-      var biz = document.getElementById("gridBiz");
-      var tabP = document.getElementById("tabPersonal");
-      var tabB = document.getElementById("tabBiz");
-      function show(which) {
-        var isP = which === "personal";
-        personal.classList.toggle("hidden", !isP);
-        biz.classList.toggle("hidden", isP);
-        tabP.classList.toggle("active", isP);
-        tabB.classList.toggle("active", !isP);
-      }
-      tabP.addEventListener("click", function () { show("personal"); });
-      tabB.addEventListener("click", function () { show("biz"); });
-    })();
-  </script>
-  <script src="pricing-billing.js?v=4"></script>
+        <div class="p-modal-body">
+          <div class="p-qr-wrapper">
+            <img id="payQr" alt="VietQR Code" />
+          </div>
+
+                    <!-- Mã Giảm Giá Coupon Input -->
+          <div class="p-coupon-box">
+            <div class="p-coupon-input-wrap">
+              <input type="text" id="payCouponInput" placeholder="🏷️ Nhập mã giảm giá..." autocomplete="off" />
+              <button type="button" id="payCouponBtn" class="p-btn-coupon">Áp Dụng</button>
+            </div>
+            <div id="payCouponMsg" class="p-coupon-msg hidden"></div>
+          </div>
+
+          <div class="p-order-details">
+            <div class="p-detail-row">
+              <span class="lbl">Số tiền chuyển khoản:</span>
+              <span id="payAmount" class="val val-amount">---</span>
+            </div>
+            <div class="p-detail-row">
+              <span class="lbl">Nội dung chuyển khoản (bắt buộc):</span>
+              <code id="payContent" class="val val-code">---</code>
+            </div>
+            <div class="p-detail-row">
+              <span class="lbl">Mã đơn hàng:</span>
+              <span id="payOrderId" class="val">---</span>
+            </div>
+            <div class="p-detail-row">
+              <span class="lbl">Trạng thái:</span>
+              <span id="payStatus" class="val val-status">Đang xử lý...</span>
+            </div>
+          </div>
+
+          <p id="payHint" class="p-modal-hint">Đang chuẩn bị mã QR thanh toán...</p>
+        </div>
+
+        <div class="p-modal-footer">
+          <a id="payOpenPage" class="p-cta p-cta-muted hidden" target="_blank" rel="noopener">Mở trang thanh toán riêng ↗</a>
+          <a id="payGoChat" class="p-cta p-cta-primary hidden" href="chat.html">Vào Chat Ngay 🚀</a>
+        </div>
+      </div>
+    </div>
+
 </body>
 </html>

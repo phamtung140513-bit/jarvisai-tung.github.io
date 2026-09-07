@@ -1,4 +1,4 @@
-# TungDevAI CMD 1-Click Installer for Windows
+# TUNGAI.FUN CMD 1-Click Installer for Windows
 # Run: irm https://tungai.fun/install-cmd.ps1 | iex
 
 $ErrorActionPreference = "Stop"
@@ -6,13 +6,13 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host "  ╭────────────────────────────────────────────────────────────────────────╮" -ForegroundColor Green
-Write-Host "  │   ████████╗██╗   ██╗███╗   ██╗ ██████╗ ██████╗ ███████╗██╗   ██╗ █████╗ │" -ForegroundColor Cyan
-Write-Host "  │   ╚══██╔══╝██║   ██║████╗  ██║██╔════╝ ██╔══██╗██╔════╝██║   ██║██╔══██╗│" -ForegroundColor Cyan
-Write-Host "  │      ██║   ██║   ██║██╔██╗ ██║██║  ███╗██║  ██║█████╗  ██║   ██║███████│" -ForegroundColor Green
-Write-Host "  │      ██║   ██║   ██║██║╚██╗██║██║   ██║██║  ██║██╔══╝  ╚██╗ ██╔╝██╔══██│" -ForegroundColor Green
-Write-Host "  │      ██║   ╚██████╔╝██║ ╚████║╚██████╔╝██████╔╝███████╗ ╚████╔╝ ██║  ██│" -ForegroundColor DarkGreen
-Write-Host "  │      ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝  ╚═╝  ╚═│" -ForegroundColor DarkGreen
-Write-Host "  │          ✦ TUNGDEVAI STUDIO · QUANTUM ARCHITECT TERMINAL ✦             │" -ForegroundColor Magenta
+Write-Host "  │  ████████╗██╗   ██╗███╗   ██╗ ██████╗  █████╗ ██╗     ███████╗██╗   ██╗███╗   ██╗ │" -ForegroundColor Cyan
+Write-Host "  │  ╚══██╔══╝██║   ██║████╗  ██║██╔════╝ ██╔══██╗██║     ██╔════╝██║   ██║████╗  ██║ │" -ForegroundColor Cyan
+Write-Host "  │     ██║   ██║   ██║██╔██╗ ██║██║  ███╗███████║██║     █████╗  ██║   ██║██╔██╗ ██║ │" -ForegroundColor Green
+Write-Host "  │     ██║   ██║   ██║██║╚██╗██║██║   ██║██╔══██║██║     ██╔══╝  ██║   ██║██║╚██╗██║ │" -ForegroundColor Green
+Write-Host "  │     ██║   ╚██████╔╝██║ ╚████║╚██████╔╝██║  ██║██║██╗  ██║     ╚██████╔╝██║ ╚████║ │" -ForegroundColor DarkGreen
+Write-Host "  │     ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ │" -ForegroundColor DarkGreen
+Write-Host "  │          ✦ TUNGAI.FUN STUDIO · QUANTUM ARCHITECT TERMINAL ✦             │" -ForegroundColor Magenta
 Write-Host "  ╰────────────────────────────────────────────────────────────────────────╯" -ForegroundColor Green
 Write-Host ""
 
@@ -41,12 +41,12 @@ if (-not $hasPython) {
     }
 }
 
-# 2. Download and Extract TungDevAI CMD Package
-$installDir = Join-Path $env:USERPROFILE "TungDevAI"
-$zipUrl = "https://tungai.fun/downloads/TungDevAI-CMD.zip"
-$tempZip = Join-Path $env:TEMP "TungDevAI-CMD.zip"
+# 2. Download and Extract TUNGAI.FUN CMD Package
+$installDir = Join-Path $env:USERPROFILE "TUNGAI.FUN"
+$zipUrl = "https://tungai.fun/downloads/TUNGAI.FUN-CMD.zip"
+$tempZip = Join-Path $env:TEMP "TUNGAI.FUN-CMD.zip"
 
-Write-Host "  [2/4] Đang tải gói phần mềm TungDevAI CMD từ máy chủ..." -ForegroundColor Cyan
+Write-Host "  [2/4] Đang tải gói phần mềm TUNGAI.FUN CMD từ máy chủ..." -ForegroundColor Cyan
 Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing
 
 if (-not (Test-Path $installDir)) {
@@ -68,7 +68,7 @@ if (Test-Path $reqFile) {
 
 # 4. Create Desktop Shortcut
 $desktop = [System.Environment]::GetFolderPath("Desktop")
-$shortcutPath = Join-Path $desktop "TungDevAI CMD.bat"
+$shortcutPath = Join-Path $desktop "TUNGAI.FUN CMD.bat"
 $cmdFile = Join-Path $installDir "tungdev.cmd"
 $batContent = "@echo off`r`ncd /d `"" + $installDir + "`"`r`ncall `"" + $cmdFile + "`" %*`r`n"
 [System.IO.File]::WriteAllText($shortcutPath, $batContent, [System.Text.Encoding]::ASCII)
@@ -81,13 +81,14 @@ if ($userPath -notlike "*$installDir*") {
 
 Write-Host ""
 Write-Host "  ╭────────────────────────────────────────────────────────────────────────╮" -ForegroundColor Green
-Write-Host "  │  🎉 CÀI ĐẶT THÀNH CÔNG TUNGDEVAI CMD TRÊN MÁY TÍNH CỦA BẠN!            │" -ForegroundColor Green
-Write-Host "  │  • Biểu tượng Desktop: TungDevAI CMD.bat                               │" -ForegroundColor Yellow
+Write-Host "  │  🎉 CÀI ĐẶT THÀNH CÔNG TUNGAI.FUN CMD TRÊN MÁY TÍNH CỦA BẠN!            │" -ForegroundColor Green
+Write-Host "  │  • Biểu tượng Desktop: TUNGAI.FUN CMD.bat                               │" -ForegroundColor Yellow
 Write-Host "  │  • Hoặc mở CMD / PowerShell gõ: tungdev                                │" -ForegroundColor Yellow
 Write-Host "  │  • Kích hoạt key bản quyền: /activate MA_KEY                           │" -ForegroundColor Cyan
 Write-Host "  ╰────────────────────────────────────────────────────────────────────────╯" -ForegroundColor Green
 Write-Host ""
-Write-Host "  🚀 Đang khởi chạy TungDevAI CMD ngay bây giờ..." -ForegroundColor Magenta
+Write-Host "  🚀 Đang khởi chạy TUNGAI.FUN CMD ngay bây giờ..." -ForegroundColor Magenta
 Start-Sleep -Seconds 1
 
-Start-Process -FilePath "cmd.exe" -ArgumentList @("/k", "`"$cmdFile`"")
+Start-Process -FilePath "cmd.exe" -ArgumentList @("/k", "`"$cmdFile`"")
+

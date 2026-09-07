@@ -1,5 +1,5 @@
 """
-TungDevAI CMD — Giao Diện Terminal Hologram Siêu Đa Sắc (Ultra-Vibrant Multi-Color Edition).
+TUNGAI.FUN CMD — Giao Diện Terminal Hologram Siêu Đa Sắc (Ultra-Vibrant Multi-Color Edition).
 """
 
 from __future__ import annotations
@@ -105,12 +105,12 @@ custom_theme = Theme({
 console = Console(file=utf8_stdout, theme=custom_theme, force_terminal=True, legacy_windows=False, color_system="truecolor") if Console else None
 
 BANNER_ASCII_LINES = [
-    r"  ████████╗██╗   ██╗███╗   ██╗ ██████╗ ██████╗ ███████╗██╗   ██╗ █████╗ ██╗",
-    r"  ╚══██╔══╝██║   ██║████╗  ██║██╔════╝ ██╔══██╗██╔════╝██║   ██║██╔══██╗██║",
-    r"     ██║   ██║   ██║██╔██╗ ██║██║  ███╗██║  ██║█████╗  ██║   ██║███████║██║",
-    r"     ██║   ██║   ██║██║╚██╗██║██║   ██║██║  ██║██╔══╝  ╚██╗ ██╔╝██╔══██║██║",
-    r"     ██║   ╚██████╔╝██║ ╚████║╚██████╔╝██████╔╝███████╗ ╚████╔╝ ██║  ██║██║",
-    r"     ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝  ╚═╝  ╚═╝╚═╝",
+    r"  ████████╗██╗   ██╗███╗   ██╗ ██████╗  █████╗ ██╗     ███████╗██╗   ██╗███╗   ██╗",
+    r"  ╚══██╔══╝██║   ██║████╗  ██║██╔════╝ ██╔══██╗██║     ██╔════╝██║   ██║████╗  ██║",
+    r"     ██║   ██║   ██║██╔██╗ ██║██║  ███╗███████║██║     █████╗  ██║   ██║██╔██╗ ██║",
+    r"     ██║   ██║   ██║██║╚██╗██║██║   ██║██╔══██║██║     ██╔══╝  ██║   ██║██║╚██╗██║",
+    r"     ██║   ╚██████╔╝██║ ╚████║╚██████╔╝██║  ██║██║██╗  ██║     ╚██████╔╝██║ ╚████║",
+    r"     ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝      ╚═════╝ ╚═╝  ╚═══╝",
 ]
 
 FLAGSHIP_MODELS = {
@@ -138,7 +138,7 @@ def _render_vibrant_banner(cli_route, mode, lic_msg, ws_path) -> None:
     for i, line in enumerate(BANNER_ASCII_LINES):
         banner_text.append(line + "\n", style=grad_styles[min(i, len(grad_styles)-1)])
 
-    subtitle = Text("✦ TUNGDEVAI STUDIO · QUANTUM ARCHITECT TERMINAL ✦", style="bold medium_purple1 justify=center")
+    subtitle = Text("✦ TUNGAI.FUN STUDIO · QUANTUM ARCHITECT TERMINAL ✦", style="bold medium_purple1 justify=center")
 
     # Vibrant Dashboard Content
     body = Text()
@@ -218,7 +218,7 @@ async def run_repl(one_shot: str | None = None) -> int:
 
     def render_license_warning(reason_msg: str, payment_url: str = "https://tungai.fun/cmd-pricing.html"):
         warn_text = f"""
-### ⚠️ BẠN CẦN GIA HẠN THÊM KEY BẢN QUYỀN ĐỂ TIẾP TỤC SỬ DỤNG TUNGDEVAI CMD
+### ⚠️ BẠN CẦN GIA HẠN THÊM KEY BẢN QUYỀN ĐỂ TIẾP TỤC SỬ DỤNG TUNGAI.FUN CMD
 
 - ❌ **Trạng thái:** {reason_msg}
 - 👉 **Vui lòng truy cập để gia hạn hoặc mua key mới:** [{payment_url}]({payment_url})
@@ -286,7 +286,7 @@ async def run_repl(one_shot: str | None = None) -> int:
         async with db.session() as session:
             await memory.add_persist(session, CLI_USER_ID, "user", text)
             
-        utf8_stdout.write(f"\n{C_GRAY}⚡ TungDevAI đang tư duy thuật toán & thực thi…{C_RESET}\r")
+        utf8_stdout.write(f"\n{C_GRAY}⚡ TUNGAI.FUN đang tư duy thuật toán & thực thi…{C_RESET}\r")
         utf8_stdout.flush()
         
         t0 = time.time()
@@ -343,7 +343,7 @@ async def run_repl(one_shot: str | None = None) -> int:
             ok, msg, payload = await asyncio.to_thread(activate_remote_cmd_key, arg, server_url)
             if ok:
                 await refresh_license()
-                success_msg = f"\n🎉 [KÍCH HOẠT THÀNH CÔNG] {msg}\nChào mừng bạn tiếp tục sử dụng TungDevAI CMD!\n"
+                success_msg = f"\n🎉 [KÍCH HOẠT THÀNH CÔNG] {msg}\nChào mừng bạn tiếp tục sử dụng TUNGAI.FUN CMD!\n"
                 if console:
                     console.print(f"[bold spring_green3]{success_msg}[/bold spring_green3]")
                 else:
@@ -372,9 +372,9 @@ async def run_repl(one_shot: str | None = None) -> int:
         if cmd in {"model", "models", "setmodel"}:
             if not arg:
                 menu_text = """
-### ⚡ HỆ THỐNG MÔ HÌNH TRÍ TUỆ NHÂN TẠO TUNGDEVAI CMD 2026
+### ⚡ HỆ THỐNG MÔ HÌNH TRÍ TUỆ NHÂN TẠO TUNGAI.FUN CMD 2026
 
-TungDevAI CMD được **khóa độc quyền** hoạt động trên **Google Gemini 3.8 High (Quantum Deep Reasoning ⚡)** để mang lại năng lực lập trình và suy luận logic sâu sắc nhất:
+TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google Gemini 3.8 High (Quantum Deep Reasoning ⚡)** để mang lại năng lực lập trình và suy luận logic sâu sắc nhất:
 
 | Phím | Tên Mô Hình | Động Cơ AI Cốt Lõi | Đặc Tính Nổi Bật |
 | :---: | :--- | :--- | :--- |
@@ -383,7 +383,7 @@ TungDevAI CMD được **khóa độc quyền** hoạt động trên **Google Ge
 👉 **Mặc định:** Toàn bộ lệnh lập trình, `/plan`, `/code`, `/review`, `/debug` đều được xử lý trực tiếp bởi **Gemini 3.8 High**.
 """
                 if console:
-                    console.print(Panel(Markdown(menu_text), title="[bold green1]HỆ THỐNG MÔ HÌNH TUNGDEVAI[/bold green1]", border_style="spring_green3", box=ROUNDED))
+                    console.print(Panel(Markdown(menu_text), title="[bold green1]HỆ THỐNG MÔ HÌNH TUNGAI.FUN[/bold green1]", border_style="spring_green3", box=ROUNDED))
                 else:
                     utf8_stdout.write(menu_text + "\n")
                     utf8_stdout.flush()
@@ -442,7 +442,7 @@ TungDevAI CMD được **khóa độc quyền** hoạt động trên **Google Ge
 | `/exit` | Thoát chương trình |
 """
             if console:
-                console.print(Panel(Markdown(help_content), title="[bold cyan]BẢNG LỆNH ĐIỀU KHIỂN TUNGDEVAI CMD[/bold cyan]", border_style="cyan", box=ROUNDED))
+                console.print(Panel(Markdown(help_content), title="[bold cyan]BẢNG LỆNH ĐIỀU KHIỂN TUNGAI.FUN CMD[/bold cyan]", border_style="cyan", box=ROUNDED))
             return False
 
         if cmd in {"status", "st"}:
@@ -624,7 +624,7 @@ TungDevAI CMD được **khóa độc quyền** hoạt động trên **Google Ge
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="TungDevAI CMD — Ultra-Vibrant Multi-Color Terminal")
+    parser = argparse.ArgumentParser(description="TUNGAI.FUN CMD — Ultra-Vibrant Multi-Color Terminal")
     parser.add_argument("prompt", nargs="*", help="Câu hỏi hoặc lệnh trực tiếp")
     args = parser.parse_args()
     one_shot = " ".join(args.prompt).strip() or None

@@ -114,7 +114,7 @@ class ChatBody(BaseModel):
 
 
 WEB_HELP = """\
-## 🎛 TungDevAI Web — lệnh nhanh
+## 🎛 TUNGAI.FUN Web — lệnh nhanh
 
 | Lệnh | Mô tả |
 |------|--------|
@@ -570,7 +570,7 @@ def create_app() -> FastAPI:
 
     @app.get("/downloads/{filename}", response_model=None)
     async def download_file(filename: str):
-        """Serve downloadable files (e.g. TungDevAI-CMD.zip)."""
+        """Serve downloadable files (e.g. TUNGAI.FUN-CMD.zip)."""
         if not filename or ".." in filename or "/" in filename:
             raise HTTPException(400, "Bad filename")
         p = (DOCS_DIR / "downloads" / filename).resolve()
@@ -2234,18 +2234,18 @@ def create_app() -> FastAPI:
         target_label = None
 
         MODEL_SPECS = {
-            "gemini-3.8-high": ("gemini-3.8-flash", "🧠 TungDevAI 3.8 High (Deep Reasoning)"),
-            "3.8-high": ("gemini-3.8-flash", "🧠 TungDevAI 3.8 High (Deep Reasoning)"),
-            "3.8": ("gemini-3.8-flash", "🧠 TungDevAI 3.8 High (Deep Reasoning)"),
-            "coder-v1": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
-            "coder": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
-            "deepseek": ("gemini-3.8-flash", "💻 TungDevAI Coder Pro (Chuyên Code ⚡)"),
-            "coder-pro": ("gemini-3.8-flash", "💻 TungDevAI Coder Pro (Chuyên Code ⚡)"),
-            "fast": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
-            "ultra-fast": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
-            "flash-lite": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
-            "gemini-3.1-flash-lite": ("gemini-3.1-flash-lite", "⚡ TungDevAI Ultra Fast (Siêu Tốc 🚀)"),
-            "default": ("gemini-3.8-flash", "👑 TungDevAI Coder v1.0 (Flagship ⭐)"),
+            "gemini-3.8-high": ("gemini-3.8-flash", "🧠 TUNGAI.FUN 3.8 High (Deep Reasoning)"),
+            "3.8-high": ("gemini-3.8-flash", "🧠 TUNGAI.FUN 3.8 High (Deep Reasoning)"),
+            "3.8": ("gemini-3.8-flash", "🧠 TUNGAI.FUN 3.8 High (Deep Reasoning)"),
+            "coder-v1": ("gemini-3.8-flash", "👑 TUNGAI.FUN Coder v1.0 (Flagship ⭐)"),
+            "coder": ("gemini-3.8-flash", "👑 TUNGAI.FUN Coder v1.0 (Flagship ⭐)"),
+            "deepseek": ("gemini-3.8-flash", "💻 TUNGAI.FUN Coder Pro (Chuyên Code ⚡)"),
+            "coder-pro": ("gemini-3.8-flash", "💻 TUNGAI.FUN Coder Pro (Chuyên Code ⚡)"),
+            "fast": ("gemini-3.1-flash-lite", "⚡ TUNGAI.FUN Ultra Fast (Siêu Tốc 🚀)"),
+            "ultra-fast": ("gemini-3.1-flash-lite", "⚡ TUNGAI.FUN Ultra Fast (Siêu Tốc 🚀)"),
+            "flash-lite": ("gemini-3.1-flash-lite", "⚡ TUNGAI.FUN Ultra Fast (Siêu Tốc 🚀)"),
+            "gemini-3.1-flash-lite": ("gemini-3.1-flash-lite", "⚡ TUNGAI.FUN Ultra Fast (Siêu Tốc 🚀)"),
+            "default": ("gemini-3.8-flash", "👑 TUNGAI.FUN Coder v1.0 (Flagship ⭐)"),
         }
 
         if target_model in MODEL_SPECS:
@@ -2253,7 +2253,7 @@ def create_app() -> FastAPI:
             target_model = actual_model
         elif target_model and not target_model.startswith("gemini-"):
             target_model = "gemini-3.8-flash"
-            target_label = "🧠 TungDevAI 3.8 High (Deep Reasoning)"
+            target_label = "🧠 TUNGAI.FUN 3.8 High (Deep Reasoning)"
 
         route = client.route_for_plan(plan_id, plan_expired=plan_expired)
         planner = PlannerAgent(client)
@@ -2281,8 +2281,8 @@ def create_app() -> FastAPI:
                     "agent": "vision_1.5",
                     "ai_tier": "pro",
                     "ai_provider": "vision",
-                    "ai_model": "TungDevAI Vision 1.5 (Image Studio 🖼️)",
-                    "ai_label": "🎨 TungDevAI Vision 1.5 (Image Studio 🖼️)",
+                    "ai_model": "TUNGAI.FUN Vision 1.5 (Image Studio 🖼️)",
+                    "ai_label": "🎨 TUNGAI.FUN Vision 1.5 (Image Studio 🖼️)",
                 })
                 yield _sse({"type": "delta", "text": img_reply})
                 yield _sse({"type": "done", "session_id": sid})
@@ -2300,8 +2300,8 @@ def create_app() -> FastAPI:
                 "mode": mode_id,
                 "agent": "vision_1.5",
                 "ai_tier": "pro",
-                "ai_model": "TungDevAI Vision 1.5 (Image Studio 🖼️)",
-                "ai_label": "🎨 TungDevAI Vision 1.5 (Image Studio 🖼️)",
+                "ai_model": "TUNGAI.FUN Vision 1.5 (Image Studio 🖼️)",
+                "ai_label": "🎨 TUNGAI.FUN Vision 1.5 (Image Studio 🖼️)",
             }
 
         cmd, args = _parse_slash(text)
@@ -2739,7 +2739,7 @@ def main() -> None:
         format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    print(f"[OK] TungDevAI Web -> http://127.0.0.1:{port}")
+    print(f"[OK] TUNGAI.FUN Web -> http://127.0.0.1:{port}")
     uvicorn.run(
         "webapp.server:app",
         host=host,

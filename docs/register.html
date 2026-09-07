@@ -1,55 +1,57 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Đăng ký — TungDevAI</title>
-  <meta name="description" content="Tạo tài khoản TungDevAI" />
-  <meta name="theme-color" content="#212121" />
-  <link rel="icon" href="assets/icon.jpg" type="image/jpeg" />
+  <title>Đăng ký — TUNGAI.FUN Studio</title>
+  <meta name="description" content="Tạo tài khoản TUNGAI.FUN Studio Pro" />
+  <meta name="theme-color" content="#050713" />
+  <link rel="icon" href="assets/tungdevai-core-logo.jpg?v=core2026" type="image/jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="chat.css?v=34" />
-  <script src="boot-redirect.js?v=24"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="chat.css?v=mint4" />
+  <script src="boot-redirect.js?v=25"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="auth-gate">
     <div class="auth-card">
-      <a href="./" class="auth-brand-link">
-        <img src="assets/bot-avatar.jpg" alt="TungDevAI" class="auth-logo" />
+      <a href="./" class="auth-brand-link" title="Về trang chủ">
+        <img src="assets/tungdevai-core-logo.jpg?v=core2026" alt="TUNGAI.FUN" class="auth-logo" />
       </a>
-      <h1>Đăng ký</h1>
-      <p class="auth-sub">Tạo tài khoản TungDevAI — nhận mã xác thực qua email.</p>
+      <h1>Tạo Tài Khoản</h1>
+      <p class="auth-sub">Đăng ký trải nghiệm TUNGAI.FUN Studio Pro miễn phí.</p>
 
       <form id="formRegister" class="auth-form" autocomplete="on">
         <label class="auth-label" for="regName">Tên hiển thị</label>
         <input class="auth-input" id="regName" type="text" placeholder="Tên của bạn" maxlength="80" autocomplete="name" />
+        
         <label class="auth-label" for="regEmail">Email</label>
-        <input class="auth-input" id="regEmail" type="email" placeholder="ban@email.com" required autocomplete="email" />
+        <input class="auth-input" id="regEmail" type="email" placeholder="name@domain.com" required autocomplete="email" />
+        
         <label class="auth-label" for="regPassword">Mật khẩu</label>
         <input class="auth-input" id="regPassword" type="password" placeholder="Tối thiểu 6 ký tự" required minlength="6" autocomplete="new-password" />
 
         <div class="auth-otp-panel" id="otpPanel">
           <div class="auth-otp-head">
-            <span class="auth-otp-badge">Xác thực email</span>
-            <p class="auth-otp-title">Confirm that it's you</p>
-            <p class="auth-otp-lead">Chúng tôi gửi mã 6 số tới email của bạn. Nhập mã bên dưới để hoàn tất đăng ký.</p>
+            <span class="auth-otp-badge">Xác thực Email</span>
+            <p class="auth-otp-title">Mã Xác Nhận OTP</p>
+            <p class="auth-otp-lead">Chúng tôi sẽ gửi mã 6 số tới email của bạn để hoàn tất.</p>
           </div>
           <div class="auth-code-row">
             <div class="auth-code-field">
-              <label class="auth-label" for="regCode">Mã bảo mật</label>
               <input class="auth-input auth-otp-input" id="regCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="• • • • • •" autocomplete="one-time-code" />
             </div>
             <button type="button" class="auth-secondary auth-otp-send" id="btnSendCode">Gửi mã</button>
           </div>
-          <p class="auth-hint auth-otp-hint" id="codeHint">Mã có hiệu lực 10 phút · Không chia sẻ với ai</p>
+          <p class="auth-hint auth-otp-hint" id="codeHint">Mã có hiệu lực trong 10 phút</p>
         </div>
-        <button type="submit" class="auth-primary" id="btnRegisterSubmit">Tạo tài khoản</button>
+        
+        <button type="submit" class="auth-primary" id="btnRegisterSubmit">Tạo Tài Khoản Miễn Phí →</button>
       </form>
 
-      <div class="auth-divider"><span>hoặc</span></div>
+      <div class="auth-divider"><span>hoặc tiếp tục với</span></div>
       <div id="googleBtnWrap" class="google-btn-wrap"></div>
 
       <p class="auth-hint" id="authHint"></p>
@@ -58,10 +60,10 @@
 
       <p class="auth-switch">
         Đã có tài khoản?
-        <a href="login.html">Đăng nhập</a>
+        <a href="login.html">Đăng nhập ngay</a>
       </p>
       <p class="auth-foot">
-        <a href="./">Trang chủ</a> · <a href="chat.html">Chat</a>
+        <a href="./">Trang chủ</a> · <a href="chat.html">Vào Web Chat</a>
       </p>
     </div>
   </div>

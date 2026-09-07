@@ -302,7 +302,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       (apiBase() || "https://…ngrok-free.dev") +
       "/chat.html\n" +
       "2) Nếu thấy 'Visit Site' → bấm qua 1 lần\n" +
-      "3) PC phải chạy web + ngrok (BAT_TUNGDEVAI_ONLINE.bat)\n" +
+      "3) PC phải chạy web + ngrok (BAT_TUNGAI.FUN_ONLINE.bat)\n" +
       "4) Tải lại trang (Ctrl+F5)"
     );
   }
@@ -355,7 +355,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     const u = getLocalUser();
 
     if (!logged) {
-      if (els.appNameLabel) els.appNameLabel.textContent = "TungDevAI";
+      if (els.appNameLabel) els.appNameLabel.textContent = "TUNGAI.FUN";
       if (els.modelChip) {
         els.modelChip.textContent = "Đăng nhập";
         els.modelChip.classList.add("login-cta");
@@ -396,23 +396,23 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     const planId = ((user && (user.plan_id || user.plan_name)) || "trial").toLowerCase().trim();
 
     let editionText = "Studio Pro";
-    let fullTitle = "TungDevAI Studio";
+    let fullTitle = "TUNGAI.FUN Studio";
 
     if (planId === "basic") {
       editionText = "Basic";
-      fullTitle = "TungDevAI Basic";
+      fullTitle = "TUNGAI.FUN Basic";
     } else if (planId === "pro") {
       editionText = "Pro VIP";
-      fullTitle = "TungDevAI Pro VIP";
+      fullTitle = "TUNGAI.FUN Pro VIP";
     } else if (planId === "business") {
       editionText = "Business";
-      fullTitle = "TungDevAI Business";
+      fullTitle = "TUNGAI.FUN Business";
     } else if (planId === "owner" || planId === "enterprise") {
       editionText = "Enterprise";
-      fullTitle = "TungDevAI Enterprise";
+      fullTitle = "TUNGAI.FUN Enterprise";
     } else {
       editionText = "Studio Pro";
-      fullTitle = "TungDevAI Studio";
+      fullTitle = "TUNGAI.FUN Studio";
     }
 
     if (brandEdition) {
@@ -421,7 +421,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     if (welcomeEdition) {
       welcomeEdition.textContent = editionText;
     }
-    if (chatTitle && (chatTitle.textContent.indexOf("TungDevAI") !== -1)) {
+    if (chatTitle && (chatTitle.textContent.indexOf("TUNGAI.FUN") !== -1)) {
       chatTitle.textContent = fullTitle;
     }
   }
@@ -1595,7 +1595,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       els.messages.appendChild(els.welcome);
       els.welcome.style.display = "";
       bindSuggestions();
-      els.chatTitle.textContent = "TungDevAI";
+      els.chatTitle.textContent = "TUNGAI.FUN";
       return;
     }
     els.chatTitle.textContent = chat.title || "Chat";
@@ -1615,7 +1615,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       const avImg = document.createElement("img");
       avImg.className = "message-avatar";
       avImg.src = "assets/tungdevai-core-logo.jpg?v=core2026";
-      avImg.alt = "TungDevAI";
+      avImg.alt = "TUNGAI.FUN";
       row.appendChild(avImg);
     }
 
@@ -1741,7 +1741,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
 
   
   /* ============================================================
-     TUNGDEVAI DYNAMIC THINKING & GENERATING MOTION LOGIC
+     TUNGAI.FUN DYNAMIC THINKING & GENERATING MOTION LOGIC
      ============================================================ */
   let currentThinkingTimer = null;
   let activeThinkingContentEl = null;
@@ -1757,7 +1757,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     } catch (_) {}
 
     return [
-      { icon: "🧠", text: "TungDevAI đang tiếp nhận và suy nghĩ..." },
+      { icon: "🧠", text: "TUNGAI.FUN đang tiếp nhận và suy nghĩ..." },
       { icon: "⚡", text: "Đang làm rồi, đang kết nối " + modelName + "..." },
       { icon: "🛠️", text: "Đang phân tích dữ liệu và viết code..." },
       { icon: "✨", text: "Sắp xong rồi, đang trau chuốt câu trả lời..." },
@@ -1862,7 +1862,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
           ? "Mode Coder — code production-ready, temp thấp."
           : "Mode " + (MODE_LABELS[id] || id) + " đã bật.";
       if (els.input) els.input.placeholder = "Nhắn tin… (" + (MODE_LABELS[id] || id) + ") · /plan /code /build /help";
-      console.info("[TungDevAI]", tip);
+      console.info("[TUNGAI.FUN]", tip);
     }
   }
 
@@ -2108,7 +2108,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       const base = apiBase();
       if (!base) {
         throw new Error(
-          "Chưa có API server (apiBase trống). Mở http://127.0.0.1:7860 hoặc bật ngrok / BAT_TUNGDEVAI_ONLINE.bat"
+          "Chưa có API server (apiBase trống). Mở http://127.0.0.1:7860 hoặc bật ngrok / BAT_TUNGAI.FUN_ONLINE.bat"
         );
       }
       let res;
@@ -2136,7 +2136,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       } catch (netErr) {
         throw new Error(
           "Không kết nối được API AI (server/ngrok tắt).\n" +
-            "→ PC: chạy Desktop\\BAT_TUNGDEVAI_ONLINE.bat\n" +
+            "→ PC: chạy Desktop\\BAT_TUNGAI.FUN_ONLINE.bat\n" +
             "→ Local: http://127.0.0.1:7860/chat.html\n" +
             "→ Online: link ngrok + đăng nhập lại"
         );
@@ -2281,7 +2281,7 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
         "**Lỗi**\n\n" +
           em +
           "\n\nGợi ý:\n" +
-          "1. PC bật: `Desktop\\BAT_TUNGDEVAI_ONLINE.bat` (web + ngrok)\n" +
+          "1. PC bật: `Desktop\\BAT_TUNGAI.FUN_ONLINE.bat` (web + ngrok)\n" +
           "2. Mở: http://127.0.0.1:7860/chat.html (cùng máy)\n" +
           "3. Phiên hết hạn → [Đăng nhập lại](login.html?next=chat.html)\n" +
           "4. Hết quota? [Mua gói VIP](pricing.html)\n" +

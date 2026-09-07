@@ -2,207 +2,509 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex, nofollow" />
-  <title>TungDevAI Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TUNGAI.FUN Master Nexus — Control Center</title>
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <link rel="icon" href="assets/tungdevai-core-logo.jpg?v=core2026" type="image/jpeg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+
   <style>
     :root {
-      --bg: #0f1115;
-      --card: #1a1d24;
-      --line: rgba(255,255,255,.08);
-      --text: #e8eaed;
-      --muted: #9aa0a6;
-      --green: #10a37f;
-      --red: #ef4444;
-      --blue: #3b82f6;
+      --bg-dark: #010402;
+      --bg-surface: rgba(6, 18, 11, 0.75);
+      --bg-surface-hover: rgba(10, 28, 18, 0.9);
+      --border: rgba(52, 211, 153, 0.2);
+      --border-bright: rgba(110, 231, 183, 0.45);
+      --primary: #34d399;
+      --primary-light: #6ee7b7;
+      --accent-lime: #a3e635;
+      --accent-cyan: #38bdf8;
+      --accent-red: #f87171;
+      --text: #f0fdf4;
+      --text-muted: #94a3b8;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-display: 'Space Grotesk', var(--font);
+      --mono: 'JetBrains Mono', monospace;
     }
+
     * { box-sizing: border-box; }
     body {
-      margin: 0; font-family: system-ui, Segoe UI, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: var(--font);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(52, 211, 153, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.06) 0%, transparent 40%);
+      background-attachment: fixed;
+      padding: 1.5rem 1rem;
     }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 1.25rem; }
-    h1 { margin: 0 0 .25rem; font-size: 1.35rem; }
-    .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Glass Cards */
     .card {
-      background: var(--card); border: 1px solid var(--line);
-      border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 1rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: all 0.25s ease;
     }
-    label { display: block; font-size: .85rem; color: var(--muted); margin: .5rem 0 .3rem; }
-    input, select {
-      width: 100%; background: #11141a; border: 1px solid var(--line);
-      border-radius: 10px; padding: .65rem .75rem; color: var(--text);
+    .card:hover {
+      border-color: var(--border-bright);
     }
-    .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; margin-top: .75rem; }
-    .row > * { flex: 1; min-width: 120px; }
+
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+    h1 { font-size: 1.75rem; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+    .sub { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 1rem 0; }
+
+    /* Security Stealth Gate */
+    #gate {
+      max-width: 440px;
+      margin: 4rem auto;
+      text-align: center;
+      border: 1.5px solid var(--border-bright);
+      box-shadow: 0 0 40px rgba(52, 211, 153, 0.2);
+    }
+    .stealth-icon {
+      font-size: 3rem;
+      margin-bottom: 0.75rem;
+      filter: drop-shadow(0 0 15px rgba(52, 211, 153, 0.4));
+    }
+
+    /* Form Controls */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin: 0.75rem 0 0.35rem;
+      text-align: left;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
+    }
+    select { cursor: pointer; }
+    select option { background: #06120b; color: #fff; }
+
+    /* Buttons */
     .btn {
-      border: none; border-radius: 10px; padding: .65rem 1rem; cursor: pointer;
-      font-weight: 600; background: #2a2f3a; color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.75rem 1.4rem;
+      font-family: var(--font);
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
     }
-    .btn.primary { background: var(--green); color: #fff; }
-    .btn.danger { background: #3f1d1d; color: #fecaca; }
-    .btn:hover { filter: brightness(1.08); }
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
-    .stat {
-      background: #11141a; border-radius: 12px; padding: .75rem; border: 1px solid var(--line);
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--border-bright);
+      transform: translateY(-1px);
     }
-    .stat b { display: block; font-size: 1.25rem; }
-    .stat span { color: var(--muted); font-size: .8rem; }
-    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }
-    th { color: var(--muted); font-weight: 600; }
-    .msg {
-      margin-top: .75rem; padding: .65rem .75rem; border-radius: 10px;
-      background: #11141a; font-size: .85rem; white-space: pre-wrap;
+    .btn.primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #34d399;
+      color: #010402;
+      font-weight: 800;
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
     }
-    .msg.ok { color: #86efac; }
-    .msg.err { color: #fca5a5; }
-    .hidden { display: none !important; }
-    .code-box {
-      font-family: ui-monospace, Consolas, monospace; background: #0b0d11;
-      padding: .75rem; border-radius: 10px; margin-top: .5rem; word-break: break-all;
+    .btn.primary:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      box-shadow: 0 0 25px rgba(52, 211, 153, 0.5);
     }
-    .tabs { display: flex; gap: .35rem; margin-bottom: .75rem; flex-wrap: wrap; }
+    .btn.danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .btn.danger:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #f87171;
+    }
+    .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.78rem; }
+
+    /* Stats Grid */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    .stat-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary);
+    }
+    .stat-card b {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    .stat-card span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
     .tab {
-      background: transparent; border: 1px solid var(--line); color: var(--muted);
-      border-radius: 999px; padding: .4rem .85rem; cursor: pointer;
+      padding: 0.65rem 1.25rem;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .tab.on { background: rgba(16,163,127,.15); border-color: var(--green); color: #fff; }
-    @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } }
+    .tab:hover {
+      color: #fff;
+      border-color: var(--border-bright);
+    }
+    .tab.on {
+      background: rgba(52, 211, 153, 0.15);
+      border-color: var(--primary);
+      color: var(--primary-light);
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.2);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    th {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    tr:hover td {
+      background: rgba(52, 211, 153, 0.03);
+    }
+    code {
+      font-family: var(--mono);
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--primary-light);
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    /* Status Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-business { background: rgba(52, 211, 153, 0.2); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.4); }
+    .badge-pro { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .badge-basic { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-trial { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+
+    .msg {
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      margin-top: 1rem;
+    }
+    .msg.ok { background: rgba(52, 211, 153, 0.15); border: 1px solid var(--primary); color: #6ee7b7; }
+    .msg.err { background: rgba(239, 68, 68, 0.15); border: 1px solid #f87171; color: #fca5a5; }
+
+    .code-box {
+      background: #000;
+      border: 1px dashed var(--primary);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      color: #6ee7b7;
+      white-space: pre-wrap;
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
+
+    .hidden { display: none !important; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+    .row > div { flex: 1 1 200px; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- LOGIN -->
+    <!-- SECURITY STEALTH GATE -->
     <div id="gate" class="card">
-      <h1>TungDevAI Admin</h1>
-      <p class="sub">Trang quan ly rieng — khong co tren chat user.<br>
-        URL: <code>.../j-panel.html</code> · Key: <code>WEB_ADMIN_KEY</code></p>
-      <label>Admin key</label>
-      <input type="password" id="key" placeholder="WEB_ADMIN_KEY" autocomplete="off" />
-      <label>API server (de trong = tu dong)</label>
-      <input type="url" id="apiBaseLogin" placeholder="http://127.0.0.1:7860" />
-      <div class="row">
-        <button type="button" class="btn primary" id="btnLogin">Dang nhap</button>
+      <div class="stealth-icon">🛡️</div>
+      <h1>TUNGAI.FUN Master Nexus</h1>
+      <p class="sub">Hệ thống bảo mật cấp cao — Chỉ dành riêng cho Quản trị viên.</p>
+      
+      <label>Mật mã Quản trị (Admin Key)</label>
+      <input type="password" id="key" placeholder="Nhập WEB_ADMIN_KEY..." autocomplete="off" />
+      
+      <label>Máy chủ API (Mặc định tự động kết nối VPS)</label>
+      <input type="url" id="apiBaseLogin" placeholder="https://tungai.fun" />
+      
+      <div style="margin-top: 1.25rem;">
+        <button type="button" class="btn primary" id="btnLogin" style="width: 100%;">Xác Thực Quản Trị Viên 🚀</button>
       </div>
       <div class="msg hidden" id="gateMsg"></div>
     </div>
 
-    <!-- DASHBOARD -->
+    <!-- MAIN CONTROL DASHBOARD -->
     <div id="dash" class="hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;">
         <div>
-          <h1>quan ly TungDevAI</h1>
-          <p class="sub" id="dashSub">...</p>
+          <h1>⚡ TUNGAI.FUN Master Control Center</h1>
+          <p class="sub" id="dashSub">Đang kết nối: VPS 160.191.244.225 | Độc quyền Admin</p>
         </div>
-        <div class="row" style="flex:0">
-          <button type="button" class="btn" id="btnRefresh">Refresh</button>
-          <button type="button" class="btn danger" id="btnLogout">Thoat</button>
+        <div class="row" style="flex:0;gap:0.5rem;">
+          <button type="button" class="btn" id="btnRefresh">🔄 Làm Mới</button>
+          <button type="button" class="btn danger" id="btnLogout">🚪 Đăng Xuất An Toàn</button>
         </div>
       </div>
 
+      <!-- Quick Telemetry Stats -->
       <div class="card">
         <div class="stats" id="stats">
-          <div class="stat"><b id="sUsers">-</b><span>Users</span></div>
-          <div class="stat"><b id="sActive">-</b><span>Active</span></div>
-          <div class="stat"><b id="sMsg">-</b><span>Msg hom nay</span></div>
+          <div class="stat-card"><b id="sUsers">-</b><span>Tổng Người Dùng</span></div>
+          <div class="stat-card"><b id="sActive">-</b><span>VIP Active</span></div>
+          <div class="stat-card"><b id="sMsg">-</b><span>Tin Nhắn Hôm Nay</span></div>
         </div>
-        <div class="msg" id="serverInfo" style="margin-top:.75rem"></div>
+        <div class="msg ok" id="serverInfo" style="margin-top:1rem;font-family:var(--mono);font-size:0.82rem;"></div>
       </div>
 
+      <!-- Tab Navigation -->
       <div class="tabs">
-        <button type="button" class="tab on" data-tab="codes">Tao ma</button>
-        <button type="button" class="tab" data-tab="users">TG users</button>
-        <button type="button" class="tab" data-tab="webusers">Web users</button>
-        <button type="button" class="tab" data-tab="setplan">Gan goi TG</button>
-        <button type="button" class="tab" data-tab="webplan">Gan goi Web</button>
+        <button type="button" class="tab on" data-tab="codes">🎟️ Tạo Mã Kích Hoạt (Web/TG)</button>
+        <button type="button" class="tab" data-tab="coupons">🏷️ Mã Giảm Giá</button>
+        <button type="button" class="tab" data-tab="webplan">⚡ Gán Gói Web User</button>
+        <button type="button" class="tab" data-tab="webusers">🌐 Danh Sách Web Users</button>
+        <button type="button" class="tab" data-tab="cmdkeys">🔑 Key CMD Terminal</button>
+        <button type="button" class="tab" data-tab="users">📱 TG Users</button>
+        <button type="button" class="tab" data-tab="setplan">⚙️ Gán Gói Telegram</button>
       </div>
 
+      <!-- PANE 1: Tạo Mã -->
       <div class="card tabpane" id="pane-codes">
-        <h3 style="margin:0 0 .5rem">Tao ma kich hoat</h3>
+        <h3>🎟️ Tạo Mã Kích Hoạt VIP (Web / Telegram)</h3>
+        <p class="sub">Tạo mã để gửi cho khách tự gõ <code>/activate [MÃ]</code> để lên VIP.</p>
         <div class="row">
           <div>
-            <label>Goi</label>
+            <label>Gói VIP</label>
             <select id="codePlan">
-              <option value="trial">trial</option>
-              <option value="basic" selected>basic</option>
-              <option value="pro">pro</option>
-              <option value="business">business</option>
+              <option value="basic">Basic (49k/tháng)</option>
+              <option value="pro">Pro VIP (99k/tháng)</option>
+              <option value="business" selected>Business (199k/tháng - 5 Người)</option>
+              <option value="trial">Trial (Miễn phí)</option>
             </select>
           </div>
           <div>
-            <label>So ngay (trong = mac dinh)</label>
-            <input type="number" id="codeDays" placeholder="30" min="1" />
+            <label>Số ngày sử dụng</label>
+            <input type="number" id="codeDays" value="30" min="1" />
           </div>
           <div>
-            <label>Ghi chu</label>
-            <input type="text" id="codeNote" placeholder="web_admin" />
+            <label>Ghi chú (Tên khách)</label>
+            <input type="text" id="codeNote" placeholder="Khách chuyển khoản trực tiếp..." />
           </div>
         </div>
-        <div class="row">
-          <button type="button" class="btn primary" id="btnGenCode">Tao ma</button>
+        <div style="margin-top:1.25rem;">
+          <button type="button" class="btn primary" id="btnGenCode">Tạo Mã VIP Ngay 🚀</button>
         </div>
         <div class="code-box hidden" id="codeResult"></div>
       </div>
 
-      <div class="card tabpane hidden" id="pane-users">
-        <h3 style="margin:0 0 .5rem">Danh sach user</h3>
-        <div style="overflow:auto">
+            <!-- PANE: Quản Lý Mã Giảm Giá -->
+      <div class="card tabpane hidden" id="pane-coupons">
+        <h3>🏷️ Quản Lý Mã Giảm Giá (Discount Coupons)</h3>
+        <p class="sub">Tạo mã Voucher giảm giá theo % hoặc số tiền VNĐ cho khách khi mua gói trên web.</p>
+        
+        <div class="row">
+          <div>
+            <label>Mã Giảm Giá (Code)</label>
+            <input type="text" id="cpCode" placeholder="Ví dụ: VIP50, TET2026..." style="text-transform:uppercase;" />
+          </div>
+          <div>
+            <label>Loại Giảm Giá</label>
+            <select id="cpType">
+              <option value="percent" selected>Giảm theo % (Phần trăm)</option>
+              <option value="amount">Giảm theo số tiền (VNĐ)</option>
+            </select>
+          </div>
+          <div>
+            <label>Mức Giảm (Giá trị)</label>
+            <input type="number" id="cpValue" placeholder="Nhập số: ví dụ 20 (cho 20%) hoặc 30000 (cho 30k VNĐ)" value="20" min="1" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:0.75rem;">
+          <div>
+            <label>Áp Dụng Cho Gói</label>
+            <select id="cpPlan">
+              <option value="all" selected>Tất cả các gói (Basic / Pro / Business)</option>
+              <option value="basic">Chỉ gói Basic (49k)</option>
+              <option value="pro">Chỉ gói Pro VIP (99k)</option>
+              <option value="business">Chỉ gói Business (199k)</option>
+            </select>
+          </div>
+          <div>
+            <label>Số Lượt Dùng Tối Đa (Max uses)</label>
+            <input type="number" id="cpMaxUses" value="100" min="1" />
+          </div>
+          <div>
+            <label>Số Ngày Hết Hạn</label>
+            <input type="number" id="cpDays" value="30" min="1" />
+          </div>
+          <div>
+            <label>Ghi Chú</label>
+            <input type="text" id="cpNote" placeholder="Khuyến mãi khai trương..." />
+          </div>
+        </div>
+
+        <div style="margin-top:1.25rem;display:flex;gap:0.75rem;">
+          <button type="button" class="btn primary" id="btnCreateCoupon">Tạo Mã Giảm Giá Ngay 🏷️</button>
+          <button type="button" class="btn" id="btnRefreshCoupons">Làm Mới Danh Sách</button>
+        </div>
+
+        <div style="overflow-x:auto;margin-top:1.5rem;">
           <table>
             <thead>
               <tr>
-                <th>Telegram ID</th>
-                <th>User</th>
-                <th>Goi</th>
-                <th>Active</th>
-                <th>Het han</th>
-                <th></th>
+                <th>Mã Code</th>
+                <th>Mức Giảm</th>
+                <th>Áp Dụng Gói</th>
+                <th>Đã Dùng / Tối Đa</th>
+                <th>Hạn Sử Dụng</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
               </tr>
             </thead>
-            <tbody id="usersBody"></tbody>
+            <tbody id="couponsBody"></tbody>
           </table>
         </div>
       </div>
 
-      <div class="card tabpane hidden" id="pane-setplan">
-        <h3 style="margin:0 0 .5rem">Gan / khoa goi Telegram</h3>
+      <!-- PANE 2: Gán Gói Web -->
+      <div class="card tabpane hidden" id="pane-webplan">
+        <h3>⚡ Nâng Cấp / Gán Gói Web User Trực Tiếp</h3>
+        <p class="sub">Nhập email của người dùng để nâng cấp VIP ngay lập tức mà không cần tạo mã.</p>
         <div class="row">
           <div>
-            <label>Telegram ID</label>
-            <input type="number" id="planTg" placeholder="8258128591" />
+            <label>Email người dùng</label>
+            <input type="email" id="webPlanEmail" placeholder="user@gmail.com" />
           </div>
           <div>
-            <label>Goi</label>
-            <select id="planId">
-              <option value="trial">trial</option>
-              <option value="basic" selected>basic</option>
-              <option value="pro">pro</option>
-              <option value="business">business</option>
+            <label>Gói nâng cấp</label>
+            <select id="webPlanId">
+              <option value="basic">Basic (49.000đ/tháng)</option>
+              <option value="pro">Pro VIP (99.000đ/tháng)</option>
+              <option value="business" selected>Business (199.000đ/tháng - Team 5 người)</option>
+              <option value="trial">Trial (0đ - Reset về mặc định)</option>
             </select>
           </div>
           <div>
-            <label>So ngay</label>
-            <input type="number" id="planDays" placeholder="30" />
+            <label>Số ngày</label>
+            <input type="number" id="webPlanDays" value="30" />
           </div>
         </div>
-        <div class="row">
-          <button type="button" class="btn primary" id="btnSetPlan">Gan goi</button>
-          <button type="button" class="btn danger" id="btnDelUser">Khoa user</button>
+        <div style="margin-top:1.25rem;">
+          <button type="button" class="btn primary" id="btnWebSetPlan">Kích Hoạt Gói Web Ngay ✨</button>
         </div>
       </div>
 
+      <!-- PANE 3: Web Users -->
       <div class="card tabpane hidden" id="pane-webusers">
-        <h3 style="margin:0 0 .5rem">Web users (email / Google)</h3>
-        <div style="overflow:auto">
+        <h3>🌐 Danh Sách Người Dùng Web (Google & Email)</h3>
+        <div style="overflow-x:auto;margin-top:1rem;">
           <table>
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Email</th>
-                <th>Ten</th>
-                <th>Goi</th>
-                <th>Het han</th>
-                <th>Usage</th>
+                <th>Tên Hiển Thị</th>
+                <th>Gói Hiện Tại</th>
+                <th>Hạn Sử Dụng</th>
+                <th>Đã Dùng Hôm Nay</th>
               </tr>
             </thead>
             <tbody id="webUsersBody"></tbody>
@@ -210,36 +512,97 @@
         </div>
       </div>
 
-      <div class="card tabpane hidden" id="pane-webplan">
-        <h3 style="margin:0 0 .5rem">Gan goi user Web</h3>
+      <!-- PANE 4: CMD Keys -->
+      <div class="card tabpane hidden" id="pane-cmdkeys">
+        <h3>🔑 Quản Lý Key CMD Terminal (tungdev.cmd)</h3>
+        <p class="sub">Tạo mã bản quyền kích hoạt cho ứng dụng CLI chạy trên máy tính khách hàng.</p>
         <div class="row">
           <div>
-            <label>Email</label>
-            <input type="email" id="webPlanEmail" placeholder="ban@email.com" />
+            <label>Số ngày bản quyền</label>
+            <input type="number" id="cmdDays" value="30" min="1" max="3650" />
           </div>
           <div>
-            <label>Goi</label>
-            <select id="webPlanId">
-              <option value="trial">trial</option>
-              <option value="basic" selected>basic</option>
-              <option value="pro">pro</option>
-              <option value="business">business</option>
+            <label>Số máy tối đa (Max uses)</label>
+            <input type="number" id="cmdMaxUses" value="1" min="1" max="100" />
+          </div>
+          <div>
+            <label>Ghi chú</label>
+            <input type="text" id="cmdNote" placeholder="Tên khách hàng..." />
+          </div>
+        </div>
+        <div style="margin-top:1.25rem;display:flex;gap:0.75rem;">
+          <button type="button" class="btn primary" id="btnGenCmdKey">Tạo Key CLI Ngay 🔑</button>
+          <button type="button" class="btn" id="btnRefreshCmdKeys">Làm Mới Danh Sách</button>
+        </div>
+        <div class="code-box hidden" id="cmdKeyResult"></div>
+        <div style="overflow-x:auto;margin-top:1.25rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Key Bản Quyền</th>
+                <th>Số Ngày</th>
+                <th>Lượt Dùng</th>
+                <th>Ghi Chú</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="cmdKeysBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANE 5: Telegram Users -->
+      <div class="card tabpane hidden" id="pane-users">
+        <h3>📱 Danh Sách Người Dùng Telegram Bot</h3>
+        <div style="overflow-x:auto;margin-top:1rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Telegram ID</th>
+                <th>Username</th>
+                <th>Gói VIP</th>
+                <th>Trạng Thái</th>
+                <th>Hạn Sử Dụng</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANE 6: Gán Gói TG -->
+      <div class="card tabpane hidden" id="pane-setplan">
+        <h3>⚙️ Gán / Khóa Gói Telegram Bot</h3>
+        <div class="row">
+          <div>
+            <label>Telegram ID</label>
+            <input type="number" id="planTg" placeholder="Ví dụ: 8258128591" />
+          </div>
+          <div>
+            <label>Gói VIP</label>
+            <select id="planId">
+              <option value="basic">Basic</option>
+              <option value="pro">Pro VIP</option>
+              <option value="business" selected>Business</option>
+              <option value="trial">Trial</option>
             </select>
           </div>
           <div>
-            <label>So ngay</label>
-            <input type="number" id="webPlanDays" placeholder="30" />
+            <label>Số ngày</label>
+            <input type="number" id="planDays" value="30" />
           </div>
         </div>
-        <div class="row">
-          <button type="button" class="btn primary" id="btnWebSetPlan">Gan goi Web</button>
+        <div style="margin-top:1.25rem;display:flex;gap:0.75rem;">
+          <button type="button" class="btn primary" id="btnSetPlan">Gán Gói Telegram</button>
+          <button type="button" class="btn danger" id="btnDelUser">Khóa Tài Khoản</button>
         </div>
       </div>
 
       <div class="msg hidden" id="dashMsg"></div>
-      <p class="sub">Chat user: <a id="chatLink" href="./chat.html" style="color:#6ea8ff">mo chat</a></p>
+      <p class="sub" style="margin-top:1.5rem;">Cổng Chat Người Dùng: <a id="chatLink" href="./chat.html" style="color:var(--primary-light);font-weight:700;">Mở Web Chat ↗</a></p>
     </div>
   </div>
-  <script src="admin.js?v=3"></script>
+  <script src="admin.js?v=11"></script>
 </body>
 </html>

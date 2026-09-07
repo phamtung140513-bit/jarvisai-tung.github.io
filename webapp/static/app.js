@@ -70,7 +70,7 @@
     bubble.className = "bubble";
     const roleEl = document.createElement("div");
     roleEl.className = "role";
-    roleEl.textContent = role === "user" ? "Bạn" : "TungDevAI";
+    roleEl.textContent = role === "user" ? "Bạn" : "TUNGAI.FUN";
     const body = document.createElement("div");
     body.className = "content";
     body.innerHTML = formatMarkdown(text);
@@ -113,7 +113,7 @@
   let activeThinkingBodyEl = null;
 
   const THINKING_PHRASES = [
-    { icon: "🧠", text: "TungDevAI đang tiếp nhận và suy nghĩ..." },
+    { icon: "🧠", text: "TUNGAI.FUN đang tiếp nhận và suy nghĩ..." },
     { icon: "⚡", text: "Đang làm rồi, đang kết nối siêu cụm AI..." },
     { icon: "🛠️", text: "Đang phân tích dữ liệu và viết code..." },
     { icon: "✨", text: "Sắp xong rồi, đang trau chuốt câu trả lời..." },
@@ -307,8 +307,8 @@
     try {
       const res = await fetch("/api/config");
       const cfg = await res.json();
-      els.appName.textContent = cfg.app_name || "TungDevAI";
-      document.title = cfg.app_name || "TungDevAI";
+      els.appName.textContent = cfg.app_name || "TUNGAI.FUN";
+      document.title = cfg.app_name || "TUNGAI.FUN";
       els.modelLabel.textContent = `${cfg.provider} · ${cfg.model}`;
       if (cfg.telegram_bot) els.tgLink.href = cfg.telegram_bot;
       if (cfg.auth_required) {
