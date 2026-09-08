@@ -286,6 +286,13 @@
       transition: all 0.2s ease;
     }
 
+
+    .btn-nav-login.btn-nav-logout:hover {
+      background: rgba(239, 68, 68, 0.16) !important;
+      border-color: rgba(239, 68, 68, 0.35) !important;
+      color: #fca5a5 !important;
+    }
+
     .btn-nav-login:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #ffffff;
@@ -1453,7 +1460,7 @@
       </ul>
 
       <div class="nav-actions">
-        <a href="/login.html" class="btn-nav-login">Đăng Nhập</a>
+        <a href="/login.html" class="btn-nav-login" id="navAuthBtn">Đăng Nhập</a>
         <a href="/chat.html" class="btn-nav-studio">Vào Studio →</a>
       </div>
     </nav>
@@ -2406,5 +2413,90 @@ results = await <span class="mockup-code-func">search_internet</span>(<span clas
     }
 
   </script>
+
+  <!-- Dynamic Auth Switcher: Đăng Nhập -> Đăng Xuất when logged in -->
+  <script>
+    (function () {
+      function checkHasSession() {
+        try {
+          var s1 = (localStorage.getItem("jarvis_google_session_v1") || "").trim();
+          var s2 = (localStorage.getItem("jarvis_session_token") || "").trim();
+          var u1 = (localStorage.getItem("jarvis_google_user_v1") || "").trim();
+          var hasCookie = document.cookie.indexOf("tungdev_session=") !== -1;
+          return !!(s1 || s2 || (u1 && u1 !== "null" && u1 !== "{}") || hasCookie);
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function doLogout() {
+        if (confirm("Bạn có chắc chắn muốn đăng xuất tài khoản không?")) {
+          try {
+            localStorage.removeItem("jarvis_google_session_v1");
+            localStorage.removeItem("jarvis_google_user_v1");
+            localStorage.removeItem("jarvis_session_token");
+            localStorage.removeItem("tungdev_session");
+            document.cookie = "tungdev_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            fetch("/api/auth/logout", { method: "POST" }).catch(function () {});
+          } catch (_) {}
+          window.location.reload();
+        }
+      }
+
+      function applyNavAuth() {
+        var btns = document.querySelectorAll("#navAuthBtn, .btn-nav-login");
+        var hasAcc = checkHasSession();
+        btns.forEach(function (btn) {
+          if (hasAcc) {
+            btn.textContent = "Đăng Xuất";
+            btn.setAttribute("href", "javascript:void(0)");
+            btn.classList.add("btn-nav-logout");
+            btn.title = "Đăng xuất khỏi tài khoản";
+            btn.onclick = function (e) {
+              e.preventDefault();
+              doLogout();
+            };
+          } else {
+            btn.textContent = "Đăng Nhập";
+            btn.setAttribute("href", "/login.html");
+            btn.classList.remove("btn-nav-logout");
+            btn.title = "Đăng nhập";
+            btn.onclick = null;
+          }
+        });
+
+        // Pricing page support
+        var pricingLogin = document.getElementById("pricingLoginBtn");
+        var pricingReg = document.getElementById("pricingRegisterBtn");
+        if (pricingLogin) {
+          if (hasAcc) {
+            pricingLogin.textContent = "Đăng Xuất";
+            pricingLogin.setAttribute("href", "javascript:void(0)");
+            pricingLogin.onclick = function (e) {
+              e.preventDefault();
+              doLogout();
+            };
+            if (pricingReg) {
+              pricingReg.style.display = "none";
+            }
+          } else {
+            pricingLogin.textContent = "Đăng Nhập";
+            pricingLogin.setAttribute("href", "./login.html");
+            pricingLogin.onclick = null;
+            if (pricingReg) {
+              pricingReg.style.display = "";
+            }
+          }
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", applyNavAuth);
+      } else {
+        applyNavAuth();
+      }
+    })();
+  </script>
+
 </body>
 </html>
