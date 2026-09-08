@@ -48,7 +48,7 @@ body.chat-studio-body {
 
 /* Sidebar Gentle Ocean Dark Style */
 .sidebar-studio {
-  width: 260px !important;
+  width: var(--sidebar-w, 260px) !important;
   background: #050811 !important;
   border-right: 1px solid rgba(56, 189, 248, 0.1) !important;
   box-shadow: none !important;
@@ -226,11 +226,13 @@ body.chat-studio-body {
 .messages-container {
   flex: 1 !important;
   overflow-y: auto !important;
-  padding: 1.5rem 1rem 8.5rem 1rem !important;
+  padding: 1.5rem 1rem 240px 1rem !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   width: 100% !important;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
 }
 
 /* Welcome Screen */
@@ -532,20 +534,76 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Ergonomic & Easy to Grab */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(7, 11, 22, 0.4);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.2);
-  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  border: 1.5px solid rgba(7, 11, 22, 0.6);
+  cursor: grab;
+  transition: all 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
+  background: rgba(56, 189, 248, 0.75);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+::-webkit-scrollbar-thumb:active {
+  background: #38bdf8;
+  cursor: grabbing;
+}
+
+/* Draggable Sidebar Resizer Handle */
+.sidebar-resizer {
+  width: 5px;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  z-index: 55;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.sidebar-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer.resizing {
+  background: #38bdf8 !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.8) !important;
+}
+
+/* Draggable Workspace Split Resizer Handle */
+.workspace-resizer {
+  width: 6px;
+  background: rgba(56, 189, 248, 0.15);
+  cursor: col-resize;
+  position: relative;
+  z-index: 60;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  touch-action: none;
+  display: none;
+  flex-shrink: 0;
+}
+.app-layout.layout-split-active .workspace-resizer {
+  display: block !important;
+}
+.workspace-resizer:hover,
+.workspace-resizer.resizing {
+  background: #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.9) !important;
 }
 
 /* ==========================================================================

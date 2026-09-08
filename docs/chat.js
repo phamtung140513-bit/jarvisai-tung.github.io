@@ -3184,3 +3184,80 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     openCloudTerminal(execType, code);
   });
 
+
+
+  // =========================================================================
+  // DRAGGABLE RESIZERS: Sidebar & Workspace Split Screen
+  // =========================================================================
+  (function initDraggableResizers() {
+    // 1. Sidebar Resizer
+    const sbResizer = document.getElementById("sidebarResizer");
+    const app = document.getElementById("app");
+    if (sbResizer && app) {
+      const savedW = localStorage.getItem("tungai_sidebar_w");
+      if (savedW) {
+        app.style.setProperty("--sidebar-w", savedW + "px");
+      }
+
+      let isDragging = false;
+      sbResizer.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        sbResizer.classList.add("resizing");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        const newW = Math.max(180, Math.min(e.clientX, 480));
+        app.style.setProperty("--sidebar-w", newW + "px");
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (!isDragging) return;
+        isDragging = false;
+        sbResizer.classList.remove("resizing");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        const currW = parseInt(getComputedStyle(app).getPropertyValue("--sidebar-w")) || 260;
+        localStorage.setItem("tungai_sidebar_w", currW);
+      });
+
+      sbResizer.addEventListener("dblclick", () => {
+        app.style.setProperty("--sidebar-w", "260px");
+        localStorage.setItem("tungai_sidebar_w", "260px");
+      });
+    }
+
+    // 2. Workspace Split Resizer
+    const wsResizer = document.getElementById("workspaceResizer");
+    const chatCol = document.getElementById("chatColumn");
+    if (wsResizer && app && chatCol) {
+      let isWsDragging = false;
+      wsResizer.addEventListener("mousedown", (e) => {
+        isWsDragging = true;
+        wsResizer.classList.add("resizing");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isWsDragging || !app.classList.contains("layout-split-active")) return;
+        const sidebarW = parseInt(getComputedStyle(app).getPropertyValue("--sidebar-w")) || 260;
+        const availableW = window.innerWidth - sidebarW;
+        const chatW = Math.max(300, Math.min(e.clientX - sidebarW, availableW - 350));
+        chatCol.style.flex = `0 0 ${chatW}px`;
+        chatCol.style.maxWidth = `${chatW}px`;
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (!isWsDragging) return;
+        isWsDragging = false;
+        wsResizer.classList.remove("resizing");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      });
+    }
+  })();
