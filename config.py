@@ -131,7 +131,7 @@ class Settings(BaseSettings):
     )
 
     ai_temperature: float = Field(0.7, alias="AI_TEMPERATURE")
-    ai_max_tokens: int = Field(4096, alias="AI_MAX_TOKENS")
+    ai_max_tokens: int = Field(8192, alias="AI_MAX_TOKENS")
     # Legacy names map in properties
     xai_temperature: float | None = Field(None, alias="XAI_TEMPERATURE")
     xai_max_tokens: int | None = Field(None, alias="XAI_MAX_TOKENS")

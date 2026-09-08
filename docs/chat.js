@@ -355,7 +355,8 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     const u = getLocalUser();
 
     if (!logged) {
-      if (els.appNameLabel) els.appNameLabel.textContent = "TUNGAI.FUN";
+      updateBrandEdition(null);
+      if (els.appNameLabel) els.appNameLabel.textContent = "tungai.fun";
       if (els.modelChip) {
         els.modelChip.textContent = "Đăng nhập";
         els.modelChip.classList.add("login-cta");
@@ -392,37 +393,60 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     const brandEdition = $("brandEdition") || document.getElementById("brandEdition");
     const welcomeEdition = $("welcomeEdition") || document.getElementById("welcomeEdition");
     const chatTitle = $("chatTitle") || document.getElementById("chatTitle");
+    const welcomeBrandText = $("welcomeBrandText") || document.getElementById("welcomeBrandText");
+    const welcomeVipPill = $("welcomeVipPill") || document.getElementById("welcomeVipPill");
+    const appNameLabel = $("appNameLabel") || document.getElementById("appNameLabel");
+    const sidebarBrandName = $("sidebarBrandName") || document.getElementById("sidebarBrandName");
 
     const planId = ((user && (user.plan_id || user.plan_name)) || "trial").toLowerCase().trim();
+    const isVip = Boolean(user && !user.plan_expired && ["basic", "pro", "business", "owner", "enterprise", "paid", "vip"].includes(planId));
 
-    let editionText = "Studio Pro";
-    let fullTitle = "TUNGAI.FUN Studio";
+    const brandName = isVip ? "tungai.fun vip" : "tungai.fun";
 
-    if (planId === "basic") {
-      editionText = "Basic";
-      fullTitle = "TUNGAI.FUN Basic";
-    } else if (planId === "pro") {
-      editionText = "Pro VIP";
-      fullTitle = "TUNGAI.FUN Pro VIP";
-    } else if (planId === "business") {
-      editionText = "Business";
-      fullTitle = "TUNGAI.FUN Business";
-    } else if (planId === "owner" || planId === "enterprise") {
-      editionText = "Enterprise";
-      fullTitle = "TUNGAI.FUN Enterprise";
-    } else {
-      editionText = "Studio Pro";
-      fullTitle = "TUNGAI.FUN Studio";
+    if (sidebarBrandName) {
+      sidebarBrandName.textContent = "tungai.fun";
+    }
+
+    if (welcomeBrandText) {
+      welcomeBrandText.textContent = "tungai.fun";
+    }
+
+    if (welcomeVipPill) {
+      if (isVip) {
+        welcomeVipPill.classList.remove("hidden");
+        welcomeVipPill.style.display = "inline-flex";
+      } else {
+        welcomeVipPill.classList.add("hidden");
+        welcomeVipPill.style.display = "none";
+      }
     }
 
     if (brandEdition) {
-      brandEdition.textContent = editionText;
+      if (isVip) {
+        brandEdition.textContent = "VIP";
+        brandEdition.style.display = "inline-block";
+        brandEdition.className = "brand-edition brand-edition-vip";
+      } else {
+        brandEdition.textContent = "";
+        brandEdition.style.display = "none";
+      }
     }
-    if (welcomeEdition) {
-      welcomeEdition.textContent = editionText;
+
+    if (appNameLabel && (!user || !user.name)) {
+      appNameLabel.textContent = brandName;
     }
-    if (chatTitle && (chatTitle.textContent.indexOf("TUNGAI.FUN") !== -1)) {
-      chatTitle.textContent = fullTitle;
+
+    if (chatTitle) {
+      const cur = (chatTitle.textContent || "").toLowerCase();
+      const ac = typeof activeChat === "function" ? activeChat() : null;
+      if (!ac || !ac.messages || !ac.messages.length || cur.includes("tungai.fun") || cur.includes("tungdevai")) {
+        chatTitle.textContent = brandName;
+      }
+    }
+
+    const inputEl = $("input") || document.getElementById("input");
+    if (inputEl) {
+      inputEl.placeholder = isVip ? "Nhắn tin cho tungai.fun vip..." : "Nhắn tin cho tungai.fun...";
     }
   }
 
@@ -1598,7 +1622,10 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
       els.messages.appendChild(els.welcome);
       els.welcome.style.display = "";
       bindSuggestions();
-      els.chatTitle.textContent = "TUNGAI.FUN";
+      const u = getLocalUser();
+      const pId = ((u && (u.plan_id || u.plan_name)) || "trial").toLowerCase().trim();
+      const isV = Boolean(u && !u.plan_expired && ["basic", "pro", "business", "owner", "enterprise", "paid", "vip"].includes(pId));
+      els.chatTitle.textContent = isV ? "tungai.fun vip" : "tungai.fun";
       return;
     }
     els.chatTitle.textContent = chat.title || "Chat";

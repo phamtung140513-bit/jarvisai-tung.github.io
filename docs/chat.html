@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>TUNGAI.FUN Studio — Trợ Lý AI Lập Trình & Công Nghệ</title>
+  <title>tungai.fun — Trợ Lý AI Lập Trình & Công Nghệ</title>
   <meta name="description" content="TUNGAI.FUN Studio: AI chuyên Coding, Review, Debug và Kiến Trúc Hệ Thống. Hỗ trợ Real-time Stream SSE." />
   <meta name="theme-color" content="#060813" />
   
@@ -38,8 +38,8 @@
         <div class="brand-badge">
           <img src="assets/tungdevai-core-logo.jpg?v=core2026" alt="TUNGAI.FUN" class="brand-avatar" />
           <div class="brand-info">
-            <span class="brand-name">TUNGAI.FUN</span>
-            <span class="brand-edition" id="brandEdition">Studio Pro</span>
+            <span class="brand-name" id="sidebarBrandName">tungai.fun</span>
+            <span class="brand-edition" id="brandEdition" style="display:none;"></span>
           </div>
         </div>
         <button type="button" class="btn-close-sidebar mobile-only" id="btnCloseSidebar" aria-label="Đóng sidebar">✕</button>
@@ -118,7 +118,7 @@
                 <span>Workspace IDE</span>
               </button>
 
-            <span class="active-chat-title" id="chatTitle">TUNGAI.FUN Studio</span>
+            <span class="active-chat-title" id="chatTitle">tungai.fun</span>
             <span class="active-mode-tag" id="modeBadge" title="Chế độ hiện tại">Coder Pro</span>
             <div class="system-status-indicator" title="Trạng thái hệ thống">
               <span class="pulse-emerald-dot" id="statusDot"></span>
@@ -150,11 +150,15 @@
       <section class="messages-container" id="messages" aria-live="polite">
         <div class="welcome-studio" id="welcome">
           <div class="welcome-logo-wrap">
-            <img class="welcome-hero-logo" src="assets/tungdevai-core-logo.jpg?v=core2026" alt="TUNGAI.FUN" />
+            <img class="welcome-hero-logo" src="assets/tungdevai-core-logo.jpg?v=core2026" alt="tungai.fun" />
           </div>
           
+          <div class="welcome-brand-badge" id="welcomeBrandBadge">
+            <span class="welcome-brand-text" id="welcomeBrandText">tungai.fun</span>
+            <span class="welcome-vip-pill hidden" id="welcomeVipPill">VIP</span>
+          </div>
           <h1 class="welcome-title">Hôm nay tôi có thể giúp gì cho bạn?</h1>
-          <span id="welcomeEdition" style="display:none;">Studio Pro</span>
+          <span id="welcomeEdition" style="display:none;"></span>
           <span id="welcomeName" style="display:none;">bạn</span>
         </div>
       </section>
@@ -172,7 +176,7 @@
             <textarea 
               id="input" 
               rows="1" 
-              placeholder="Nhắn tin cho TUNGAI.FUN..." 
+              placeholder="Nhắn tin cho tungai.fun..." 
               autocomplete="off" 
               enterkeyhint="send"
             ></textarea>

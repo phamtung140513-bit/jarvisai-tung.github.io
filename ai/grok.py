@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 
 GEMINI_FALLBACKS = [
     "gemini-3.8-flash",
+    "gemini-flash-latest",
     "gemini-3.7-flash",
     "gemini-3.1-flash-lite",
     "gemini-flash-lite-latest",
     "gemini-3.5-flash",
-    "gemini-flash-latest",
 ]
 
 
@@ -306,7 +306,7 @@ class GrokClient:
         candidate_models = [model_id]
         if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
             if model_id in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8") or not model_id.startswith("gemini-"):
-                candidate_models = ["gemini-3.7-flash", "gemini-flash-lite-latest"]
+                candidate_models = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.7-flash"]
             for fb in GEMINI_FALLBACKS:
                 if fb not in candidate_models:
                     candidate_models.append(fb)
@@ -334,7 +334,7 @@ class GrokClient:
                 resp = await client.post(
                     "/chat/completions",
                     json=payload,
-                    timeout=httpx.Timeout(45.0, connect=5.0, read=7.0),
+                    timeout=httpx.Timeout(180.0, connect=15.0, read=180.0),
                 )
                 if resp.status_code in (404, 429, 500, 502, 503, 504):
                     body = resp.text[:300]
@@ -353,6 +353,9 @@ class GrokClient:
                     last_error = GrokError(f"Model {current_model} returned empty content")
                     continue
             except httpx.HTTPError as exc:
+                if has_yielded:
+                    logger.warning("LLM stream completed/interrupted on %s after yielding content: %s", current_model, exc)
+                    return
                 logger.warning("LLM network error on %s: %s -> trying fallback...", current_model, exc)
                 last_error = GrokError(f"Network error: {exc}")
                 continue
@@ -393,7 +396,7 @@ class GrokClient:
         candidate_models = [model_id]
         if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
             if model_id in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8") or not model_id.startswith("gemini-"):
-                candidate_models = ["gemini-3.7-flash", "gemini-flash-lite-latest"]
+                candidate_models = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.7-flash"]
             for fb in GEMINI_FALLBACKS:
                 if fb not in candidate_models:
                     candidate_models.append(fb)
@@ -422,7 +425,7 @@ class GrokClient:
                     "POST",
                     "/chat/completions",
                     json=payload,
-                    timeout=httpx.Timeout(45.0, connect=5.0, read=7.0),
+                    timeout=httpx.Timeout(300.0, connect=15.0, read=90.0),
                 ) as resp:
                     if resp.status_code in (404, 429, 500, 502, 503, 504):
                         body = (await resp.aread()).decode(errors="replace")[:300]
@@ -460,6 +463,9 @@ class GrokClient:
                     last_error = GrokError(f"Model {current_model} returned empty content")
                     continue
             except httpx.HTTPError as exc:
+                if has_yielded:
+                    logger.warning("LLM stream completed/interrupted on %s after yielding content: %s", current_model, exc)
+                    return
                 logger.warning("LLM network error on %s: %s -> trying fallback...", current_model, exc)
                 last_error = GrokError(f"Network error: {exc}")
                 continue
