@@ -1,0 +1,34 @@
+# ==============================================================================
+# TUNGAI.FUN (TungAI) Robots.txt — Optimized for Googlebot & Global Search Indexing
+# ==============================================================================
+
+User-agent: Googlebot
+Allow: /
+Allow: /chat.html
+Allow: /pricing.html
+Allow: /cmd-pricing.html
+Allow: /login.html
+Allow: /register.html
+Allow: /styles.css
+Allow: /pricing.css
+Allow: /chat.css
+Allow: /effects.js
+Allow: /assets/
+Disallow: /j-panel.html
+Disallow: /api/
+Disallow: /admin
+
+User-agent: *
+Allow: /
+Allow: /chat.html
+Allow: /pricing.html
+Allow: /cmd-pricing.html
+Allow: /login.html
+Allow: /register.html
+Allow: /assets/
+Disallow: /j-panel.html
+Disallow: /api/
+Disallow: /admin
+
+# Sitemap location
+Sitemap: https://tungai.fun/sitemap.xml
