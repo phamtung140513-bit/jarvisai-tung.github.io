@@ -306,7 +306,7 @@ class GrokClient:
         candidate_models = [model_id]
         if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
             if model_id in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8") or not model_id.startswith("gemini-"):
-                candidate_models = ["gemini-3.8-flash"]
+                candidate_models = ["gemini-3.7-flash", "gemini-flash-lite-latest"]
             for fb in GEMINI_FALLBACKS:
                 if fb not in candidate_models:
                     candidate_models.append(fb)
@@ -393,7 +393,7 @@ class GrokClient:
         candidate_models = [model_id]
         if (route and route.provider == "gemini") or getattr(self.settings, "provider", "") == "gemini":
             if model_id in ("gemini-3.8-high", "3.8-high", "3.8", "gemini-3.8") or not model_id.startswith("gemini-"):
-                candidate_models = ["gemini-3.8-flash"]
+                candidate_models = ["gemini-3.7-flash", "gemini-flash-lite-latest"]
             for fb in GEMINI_FALLBACKS:
                 if fb not in candidate_models:
                     candidate_models.append(fb)

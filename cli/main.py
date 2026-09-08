@@ -121,7 +121,7 @@ FLAGSHIP_MODELS = {
         "alias": ["1", "3.8", "gemini", "gemini-3.8", "high", "default", "coder"],
         "name": "🧠 Google Gemini 3.8 High (Deep Reasoning ⚡)",
         "provider": "gemini",
-        "model": "gemini-3.7-flash",
+        "model": "gemini-3.8-high",
         "desc": "Siêu cụm Google Gemini 3.8 High độc quyền cho CMD (Deep Reasoning 2026)",
     },
 }
