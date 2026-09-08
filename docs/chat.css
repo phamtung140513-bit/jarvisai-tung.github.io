@@ -3639,6 +3639,31 @@ pre[class*="language-"],
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
+
+.btn-inline-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.35)) !important;
+  border: 1px solid #10b981 !important;
+  color: #34d399 !important;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 3px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 0 4px;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+.btn-inline-run:hover {
+  background: #10b981 !important;
+  color: #050713 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+}
+
 .btn-inline-download:hover {
   background: #6366f1 !important;
   color: #050713 !important;

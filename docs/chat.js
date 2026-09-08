@@ -1193,10 +1193,9 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
         '</div>';
     });
 
-    // Auto convert textual download mentions into real interactive buttons
-    s = s.replace(/(?:bấm\s+)?(?:nút\s+)?(?:`|\[)?💾\s*Tải\s*file(?:`|\])?/gi, function () {
-      return '<button type="button" class="btn-inline-download" title="Bấm vào đây để tải file mã nguồn về máy tính">💾 Tải file ngay</button>';
-    });
+    // 1b. Placeholder for textual download mentions and run buttons before markdown escapes
+    s = s.replace(/(?:\*\*|`|\[)*(?:bấm\s+)?(?:nút\s+)?💾\s*Tải\s*file(?:\s*ngay)?(?:\*\*|`|\])*/gi, "@@INLINE_DOWNLOAD_BTN@@");
+    s = s.replace(/(?:\*\*|`|\[)*(?:bấm\s+)?(?:nút\s+)?(?:▶|⚡)?\s*Chạy\s*(?:Code|Python|C\+\+|Web)(?:\*\*|`|\])*/gi, "@@INLINE_RUN_BTN@@");
 
     // 2. Parse markdown links: [text](url)
     s = s.replace(/(?<!\[)\[([^\]]+)\]\(((?:https?:\/\/|\/|\.)[^\s)]+)\)/g, function (_, label, url) {
@@ -1216,6 +1215,10 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
     s = s.replace(/\*\*([^\*]+)\*\*/g, function(_, b) { return '<strong>' + escapeHtml(b) + '</strong>'; });
     s = s.replace(/\*([^\*]+)\*/g, function(_, em) { return '<em>' + escapeHtml(em) + '</em>'; });
     s = s.replace(/(^|\n)[*-] (.+)/g, "$1• $2");
+
+    // 6. Restore real interactive download and run buttons safely after markdown parsing
+    s = s.replace(/@@INLINE_DOWNLOAD_BTN@@/g, '<button type="button" class="btn-inline-download" title="Bấm vào đây để tải file mã nguồn về máy tính">💾 Tải file ngay</button>');
+    s = s.replace(/@@INLINE_RUN_BTN@@/g, '<button type="button" class="btn-inline-run" title="Bấm vào đây để chạy thử code trực tiếp">▶ Chạy Code</button>');
 
     s = s
       .split(/\n{2,}/)
@@ -2863,8 +2866,32 @@ window.getPureCodeFromBlock = function(blockEl, btnEl) {
 
 
 
-  // Download File button click handler (both on code block and inline in text)
+  // Download File & Inline Run button click handlers
   document.addEventListener("click", function (e) {
+    const runBtn = e.target && e.target.closest && e.target.closest(".btn-inline-run");
+    if (runBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      let block = runBtn.closest(".code-block");
+      if (!block) {
+        const row = runBtn.closest(".message-row, .message-content, .message, .chat-message");
+        if (row) block = row.querySelector(".code-block");
+        if (!block) {
+          const allBlocks = document.querySelectorAll(".code-block");
+          if (allBlocks.length) block = allBlocks[allBlocks.length - 1];
+        }
+      }
+      if (block) {
+        const targetBtn = block.querySelector(".btn-run-preview");
+        if (targetBtn) {
+          targetBtn.click();
+          return;
+        }
+      }
+      alert("Khối mã nguồn này không thể chạy trực tiếp trong sandbox trình duyệt.");
+      return;
+    }
+
     const btn = e.target && e.target.closest && e.target.closest(".btn-download-file, .btn-inline-download");
     if (!btn) return;
     e.preventDefault();
