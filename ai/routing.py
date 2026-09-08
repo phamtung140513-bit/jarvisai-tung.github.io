@@ -122,7 +122,7 @@ def resolve_cli_strongest_route(settings: Settings) -> ModelRoute:
     key = _key_for_provider(settings, "gemini")
     return ModelRoute(
         provider="gemini",
-        model="gemini-3.8-flash",
+        model="gemini-3.7-flash",
         base_url=defaults["base_url"].rstrip("/"),
         api_key=key,
         label="🧠 Google Gemini 3.8 High (Deep Reasoning ⚡)",

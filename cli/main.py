@@ -10,6 +10,7 @@ import io
 import logging
 import os
 import re
+import subprocess
 import sys
 import time
 from datetime import datetime
@@ -41,11 +42,12 @@ try:
     from rich.console import Console
     from rich.markdown import Markdown
     from rich.panel import Panel
+    from rich.syntax import Syntax
     from rich.theme import Theme
     from rich.text import Text
     from rich.box import ROUNDED, HEAVY, DOUBLE
 except ImportError:
-    Console = None; Theme = None; Panel = None; Markdown = None  # type: ignore
+    Console = None; Theme = None; Panel = None; Markdown = None; Syntax = None  # type: ignore
 
 from ai.coder import CoderAgent
 from ai.debugger import DebuggerAgent
@@ -119,7 +121,7 @@ FLAGSHIP_MODELS = {
         "alias": ["1", "3.8", "gemini", "gemini-3.8", "high", "default", "coder"],
         "name": "🧠 Google Gemini 3.8 High (Deep Reasoning ⚡)",
         "provider": "gemini",
-        "model": "gemini-3.8-flash",
+        "model": "gemini-3.7-flash",
         "desc": "Siêu cụm Google Gemini 3.8 High độc quyền cho CMD (Deep Reasoning 2026)",
     },
 }
@@ -201,6 +203,188 @@ async def _owner_system_extra(session_factory, settings, user_mode_prompt: str |
     except Exception:
         teach = None
     return merge_prompt_layers(mode_prompt=user_mode_prompt, teachings=teach)
+
+
+
+# ---------------------------------------------------------
+# CODE RENDERER & CLIPBOARD ENGINE (VIBRANT MONOKAI + ROUNDED PANELS)
+# ---------------------------------------------------------
+LAST_CODE_BLOCKS: list[str] = []
+
+LANG_METADATA = {
+    "python": ("🐍", "PYTHON", "spring_green3", "python"),
+    "py": ("🐍", "PYTHON", "spring_green3", "python"),
+    "bash": ("⚡", "BASH / TERMINAL", "bright_yellow", "bash"),
+    "sh": ("⚡", "SHELL", "bright_yellow", "bash"),
+    "shell": ("⚡", "SHELL", "bright_yellow", "bash"),
+    "cmd": ("💻", "COMMAND PROMPT", "bright_yellow", "bat"),
+    "bat": ("💻", "BATCH SCRIPT", "bright_yellow", "bat"),
+    "batch": ("💻", "BATCH SCRIPT", "bright_yellow", "bat"),
+    "powershell": ("💻", "POWERSHELL", "bright_cyan", "powershell"),
+    "ps1": ("💻", "POWERSHELL", "bright_cyan", "powershell"),
+    "javascript": ("🟨", "JAVASCRIPT", "bright_yellow", "javascript"),
+    "js": ("🟨", "JAVASCRIPT", "bright_yellow", "javascript"),
+    "typescript": ("🔷", "TYPESCRIPT", "sky_blue1", "typescript"),
+    "ts": ("🔷", "TYPESCRIPT", "sky_blue1", "typescript"),
+    "html": ("🌐", "HTML5", "orange1", "html"),
+    "htm": ("🌐", "HTML5", "orange1", "html"),
+    "css": ("🎨", "CSS3", "deep_sky_blue1", "css"),
+    "scss": ("🎨", "SCSS", "deep_sky_blue1", "scss"),
+    "cpp": ("⚡", "C++", "cyan", "cpp"),
+    "c++": ("⚡", "C++", "cyan", "cpp"),
+    "c": ("⚡", "C", "cyan", "c"),
+    "csharp": ("🔷", "C#", "bright_magenta", "csharp"),
+    "cs": ("🔷", "C#", "bright_magenta", "csharp"),
+    "java": ("☕", "JAVA", "orange1", "java"),
+    "go": ("🐹", "GO", "bright_cyan", "go"),
+    "golang": ("🐹", "GO", "bright_cyan", "go"),
+    "rust": ("🦀", "RUST", "orange1", "rust"),
+    "rs": ("🦀", "RUST", "orange1", "rust"),
+    "php": ("🐘", "PHP", "medium_purple1", "php"),
+    "json": ("📦", "JSON", "bright_magenta", "json"),
+    "sql": ("🗄️", "SQL", "medium_purple1", "sql"),
+    "yaml": ("⚙️", "YAML", "spring_green2", "yaml"),
+    "yml": ("⚙️", "YAML", "spring_green2", "yaml"),
+    "xml": ("📄", "XML", "bright_yellow", "xml"),
+    "dockerfile": ("🐳", "DOCKERFILE", "sky_blue1", "docker"),
+    "docker": ("🐳", "DOCKERFILE", "sky_blue1", "docker"),
+    "markdown": ("📝", "MARKDOWN", "bright_white", "markdown"),
+    "md": ("📝", "MARKDOWN", "bright_white", "markdown"),
+}
+
+def copy_to_clipboard(text: str) -> bool:
+    """Copy text directly to Windows clipboard with UTF-16LE encoding (zero external pip dependencies)."""
+    try:
+        p = subprocess.Popen("clip", stdin=subprocess.PIPE, shell=True)
+        p.communicate(input=text.encode("utf-16le"))
+        return p.returncode == 0
+    except Exception:
+        return False
+
+def render_rich_ai_reply(text: str) -> None:
+    """Render AI text with beautiful syntax-highlighted code inside rounded border panels and auto-copy."""
+    global LAST_CODE_BLOCKS
+    LAST_CODE_BLOCKS.clear()
+
+    if not console or not Syntax:
+        utf8_stdout.write(text + "\n")
+        utf8_stdout.flush()
+        return
+
+    pattern = re.compile(r"```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```")
+    matches = list(pattern.finditer(text))
+
+    if not matches:
+        console.print()
+        console.print(Markdown(text))
+        console.print()
+        return
+
+    # Find primary code block for auto-copying (longest non-shell block)
+    auto_copied_idx = 1
+    longest_len = 0
+    longest_code = ""
+
+    for i, m in enumerate(matches, 1):
+        c_text = m.group(2).strip()
+        lang = (m.group(1) or "").strip().lower()
+        if len(c_text) > longest_len and lang not in ("bash", "sh", "cmd", "bat", "batch", "powershell", "ps1"):
+            longest_len = len(c_text)
+            longest_code = c_text
+            auto_copied_idx = i
+
+    if not longest_code and matches:
+        auto_copied_idx = 1
+        longest_code = matches[0].group(2).strip()
+
+    last_end = 0
+    code_count = 0
+
+    for m in matches:
+        pre_text = text[last_end:m.start()].strip()
+        if pre_text:
+            console.print()
+            console.print(Markdown(pre_text))
+            console.print()
+
+        lang_raw = (m.group(1) or "").strip().lower() or "text"
+        code_body = m.group(2)
+        code_count += 1
+        LAST_CODE_BLOCKS.append(code_body.strip())
+
+        meta = LANG_METADATA.get(lang_raw)
+        if meta:
+            icon, lang_title, border_color, lexer = meta
+        else:
+            icon, lang_title, border_color, lexer = ("💻", (lang_raw.upper() if lang_raw != "text" else "CODE"), "cyan", (lang_raw if lang_raw != "text" else "python"))
+
+        lines = code_body.strip().splitlines()
+        line_count = len(lines)
+
+        is_auto = (code_count == auto_copied_idx)
+        copy_badge = (
+            "[bold bright_green]✓ ĐÃ TỰ ĐỘNG SAO CHÉP (Ctrl+V)[/bold bright_green]"
+            if is_auto
+            else f"[bold bright_yellow]📋 Gõ /copy {code_count} để chép[/bold bright_yellow]"
+        )
+
+        try:
+            syntax = Syntax(
+                code_body.rstrip(),
+                lexer,
+                theme="monokai",
+                line_numbers=True,
+                word_wrap=True,
+                padding=(0, 1),
+            )
+        except Exception:
+            syntax = Syntax(
+                code_body.rstrip(),
+                "text",
+                theme="monokai",
+                line_numbers=True,
+                word_wrap=True,
+                padding=(0, 1),
+            )
+
+        title = f"[bold white]{icon} {lang_title}[/bold white]   [dim]·[/dim]   {copy_badge}"
+        subtitle = f"[dim]⚡ {line_count} dòng code · TUNGAI.FUN Coder v1.0[/dim]"
+
+        panel = Panel(
+            syntax,
+            title=title,
+            title_align="left",
+            subtitle=subtitle,
+            subtitle_align="right",
+            border_style=border_color,
+            box=ROUNDED,
+            padding=(1, 2),
+        )
+        console.print()
+        console.print(panel)
+        console.print()
+        last_end = m.end()
+
+    post_text = text[last_end:].strip()
+    if post_text:
+        console.print()
+        console.print(Markdown(post_text))
+        console.print()
+
+    # Automatically copy primary code to clipboard and show badge
+    if longest_code:
+        copied = copy_to_clipboard(longest_code)
+        if copied:
+            console.print(
+                Panel(
+                    f"[bold spring_green3]📋 [THÀNH CÔNG] Đã tự động sao chép mã nguồn chính (Khối #{auto_copied_idx}) vào Clipboard của bạn![/bold spring_green3]\n"
+                    f"[dim cyan]👉 Bạn chỉ cần nhấn [bold bright_white]Ctrl + V[/bold bright_white] trong VS Code, Notepad hoặc trình duyệt để dán ngay mã nguồn.[/dim cyan]\n"
+                    f"[dim]💡 Hoặc gõ lệnh: [bold yellow]/copy 2[/bold yellow] (hoặc /copy 1, /copy 3...) để sao chép khối khác.[/dim]",
+                    border_style="spring_green3",
+                    box=ROUNDED,
+                    padding=(0, 2),
+                )
+            )
 
 
 async def run_repl(one_shot: str | None = None) -> int:
@@ -296,6 +480,8 @@ async def run_repl(one_shot: str | None = None) -> int:
         
         t0 = time.time()
         full_reply = []
+        spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        spin_idx = 0
         
         try:
             async for delta in grok.chat_stream(
@@ -304,15 +490,19 @@ async def run_repl(one_shot: str | None = None) -> int:
                 temperature=mode.temperature,
                 plan_id=CLI_PLAN_ID,
             ):
-                if not full_reply:
-                    utf8_stdout.write(" " * 65 + "\r")
-                    utf8_stdout.flush()
                 full_reply.append(delta)
-                utf8_stdout.write(delta)
+                now_elapsed = time.time() - t0
+                spin_idx = (spin_idx + 1) % len(spinner_chars)
+                spin = spinner_chars[spin_idx]
+                token_count = len(full_reply)
+                status_line = f"\r{C_MINT}⚡ TUNGAI.FUN đang suy luận & sinh mã nguồn {spin} ({now_elapsed:.1f}s · ~{token_count} blocks){C_RESET}   "
+                utf8_stdout.write(status_line)
                 utf8_stdout.flush()
                 
             elapsed = time.time() - t0
         except GrokError as exc:
+            utf8_stdout.write("\r" + " " * 80 + "\r")
+            utf8_stdout.flush()
             if console:
                 console.print(f"\n[bold red]❌ Lỗi AI:[/bold red] {exc}\n")
             else:
@@ -320,11 +510,17 @@ async def run_repl(one_shot: str | None = None) -> int:
                 utf8_stdout.flush()
             return
             
+        # Clear status indicator line cleanly
+        utf8_stdout.write("\r" + " " * 80 + "\r")
+        utf8_stdout.flush()
+
         final_text = "".join(full_reply)
         async with db.session() as session:
             await memory.add_persist(session, CLI_USER_ID, "assistant", final_text)
+
+        render_rich_ai_reply(final_text)
             
-        utf8_stdout.write(f"\n\n{C_BOX_GRAY}[Hoàn tất trong {elapsed:.2f}s · {grok.active_model}]{C_RESET}\n\n")
+        utf8_stdout.write(f"\n{C_BOX_GRAY}[Hoàn tất trong {elapsed:.2f}s · {grok.active_model}]{C_RESET}\n\n")
         utf8_stdout.flush()
 
     badge_name = f"{cli_route.label} · always-approve"
@@ -362,9 +558,48 @@ async def run_repl(one_shot: str | None = None) -> int:
                     utf8_stdout.write(fail_msg)
                     utf8_stdout.flush()
             return False
-        parts = line.strip().split(maxsplit=1)
-        cmd = parts[0].lower().lstrip("/")
-        arg = parts[1].strip() if len(parts) > 1 else ""
+        if cmd in {"copy", "cp"}:
+            if not LAST_CODE_BLOCKS:
+                msg = "\n⚠️ Chưa có khối mã nguồn nào trong phiên hiện tại để sao chép.\n"
+                if console:
+                    console.print(f"[bold yellow]{msg}[/bold yellow]")
+                else:
+                    utf8_stdout.write(msg)
+                    utf8_stdout.flush()
+                return False
+
+            idx = 1
+            if arg:
+                try:
+                    idx = int(arg)
+                except ValueError:
+                    idx = 1
+
+            if 1 <= idx <= len(LAST_CODE_BLOCKS):
+                target_code = LAST_CODE_BLOCKS[idx - 1]
+                ok = copy_to_clipboard(target_code)
+                if ok:
+                    msg = f"\n✅ [ĐÃ CHÉP] Đã sao chép Khối mã #{idx} ({len(target_code.splitlines())} dòng) vào Clipboard! (Nhấn Ctrl+V để dán)\n"
+                    if console:
+                        console.print(f"[bold spring_green3]{msg}[/bold spring_green3]")
+                    else:
+                        utf8_stdout.write(msg)
+                        utf8_stdout.flush()
+                else:
+                    msg = "\n❌ Không thể truy cập Clipboard hệ thống.\n"
+                    if console:
+                        console.print(f"[bold red]{msg}[/bold red]")
+                    else:
+                        utf8_stdout.write(msg)
+                        utf8_stdout.flush()
+            else:
+                msg = f"\n⚠️ Khối mã #{idx} không tồn tại. Hiện có {len(LAST_CODE_BLOCKS)} khối mã (từ 1 đến {len(LAST_CODE_BLOCKS)}).\n"
+                if console:
+                    console.print(f"[bold yellow]{msg}[/bold yellow]")
+                else:
+                    utf8_stdout.write(msg)
+                    utf8_stdout.flush()
+            return False
 
         if cmd in {"exit", "quit", "q"}:
             if console:
@@ -434,6 +669,7 @@ TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google G
 | Lệnh | Chức Năng |
 | :--- | :--- |
 | `/help` | Hiển thị bảng hướng dẫn này |
+| `/copy [số]` | Sao chép khối mã nguồn vào Clipboard (Ví dụ: `/copy 1`) |
 | `/model` | Danh sách & chọn đổi 4 siêu mô hình AI đỉnh cao |
 | `/status` | Kiểm tra trạng thái: Model, Mode, Memory, Workspace |
 | `/mode <id>` | Đổi chế độ: `coder` · `security` · `marketing` · `business` · `tutor` · `data` |
@@ -513,8 +749,7 @@ TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google G
             utf8_stdout.write(f"\n{C_GRAY}🧠 Agent Planner đang lập kế hoạch kiến trúc…{C_RESET}\n\n")
             utf8_stdout.flush()
             out = await planner.plan(arg, plan_id=CLI_PLAN_ID)
-            if console:
-                console.print(Markdown(out))
+            render_rich_ai_reply(out)
             return False
 
         if cmd == "code":
@@ -525,8 +760,7 @@ TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google G
             utf8_stdout.write(f"\n{C_GRAY}⚡ Agent Coder đang viết mã nguồn tối ưu…{C_RESET}\n\n")
             utf8_stdout.flush()
             out = await coder.code(arg, plan_id=CLI_PLAN_ID)
-            if console:
-                console.print(Markdown(out))
+            render_rich_ai_reply(out)
             return False
 
         if cmd == "review":
@@ -537,8 +771,7 @@ TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google G
             utf8_stdout.write(f"\n{C_GRAY}🔎 Agent Reviewer đang phân tích & quét bảo mật…{C_RESET}\n\n")
             utf8_stdout.flush()
             out = await reviewer.review(arg, plan_id=CLI_PLAN_ID)
-            if console:
-                console.print(Markdown(out))
+            render_rich_ai_reply(out)
             return False
 
         if cmd == "debug":
@@ -549,8 +782,7 @@ TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google G
             utf8_stdout.write(f"\n{C_GRAY}🛠️ Agent Debugger đang truy vết nguyên nhân gốc rễ…{C_RESET}\n\n")
             utf8_stdout.flush()
             out = await debugger.debug(arg, plan_id=CLI_PLAN_ID)
-            if console:
-                console.print(Markdown(out))
+            render_rich_ai_reply(out)
             return False
 
         if cmd == "build":
@@ -561,8 +793,7 @@ TUNGAI.FUN CMD được **khóa độc quyền** hoạt động trên **Google G
             utf8_stdout.write(f"\n{C_GRAY}🚀 Bắt đầu chu trình tự động hóa Pipeline: Plan ➔ Code ➔ Review…{C_RESET}\n\n")
             utf8_stdout.flush()
             res = await pipeline.run(arg, do_plan=True, do_code=True, do_review=True, plan_id=CLI_PLAN_ID)
-            if console:
-                console.print(Markdown(res.format_web()))
+            render_rich_ai_reply(res.format_web())
             return False
 
         return False
